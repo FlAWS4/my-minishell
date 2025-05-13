@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/12 22:47:32 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/13 21:27:17 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,20 @@ typedef struct s_shell
 
 /* Function prototypes to be added as you implement them */
 
-char	*ft_strdup(const char *s);
+/* Environment functions */
+t_env	*create_env_node(char *key, char *value);
+void	add_env_var(t_env **env_list, t_env *new_node);
+void	split_env_string(char *str, char **key, char **value);
+t_env	*init_env(char **envp);
+char	*get_env_value(t_env *env, char *key);
 
+/* String utility functions */
+char	*ft_strdup(const char *s);
+int     ft_strcmp(const char *s1, const char *s2);
+size_t	ft_strlen(const char *s);
+
+/* Signal handling functions - already defined but adding for completeness */
+void	signl_handler(int signum);
+void	setup_signals(void);
 
 #endif
