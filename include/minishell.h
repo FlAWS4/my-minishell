@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/17 20:36:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/18 21:16:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,7 @@ t_env	*create_env_node(char *key, char *value);
 void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
-char	*get_env_value(t_env *env, char *key);
+char	*get_env_value(t_env *env, const char *key);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -93,6 +93,7 @@ char	*ft_strjoin(const char *s1, const char *s2);
 char	*ft_strjoin_free(char *s1, const char *s2);
 void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
+void	*ft_calloc(size_t nmemb, size_t size);
 
 /* Signal handling functions */
 void	signl_handler(int signum);
@@ -135,5 +136,6 @@ int		builtin_export(t_shell *shell, t_cmd *cmd);
 int		builtin_unset(t_shell *shell, t_cmd *cmd);
 int		builtin_env(t_shell *shell);
 int		builtin_exit(t_shell *shell, t_cmd *cmd);
+int     is_builtin(char *cmd);
 
 #endif
