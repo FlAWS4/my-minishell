@@ -6,7 +6,7 @@
 /*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/18 20:27:53 by hchowdhu         ###   ########.fr       */
+/*   Updated: 2025/05/18 20:31:21 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,8 +75,6 @@ typedef struct s_shell
     int		exit_status;
 }	t_shell;
 
-/* Function prototypes to be added as you implement them */
-
 /* Environment functions */
 t_env	*create_env_node(char *key, char *value);
 void	add_env_var(t_env **env_list, t_env *new_node);
@@ -86,35 +84,41 @@ char	*get_env_value(t_env *env, const char *key);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
-int     ft_strcmp(const char *s1, const char *s2);
+int		ft_strcmp(const char *s1, const char *s2);
 size_t	ft_strlen(const char *s);
 char	*ft_substr(char const *s, unsigned int start, size_t len);
-size_t	ft_strlcpy(char *dst, const char *src, size_t size);\
+size_t	ft_strlcpy(char *dst, const char *src, size_t size);
+char	**ft_split(const char *s, char c);
+char	*ft_strjoin(const char *s1, const char *s2);
+char	*ft_strjoin_free(char *s1, const char *s2);
+void	ft_putstr_fd(char *s, int fd);
+void	ft_bzero(void *s, size_t n);
 
-/* Signal handling functions - already defined but adding for completeness */
+/* Signal handling functions */
 void	signl_handler(int signum);
 void	setup_signals(void);
-int     handle_word(char *input, int i, t_token **tokens);
 
 /* Lexer functions */
-t_token *process_tokens(char *input);
-t_token *tokenize(char *input);
+int		handle_word(char *input, int i, t_token **tokens);
+t_token	*process_tokens(char *input);
+t_token	*tokenize(char *input);
 
 /* Command creation and management */
 t_cmd	*create_cmd(void);
-int	init_args(t_cmd *cmd, char *arg);
+int		init_args(t_cmd *cmd, char *arg);
 void	add_arg(t_cmd *cmd, char *arg);
 
 /* Redirection handling */
-int	handle_redir_in(t_token **token, t_cmd *cmd);
-int	handle_redir_out(t_token **token, t_cmd *cmd, int append);
-int	handle_heredoc(t_token **token, t_cmd *cmd);
-int	parse_redirections(t_token **tokens, t_cmd *cmd);
+int		handle_redir_in(t_token **token, t_cmd *cmd);
+int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
+int		handle_heredoc(t_token **token, t_cmd *cmd);
+int		parse_redirections(t_token **tokens, t_cmd *cmd);
+int		setup_redirections(t_cmd *cmd);
 
 /* Token parsing */
 void	handle_word_token(t_cmd *cmd, t_token *token);
 t_cmd	*handle_pipe_token(t_cmd *current);
-int	process_token(t_token **token, t_cmd **current);
+int		process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
 
 /* Builtin functions */
