@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   env_utils.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:56 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/13 21:26:16 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/18 20:26:00 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,36 +111,35 @@ char *get_env_value(t_env *env_list, const char *key)
 }
 
 
-/*
-t_env *init_env(char **envp)
-{
-	t_env *env_list;
-	char *key;
-	char *value;
-	int i;
-	int j;
+
+// t_env *init_env(char **envp)
+// {
+// 	t_env *env_list;
+// 	char *key;
+// 	char *value;
+// 	int i;
+// 	int j;
 	
-	env_list = NULL;
-	i = 0;
-	while (envp[i])
-	{
-		j = 0;
-		while (envp[i][j] && envp[i][j] != '=')
-			j++;
-		key = malloc(j + 1);
-		if (!key)
-			return (NULL);
-		j = 0;
-		while (envp[i][j] && envp[i][j] != '=')
-		{
-			key[j] = envp[i][j];
-			j++;
-		}
-		key[j] = '\0';
-		value = ft_strdup(envp[i] + j + 1);
-		add_env_var(&env_list, create_env_node(key, value));
-		i++;
-	}
-	return (env_list);
-}
-*
+// 	env_list = NULL;
+// 	i = 0;
+// 	while (envp[i])
+// 	{
+// 		j = 0;
+// 		while (envp[i][j] && envp[i][j] != '=')
+// 			j++;
+// 		key = malloc(j + 1);
+// 		if (!key)
+// 			return (NULL);
+// 		j = 0;
+// 		while (envp[i][j] && envp[i][j] != '=')
+// 		{
+// 			key[j] = envp[i][j];
+// 			j++;
+// 		}
+// 		key[j] = '\0';
+// 		value = ft_strdup(envp[i] + j + 1);
+// 		add_env_var(&env_list, create_env_node(key, value));
+// 		i++;
+// 	}
+// 	return (env_list);
+// }

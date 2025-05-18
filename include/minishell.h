@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/14 20:40:00 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/18 20:27:53 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ t_env	*create_env_node(char *key, char *value);
 void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
-char	*get_env_value(t_env *env, char *key);
+char	*get_env_value(t_env *env, const char *key);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -116,5 +116,10 @@ void	handle_word_token(t_cmd *cmd, t_token *token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int	process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
+
+/* Builtin functions */
+
+// cd function
+int		ft_cd(char **args);
 
 #endif
