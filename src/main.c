@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/17 20:54:41 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/19 20:37:21 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,35 +61,75 @@ void	free_cmd_list(t_cmd *cmd)
 }
 
 /**
+ * Set up the terminal attributes
+ */
+void	setup_terminal(void)
+{
+    struct termios	term;
+
+    tcgetattr(STDIN_FILENO, &term);
+    term.c_lflag &= ~ECHOCTL;
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+/**
+ * Process user input and execute commands
+ */
+void	process_input(t_shell *shell, char *input)
+{
+    t_token	*tokens;
+
+    if (!*input)
+        return;
+    add_history(input);
+    tokens = tokenize(input);
+    shell->cmd = parse_tokens(tokens);
+    if (shell->cmd && shell->cmd->args)
+    {
+        execute_command(shell, shell->cmd);
+        if (g_signal == 1)
+        {
+            shell->exit_status = 130;
+            g_signal = 0;
+        }
+    }
+    free_cmd_list(shell->cmd);
+    shell->cmd = NULL;
+    setup_signals();
+}
+
+/**
  * Main shell loop
+ */
+void	shell_loop(t_shell *shell)
+{
+    char	*input;
+
+    while (1)
+    {
+        input = readline("minishell$ ");
+        if (!input)
+        {
+            write(1, "exit\n", 5);
+            break;
+        }
+        process_input(shell, input);
+        free(input);
+    }
+}
+
+/**
+ * Main function
  */
 int	main(int argc, char **argv, char **envp)
 {
     t_shell	*shell;
-    char	*input;
-    t_token	*tokens;
 
     (void)argc;
     (void)argv;
     shell = init_shell(envp);
     setup_signals();
-    while (1)
-    {
-        input = readline("minishell$ ");
-        if (!input)
-            break;
-        if (*input)
-        {
-            add_history(input);
-            tokens = tokenize(input);
-            shell->cmd = parse_tokens(tokens);
-            if (shell->cmd && shell->cmd->args)
-                execute_command(shell, shell->cmd);
-            free_cmd_list(shell->cmd);
-            shell->cmd = NULL;
-        }
-        free(input);
-    }
+    setup_terminal();
+    shell_loop(shell);
     return (shell->exit_status);
 }
-//ready for basic testing

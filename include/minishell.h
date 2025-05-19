@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/18 21:16:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/19 22:00:06 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,10 +94,13 @@ char	*ft_strjoin_free(char *s1, const char *s2);
 void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
 void	*ft_calloc(size_t nmemb, size_t size);
+int	    ft_isalnum(int c);
+int	    ft_isdigit(int c);
 
-/* Signal handling functions */
-void	signl_handler(int signum);
+/* Signal handling */
 void	setup_signals(void);
+void	setup_signals_noninteractive(void);
+void	setup_signals_heredoc(void);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -137,5 +140,17 @@ int		builtin_unset(t_shell *shell, t_cmd *cmd);
 int		builtin_env(t_shell *shell);
 int		builtin_exit(t_shell *shell, t_cmd *cmd);
 int     is_builtin(char *cmd);
+int	    execute_pipeline(t_shell *shell, t_cmd *cmd);
+void	print_sorted_env(t_shell *shell);
+int	    builtin_clear(void);
+
+/*main.c functions*/
+void	setup_terminal(void);
+void	process_input(t_shell *shell, char *input);
+void	shell_loop(t_shell *shell);
+
+/*expander functions*/
+char	*expand_variables(t_shell *shell, char *str);
+void	expand_token_variables(t_shell *shell, t_token *tokens);
 
 #endif
