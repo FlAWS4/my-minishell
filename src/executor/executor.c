@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/17 20:09:50 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/19 21:56:57 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,23 +49,23 @@ char	*find_command(t_shell *shell, char *cmd)
  */
 int	execute_builtin(t_shell *shell, t_cmd *cmd)
 {
-    if (!cmd->args || !cmd->args[0])
-        return (0);
     if (ft_strcmp(cmd->args[0], "echo") == 0)
         return (builtin_echo(cmd));
-    if (ft_strcmp(cmd->args[0], "cd") == 0)
+    else if (ft_strcmp(cmd->args[0], "cd") == 0)
         return (builtin_cd(shell, cmd));
-    if (ft_strcmp(cmd->args[0], "pwd") == 0)
+    else if (ft_strcmp(cmd->args[0], "pwd") == 0)
         return (builtin_pwd(shell));
-    if (ft_strcmp(cmd->args[0], "export") == 0)
+    else if (ft_strcmp(cmd->args[0], "export") == 0)
         return (builtin_export(shell, cmd));
-    if (ft_strcmp(cmd->args[0], "unset") == 0)
+    else if (ft_strcmp(cmd->args[0], "unset") == 0)
         return (builtin_unset(shell, cmd));
-    if (ft_strcmp(cmd->args[0], "env") == 0)
+    else if (ft_strcmp(cmd->args[0], "env") == 0)
         return (builtin_env(shell));
-    if (ft_strcmp(cmd->args[0], "exit") == 0)
+    else if (ft_strcmp(cmd->args[0], "exit") == 0)
         return (builtin_exit(shell, cmd));
-    return (0);
+    else if (ft_strcmp(cmd->args[0], "clear") == 0)
+        return (builtin_clear());
+    return (1);
 }
 
 /**
@@ -98,22 +98,42 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
     pid_t	pid;
     int		status;
 
-    if (execute_builtin(shell, cmd))
-        return (shell->exit_status);
+    if (cmd->next)
+		return (execute_pipeline(shell, cmd));
+    // For built-ins, execute directly and return
+    if (cmd->args && cmd->args[0] && is_builtin(cmd->args[0]))
+    	return (execute_builtin(shell, cmd));
+    // Only external commands should reach this point
     pid = fork();
     if (pid == 0)
+    {
+        // Child process - execute external command
         execute_child(shell, cmd);
+    }
     else if (pid < 0)
     {
         perror("minishell: fork");
         return (1);
     }
+    
     waitpid(pid, &status, 0);
     if (WIFEXITED(status))
         shell->exit_status = WEXITSTATUS(status);
     return (shell->exit_status);
 }
 
+// Add this helper function
+int is_builtin(char *cmd)
+{
+    return (ft_strcmp(cmd, "echo") == 0 ||
+            ft_strcmp(cmd, "cd") == 0 ||
+            ft_strcmp(cmd, "pwd") == 0 ||
+            ft_strcmp(cmd, "export") == 0 ||
+            ft_strcmp(cmd, "unset") == 0 ||
+            ft_strcmp(cmd, "env") == 0 ||
+            ft_strcmp(cmd, "exit") == 0 ||
+            ft_strcmp(cmd, "clear") == 0);
+}
 
 /**
  * Execute a single command
