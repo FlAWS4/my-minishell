@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 22:00:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/20 21:02:49 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,5 +152,10 @@ void	shell_loop(t_shell *shell);
 /*expander functions*/
 char	*expand_variables(t_shell *shell, char *str);
 void	expand_token_variables(t_shell *shell, t_token *tokens);
+
+/* Free functions */
+void	free_token_list(t_token *tokens);
+void	free_cmd_list(t_cmd *cmd);
+void	free_shell(t_shell *shell);
 
 #endif

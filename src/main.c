@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 20:37:21 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/20 21:00:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,7 @@ void	process_input(t_shell *shell, char *input)
     add_history(input);
     tokens = tokenize(input);
     shell->cmd = parse_tokens(tokens);
+    free_token_list(tokens);
     if (shell->cmd && shell->cmd->args)
     {
         execute_command(shell, shell->cmd);
@@ -131,5 +132,6 @@ int	main(int argc, char **argv, char **envp)
     setup_signals();
     setup_terminal();
     shell_loop(shell);
+    free_shell(shell);
     return (shell->exit_status);
 }
