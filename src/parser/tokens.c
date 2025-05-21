@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/20 21:00:29 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 17:13:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,8 +38,6 @@ void free_shell(t_shell *shell)
     
     if (!shell)
         return;
-        
-    // Free environment variables
     current = shell->env;
     while (current)
     {
@@ -51,7 +49,7 @@ void free_shell(t_shell *shell)
         free(current);
         current = next;
     }
-    
-    // Free shell struct itself
+    if (shell->cmd)
+        free_cmd_list(shell->cmd);
     free(shell);
 }

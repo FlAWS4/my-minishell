@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 21:34:11 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 17:23:23 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,18 +64,15 @@ static char	*expand_one_var(t_shell *shell, char *str, int *i)
         var_value = get_var_value(shell, var_name);
         before = ft_substr(str, 0, *i - 1);
         after = ft_strdup(&str[*i + ft_strlen(var_name)]);
-        
         temp = ft_strjoin(before, var_value);
         free(before);
         before = temp;
-        
         temp = ft_strjoin(before, after);
         free(before);
         free(after);
         free(var_name);
         free(var_value);
         free(str);
-        
         *i = *i - 1 + ft_strlen(var_value);
         return (temp);
     }

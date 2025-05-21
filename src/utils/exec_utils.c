@@ -1,41 +1,35 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   error_handling.c                                   :+:      :+:    :+:   */
+/*   exec_utils.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 17:22:31 by mshariar         ###   ########.fr       */
+/*   Created: 2025/05/21 18:02:37 by mshariar          #+#    #+#             */
+/*   Updated: 2025/05/21 18:02:49 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+#include "minishell.h"
 
-void    print_error(char *cmd, char *msg)
+/**
+ * Create a full path by joining directory and command
+ */
+char *create_path(char *dir, char *cmd)
 {
-    ft_putstr_fd(BOLD_RED "Error: " RESET, STDERR_FILENO);
-    if (cmd)
-    {
-        ft_putstr_fd(cmd, STDERR_FILENO);
-        ft_putstr_fd(": ", STDERR_FILENO);
-    }
-    ft_putendl_fd(msg, STDERR_FILENO);
-}
+    char *path;
+    int len;
 
-void free_str_array(char **array)
-{
-    int i;
+    len = ft_strlen(dir) + ft_strlen(cmd) + 2; // +2 for '/' and null terminator
+    path = malloc(len);
+    if (!path)
+        return (NULL);
     
-    if (!array)
-        return;
+    ft_strlcpy(path, dir, len);
+    ft_strlcat(path, "/", len);
+    ft_strlcat(path, cmd, len);
     
-    i = 0;
-    while (array[i])
-    {
-        free(array[i]);
-        i++;
-    }
-    free(array);
+    return (path);
 }

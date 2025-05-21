@@ -6,7 +6,7 @@
 #    By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/11 02:39:27 by mshariar          #+#    #+#              #
-#    Updated: 2025/05/19 21:58:10 by mshariar         ###   ########.fr        #
+#    Updated: 2025/05/21 18:52:56 by mshariar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -21,7 +21,7 @@ SRCS = src/main.c \
        src/builtins/exit.c src/builtins/export.c src/builtins/pwd.c \
        src/builtins/unset.c src/utils/export_utils.c src/parser/expander.c src/utils/libft.c\
        src/utils/env_utils.c src/utils/error_handling.c src/utils/string_utils.c src/utils/string_utils2.c src/utils/string_utils3.c\
-       src/signals/signals.c
+       src/signals/signals.c src/utils/exec_utils.c src/utils/prompt.c \
 
 OBJS = $(SRCS:.c=.o)
 

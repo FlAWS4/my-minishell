@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 20:41:29 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 18:13:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,32 +59,31 @@ static long	ft_atol(const char *str)
     return (result * sign);
 }
 
-/**
- * Built-in exit command
- */
-int	builtin_exit(t_shell *shell, t_cmd *cmd)
+int    builtin_exit(t_shell *shell, t_cmd *cmd)
 {
-    int	count;
-    int	status;
+    int exit_code = 0;
 
-    ft_putstr_fd("exit\n", 2);
-    count = 0;
-    while (cmd->args[count])
-        count++;
-    if (count == 1)
-        exit(shell->exit_status);
-    if (!is_numeric(cmd->args[1]))
+    // Display "exit" message
+    ft_putendl_fd("exit", STDOUT_FILENO);
+    
+    // Parse exit code if provided
+    if (cmd->args[1])
     {
-        ft_putstr_fd("minishell: exit: ", 2);
-        ft_putstr_fd(cmd->args[1], 2);
-        ft_putstr_fd(": numeric argument required\n", 2);
-        exit(255);
+        if (!is_numeric(cmd->args[1]))
+        {
+            print_error("exit", "numeric argument required");
+            shell->exit_status = 2;
+        }
+        else if (cmd->args[2])
+        {
+            print_error("exit", "too many arguments");
+            return (1); // Continue execution
+        }
+        else
+            exit_code = ft_atol(cmd->args[1]);
     }
-    if (count > 2)
-    {
-        ft_putstr_fd("minishell: exit: too many arguments\n", 2);
-        return (1);
-    }
-    status = (unsigned char)ft_atol(cmd->args[1]);
-    exit(status);
+    shell->exit_status = exit_code;
+    shell->should_exit = 1; // Add this flag to t_shell struct
+    
+    return (0);
 }

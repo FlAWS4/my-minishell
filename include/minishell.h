@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/20 21:02:49 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 18:51:43 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,29 @@
 # include <string.h>
 # include <sys/stat.h>
 # include <termios.h>
+
+// Text colors
+# define BLACK "\033[0;30m"
+# define RED "\033[0;31m"
+# define GREEN "\033[0;32m"
+# define YELLOW "\033[0;33m"
+# define BLUE "\033[0;34m"
+# define PURPLE "\033[0;35m"
+# define CYAN "\033[0;36m"
+# define WHITE "\033[0;37m"
+
+// Bold text colors
+# define BOLD_BLACK "\033[1;30m"
+# define BOLD_RED "\033[1;31m"
+# define BOLD_GREEN "\033[1;32m"
+# define BOLD_YELLOW "\033[1;33m"
+# define BOLD_BLUE "\033[1;34m"
+# define BOLD_PURPLE "\033[1;35m"
+# define BOLD_CYAN "\033[1;36m"
+# define BOLD_WHITE "\033[1;37m"
+
+// Reset color
+# define RESET "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
 extern int	g_signal;
@@ -73,6 +96,7 @@ typedef struct s_shell
     t_env	*env;
     t_cmd	*cmd;
     int		exit_status;
+    int    should_exit;
 }	t_shell;
 
 /* Environment functions */
@@ -96,6 +120,11 @@ void	ft_bzero(void *s, size_t n);
 void	*ft_calloc(size_t nmemb, size_t size);
 int	    ft_isalnum(int c);
 int	    ft_isdigit(int c);
+void	ft_putendl_fd(char *s, int fd);
+size_t	ft_strlcpy(char *dst, const char *src, size_t size);
+size_t	ft_strlcat(char *dst, const char *src, size_t size);
+void	ft_putchar_fd(char c, int fd);
+
 
 /* Signal handling */
 void	setup_signals(void);
@@ -130,11 +159,11 @@ char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
 void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
+char    *create_path(char *dir, char *cmd);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);
 int		builtin_cd(t_shell *shell, t_cmd *cmd);
-int		builtin_pwd(t_shell *shell);
 int		builtin_export(t_shell *shell, t_cmd *cmd);
 int		builtin_unset(t_shell *shell, t_cmd *cmd);
 int		builtin_env(t_shell *shell);
@@ -143,6 +172,7 @@ int     is_builtin(char *cmd);
 int	    execute_pipeline(t_shell *shell, t_cmd *cmd);
 void	print_sorted_env(t_shell *shell);
 int	    builtin_clear(void);
+int     builtin_pwd(t_shell *shell, t_cmd *cmd);
 
 /*main.c functions*/
 void	setup_terminal(void);
@@ -157,5 +187,13 @@ void	expand_token_variables(t_shell *shell, t_token *tokens);
 void	free_token_list(t_token *tokens);
 void	free_cmd_list(t_cmd *cmd);
 void	free_shell(t_shell *shell);
+
+/*error functions*/
+void	print_error(char *cmd, char *msg);
+void    free_str_array(char **array);
+
+/*extra functions*/
+void display_welcome_message(void);
+void create_prompt(char *prompt, int exit_status);
 
 #endif
