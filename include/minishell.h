@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:51:43 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/22 17:42:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -193,7 +193,8 @@ void	print_error(char *cmd, char *msg);
 void    free_str_array(char **array);
 
 /*extra functions*/
-void display_welcome_message(void);
-void create_prompt(char *prompt, int exit_status);
+void    display_welcome_message(void);
+void    create_prompt(char *prompt, int exit_status);
+int     builtin_help(t_shell *shell);
 
 #endif

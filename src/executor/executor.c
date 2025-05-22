@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:29:54 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/22 17:40:44 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,6 +62,8 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
         return (builtin_exit(shell, cmd));
     else if (ft_strcmp(cmd->args[0], "clear") == 0)
         return (builtin_clear());
+     else if (ft_strcmp(cmd->args[0], "help") == 0)
+        return (builtin_help(shell));
     return (1);
 }
 
@@ -119,17 +121,18 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
     return (shell->exit_status);
 }
 
-// Add this helper function
 int is_builtin(char *cmd)
 {
-    return (ft_strcmp(cmd, "echo") == 0 ||
-            ft_strcmp(cmd, "cd") == 0 ||
-            ft_strcmp(cmd, "pwd") == 0 ||
-            ft_strcmp(cmd, "export") == 0 ||
-            ft_strcmp(cmd, "unset") == 0 ||
-            ft_strcmp(cmd, "env") == 0 ||
-            ft_strcmp(cmd, "exit") == 0 ||
-            ft_strcmp(cmd, "clear") == 0);
+    return (
+        ft_strcmp(cmd, "echo") == 0 ||
+        ft_strcmp(cmd, "cd") == 0 ||
+        ft_strcmp(cmd, "pwd") == 0 ||
+        ft_strcmp(cmd, "export") == 0 ||
+        ft_strcmp(cmd, "unset") == 0 ||
+        ft_strcmp(cmd, "env") == 0 ||
+        ft_strcmp(cmd, "exit") == 0 ||
+        ft_strcmp(cmd, "help") == 0
+    );
 }
 
 /**
