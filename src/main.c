@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/20 21:00:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 18:50:38 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ t_shell	*init_shell(char **envp)
     shell->env = init_env(envp);
     shell->cmd = NULL;
     shell->exit_status = 0;
+    shell->should_exit = 0;
     g_signal = 0;
     return (shell);
 }
@@ -102,18 +103,25 @@ void	process_input(t_shell *shell, char *input)
 /**
  * Main shell loop
  */
-void	shell_loop(t_shell *shell)
+void shell_loop(t_shell *shell)
 {
-    char	*input;
-
-    while (1)
+    char *input;
+    char prompt[100];
+    
+    while (!shell->should_exit)
     {
-        input = readline("minishell$ ");
+        create_prompt(prompt, shell->exit_status);
+        input = readline(prompt);
+        
         if (!input)
         {
-            write(1, "exit\n", 5);
+            ft_putstr_fd("exit\n", 1);
             break;
         }
+        
+        if (input[0] != '\0')
+            add_history(input);
+            
         process_input(shell, input);
         free(input);
     }
@@ -125,13 +133,16 @@ void	shell_loop(t_shell *shell)
 int	main(int argc, char **argv, char **envp)
 {
     t_shell	*shell;
+    int     exit_status;
 
     (void)argc;
     (void)argv;
     shell = init_shell(envp);
+    display_welcome_message();
     setup_signals();
     setup_terminal();
     shell_loop(shell);
+    exit_status = shell->exit_status;
     free_shell(shell);
-    return (shell->exit_status);
+    return (exit_status);
 }

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 21:56:57 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/22 17:40:44 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,38 +15,35 @@
 /**
  * Find command in PATH
  */
-char	*find_command(t_shell *shell, char *cmd)
+char *find_command(t_shell *shell, char *cmd)
 {
-    char	*path;
-    char	*full_path;
-    char	**paths;
-    int		i;
-
-    if (!cmd || !*cmd)
-        return (NULL);
+    char *path_env;
+    char **paths;
+    char *full_path;
+    int i;
+    
     if (cmd[0] == '/' || cmd[0] == '.')
         return (ft_strdup(cmd));
-    path = get_env_value(shell->env, "PATH");
-    if (!path)
+    if (!(path_env = get_env_value(shell->env, "PATH")))
         return (NULL);
-    paths = ft_split(path, ':');
+    paths = ft_split(path_env, ':');
+    free(path_env);
     i = 0;
     while (paths[i])
     {
-        full_path = ft_strjoin(paths[i], "/");
-        full_path = ft_strjoin_free(full_path, cmd);
-        if (access(full_path, F_OK | X_OK) == 0)
+        if ((full_path = create_path(paths[i], cmd)) && 
+            access(full_path, X_OK) == 0)
+        {
+            free_str_array(paths);
             return (full_path);
+        }
         free(full_path);
         i++;
     }
+    free_str_array(paths);
     return (NULL);
 }
 
-/**
- * Execute a built-in command
- * Returns 1 if command was a builtin, 0 otherwise
- */
 int	execute_builtin(t_shell *shell, t_cmd *cmd)
 {
     if (ft_strcmp(cmd->args[0], "echo") == 0)
@@ -54,7 +51,7 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
     else if (ft_strcmp(cmd->args[0], "cd") == 0)
         return (builtin_cd(shell, cmd));
     else if (ft_strcmp(cmd->args[0], "pwd") == 0)
-        return (builtin_pwd(shell));
+        return (builtin_pwd(shell, cmd));
     else if (ft_strcmp(cmd->args[0], "export") == 0)
         return (builtin_export(shell, cmd));
     else if (ft_strcmp(cmd->args[0], "unset") == 0)
@@ -65,6 +62,8 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
         return (builtin_exit(shell, cmd));
     else if (ft_strcmp(cmd->args[0], "clear") == 0)
         return (builtin_clear());
+     else if (ft_strcmp(cmd->args[0], "help") == 0)
+        return (builtin_help(shell));
     return (1);
 }
 
@@ -122,17 +121,18 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
     return (shell->exit_status);
 }
 
-// Add this helper function
 int is_builtin(char *cmd)
 {
-    return (ft_strcmp(cmd, "echo") == 0 ||
-            ft_strcmp(cmd, "cd") == 0 ||
-            ft_strcmp(cmd, "pwd") == 0 ||
-            ft_strcmp(cmd, "export") == 0 ||
-            ft_strcmp(cmd, "unset") == 0 ||
-            ft_strcmp(cmd, "env") == 0 ||
-            ft_strcmp(cmd, "exit") == 0 ||
-            ft_strcmp(cmd, "clear") == 0);
+    return (
+        ft_strcmp(cmd, "echo") == 0 ||
+        ft_strcmp(cmd, "cd") == 0 ||
+        ft_strcmp(cmd, "pwd") == 0 ||
+        ft_strcmp(cmd, "export") == 0 ||
+        ft_strcmp(cmd, "unset") == 0 ||
+        ft_strcmp(cmd, "env") == 0 ||
+        ft_strcmp(cmd, "exit") == 0 ||
+        ft_strcmp(cmd, "help") == 0
+    );
 }
 
 /**

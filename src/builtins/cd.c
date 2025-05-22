@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:33:17 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 20:29:52 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 17:20:02 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,23 +51,24 @@ static int	cd_to_home(t_shell *shell)
     home_dir = get_env_value(shell->env, "HOME");
     if (!home_dir)
     {
-        ft_putstr_fd("minishell: cd: HOME not set\n", 2);
+        print_error("cd", "HOME not set");
         return (1);
     }
     if (getcwd(old_pwd, sizeof(old_pwd)) == NULL)
         return (1);
     if (chdir(home_dir) != 0)
     {
-        ft_putstr_fd("minishell: cd: ", 2);
-        ft_putstr_fd(home_dir, 2);
-        ft_putstr_fd(": ", 2);
-        ft_putstr_fd(strerror(errno), 2);
-        ft_putstr_fd("\n", 2);
+        char error_msg[1024];
+        
+        ft_strlcpy(error_msg, home_dir, sizeof(error_msg));
+        ft_strlcat(error_msg, ": cannot change directory", sizeof(error_msg));
+        print_error("cd", error_msg);
         return (1);
     }
     update_pwd_vars(shell, old_pwd);
     return (0);
 }
+
 static char *expand_tilde(t_shell *shell, char *path)
 {
     char *home;
@@ -99,21 +100,22 @@ static int	cd_to_dir(t_shell *shell, char *dir)
 
     if (getcwd(old_pwd, sizeof(old_pwd)) == NULL)
         return (1);
-    
     expanded_path = expand_tilde(shell, dir);
     ret = chdir(expanded_path);
-    
     if (ret != 0)
     {
-        ft_putstr_fd("minishell: cd: ", 2);
-        ft_putstr_fd(dir, 2);
-        ft_putstr_fd(": ", 2);
-        ft_putstr_fd(strerror(errno), 2);
-        ft_putstr_fd("\n", 2);
+        char error_msg[1024];
+        ft_strlcpy(error_msg, dir, sizeof(error_msg));
+        if (access(expanded_path, F_OK) != 0)
+            ft_strlcat(error_msg, ": no such file or directory", sizeof(error_msg));
+        else if (access(expanded_path, R_OK) != 0)
+            ft_strlcat(error_msg, ": permission denied", sizeof(error_msg));
+        else
+            ft_strlcat(error_msg, ": not a directory", sizeof(error_msg));       
+        print_error("cd", error_msg);
         free(expanded_path);
         return (1);
     }
-    
     update_pwd_vars(shell, old_pwd);
     free(expanded_path);
     return (0);
@@ -138,7 +140,7 @@ int	builtin_cd(t_shell *shell, t_cmd *cmd)
         return (cd_to_home(shell));
     else if (args_count > 2)
     {
-        ft_putstr_fd("minishell: cd: too many arguments\n", 2);
+        print_error("cd", "too many arguments");
         return (1);
     }
     return (cd_to_dir(shell, cmd->args[1]));

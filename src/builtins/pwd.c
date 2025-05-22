@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/17 20:50:05 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/21 18:31:34 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,25 +15,29 @@
 /**
  * Built-in pwd command
  */
-int	builtin_pwd(t_shell *shell)
+int    builtin_pwd(t_shell *shell, t_cmd *cmd)
 {
-    char	*pwd;
-    char	cwd[1024];
+    char    cwd[1024];
+    
+    (void)shell; // Unused parameter
+    // Check for extra arguments
+    if (cmd->args[1] != NULL)
+    {
+        if (cmd->args[1][0] == '-' && cmd->args[1][1] != '\0')
+            print_error("pwd", "invalid option");
+        else
+            print_error("pwd", "too many arguments");
+        return (1);
+    }
 
-    (void)shell;
     if (getcwd(cwd, sizeof(cwd)))
     {
-        ft_putstr_fd(cwd, 1);
-        ft_putstr_fd("\n", 1);
+        ft_putendl_fd(cwd, STDOUT_FILENO);
         return (0);
     }
-    pwd = get_env_value(shell->env, "PWD");
-    if (pwd)
+    else
     {
-        ft_putstr_fd(pwd, 1);
-        ft_putstr_fd("\n", 1);
-        return (0);
+        print_error("pwd", "getcwd() error");
+        return (1);
     }
-    ft_putstr_fd("pwd: error retrieving current directory\n", 2);
-    return (1);
 }
