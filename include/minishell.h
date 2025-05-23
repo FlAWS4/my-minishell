@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/22 17:42:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 22:03:41 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,7 +124,7 @@ void	ft_putendl_fd(char *s, int fd);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
-
+int      is_whitespace(char c);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -160,6 +160,9 @@ int		execute_builtin(t_shell *shell, t_cmd *cmd);
 void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
 char    *create_path(char *dir, char *cmd);
+void    process_cmd_status(t_shell *shell, int status);
+int     wait_for_children(t_shell *shell);
+char    **env_to_array(t_env *env);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);

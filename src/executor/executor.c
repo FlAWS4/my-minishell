@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/22 17:40:44 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 22:20:01 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,21 +70,33 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
 /**
  * Execute child process for external command
  */
-void	execute_child(t_shell *shell, t_cmd *cmd)
+void execute_child(t_shell *shell, t_cmd *cmd)
 {
-    char	*cmd_path;
+    char *cmd_path;
+    char **env_array;
 
+    // Setup signals for child process
+    setup_signals_noninteractive();
     if (setup_redirections(cmd) != 0)
         exit(1);
+    // IMPORTANT: Create environment array BEFORE finding command
+    // This ensures we access environment before any memory is freed
+    env_array = env_to_array(shell->env);
+    if (!env_array)
+        exit(1);
+    // Now find command (which might modify memory)
     cmd_path = find_command(shell, cmd->args[0]);
     if (!cmd_path)
     {
         ft_putstr_fd("minishell: ", 2);
         ft_putstr_fd(cmd->args[0], 2);
         ft_putstr_fd(": command not found\n", 2);
+        free_str_array(env_array);
         exit(127);
-    }
-    execve(cmd_path, cmd->args, NULL);
+    }   
+    execve(cmd_path, cmd->args, env_array);
+    free(cmd_path);
+    free_str_array(env_array);
     perror("minishell");
     exit(1);
 }
@@ -97,15 +109,17 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
     pid_t	pid;
     int		status;
 
+    status = 0;
     if (cmd->next)
-		return (execute_pipeline(shell, cmd));
+        return (execute_pipeline(shell, cmd));
     // For built-ins, execute directly and return
     if (cmd->args && cmd->args[0] && is_builtin(cmd->args[0]))
-    	return (execute_builtin(shell, cmd));
+        return (execute_builtin(shell, cmd));
     // Only external commands should reach this point
     pid = fork();
     if (pid == 0)
     {
+        setup_signals_noninteractive();
         // Child process - execute external command
         execute_child(shell, cmd);
     }
@@ -114,10 +128,8 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
         perror("minishell: fork");
         return (1);
     }
-    
     waitpid(pid, &status, 0);
-    if (WIFEXITED(status))
-        shell->exit_status = WEXITSTATUS(status);
+    process_cmd_status(shell, status);
     return (shell->exit_status);
 }
 
@@ -131,7 +143,8 @@ int is_builtin(char *cmd)
         ft_strcmp(cmd, "unset") == 0 ||
         ft_strcmp(cmd, "env") == 0 ||
         ft_strcmp(cmd, "exit") == 0 ||
-        ft_strcmp(cmd, "help") == 0
+        ft_strcmp(cmd, "help") == 0 ||
+        ft_strcmp(cmd, "clear") == 0
     );
 }
 

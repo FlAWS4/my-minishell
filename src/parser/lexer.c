@@ -6,19 +6,12 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/14 20:25:40 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 21:42:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Checks if a character is a whitespace
- */
-int	is_whitespace(char c)
-{
-    return (c == ' ' || c == '\t' || c == '\n');
-}
 
 /**
  * Checks if a character is a special token character

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:47:24 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 21:41:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,4 +64,8 @@ void display_welcome_message(void)
     
     printf("%sWelcome to Minishell! Type %s'help'%s to see available commands.%s\n\n", 
            YELLOW, BOLD_WHITE, YELLOW, RESET);
+}
+int	is_whitespace(char c)
+{
+    return (c == ' ' || c == '\t' || c == '\n');
 }

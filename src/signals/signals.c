@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 20:33:55 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 22:12:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,14 +55,15 @@ void	setup_signals(void)
 }
 
 /**
- * Setup signals for command execution
+ * Setup signals for non-interactive mode (child processes)
  */
-void	setup_signals_noninteractive(void)
+void setup_signals_noninteractive(void)
 {
-    signal(SIGINT, SIG_DFL);
-    signal(SIGQUIT, SIG_DFL);
+    // Reset signals to default behavior in child processes
+    signal(SIGINT, SIG_DFL);   // Ctrl+C should terminate the process
+    signal(SIGQUIT, SIG_DFL);  // Ctrl+\ should generate core dump
+    g_signal = 0;              // Reset global signal state
 }
-
 /**
  * Setup signals for heredoc
  */

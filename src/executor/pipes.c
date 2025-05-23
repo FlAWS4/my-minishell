@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 21:46:03 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 21:39:06 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,26 +74,6 @@ static int	manage_parent_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
         return (pipe_fds[0]);
     }
     return (-1);
-}
-
-/**
- * Wait for all child processes in a pipeline
- */
-static int	wait_for_children(t_shell *shell)
-{
-    int	status;
-    int	last_status;
-
-    last_status = 0;
-    while (wait(&status) > 0)
-    {
-        if (WIFEXITED(status))
-            last_status = WEXITSTATUS(status);
-        else if (WIFSIGNALED(status))
-            last_status = 128 + WTERMSIG(status);
-    }
-    shell->exit_status = last_status;
-    return (last_status);
 }
 
 /**
