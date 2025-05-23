@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:50:38 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/23 22:16:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,15 +110,22 @@ void shell_loop(t_shell *shell)
     
     while (!shell->should_exit)
     {
+        // Reset signal handlers before each prompt
+        setup_signals();
+        
+        // Check for any pending signals
+        if (g_signal)
+        {
+            shell->exit_status = 130;  // Ctrl+C exit status
+            g_signal = 0;
+        }
         create_prompt(prompt, shell->exit_status);
         input = readline(prompt);
-        
         if (!input)
         {
             ft_putstr_fd("exit\n", 1);
             break;
-        }
-        
+        }       
         if (input[0] != '\0')
             add_history(input);
             
