@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/23 22:03:41 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/24 20:05:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,19 @@
 /* Global variable for signal handling (as allowed by subject) */
 extern int	g_signal;
 
+/* Error code enum for better error handling */
+typedef enum e_error_code
+{
+    ERR_NONE,
+    ERR_SYNTAX,
+    ERR_NOT_FOUND,
+    ERR_PERMISSION,
+    ERR_PIPE,
+    ERR_FORK,
+    ERR_MEMORY,
+    ERR_REDIR
+}	t_error_code;
+
 /* Token types for lexer/parser */
 typedef enum e_token_type
 {
@@ -96,7 +109,7 @@ typedef struct s_shell
     t_env	*env;
     t_cmd	*cmd;
     int		exit_status;
-    int    should_exit;
+    int		should_exit;
 }	t_shell;
 
 /* Environment functions */
@@ -105,6 +118,9 @@ void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
 char	*get_env_value(t_env *env, const char *key);
+//void	update_env_var(t_env *env, const char *key, const char *value);
+//int		remove_env_var(t_env **env, const char *key);
+t_env	*find_env_var(t_env *env, const char *key);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -118,13 +134,13 @@ char	*ft_strjoin_free(char *s1, const char *s2);
 void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
 void	*ft_calloc(size_t nmemb, size_t size);
-int	    ft_isalnum(int c);
-int	    ft_isdigit(int c);
+int		ft_isalnum(int c);
+int		ft_isdigit(int c);
 void	ft_putendl_fd(char *s, int fd);
-size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
-int      is_whitespace(char c);
+int		is_whitespace(char c);
+int		is_special_char(char c);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -135,6 +151,8 @@ void	setup_signals_heredoc(void);
 int		handle_word(char *input, int i, t_token **tokens);
 t_token	*process_tokens(char *input);
 t_token	*tokenize(char *input);
+int		handle_quotes(char *input, int i, char quote, t_token **tokens);
+int		count_quoted_len(char *str, char quote);
 
 /* Command creation and management */
 t_cmd	*create_cmd(void);
@@ -153,16 +171,18 @@ void	handle_word_token(t_cmd *cmd, t_token *token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
+int		validate_syntax(t_token *tokens);
+void	handle_escape_chars(char *str);
 
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
 void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
-char    *create_path(char *dir, char *cmd);
-void    process_cmd_status(t_shell *shell, int status);
-int     wait_for_children(t_shell *shell);
-char    **env_to_array(t_env *env);
+char	*create_path(char *dir, char *cmd);
+void	process_cmd_status(t_shell *shell, int status);
+int		wait_for_children(t_shell *shell);
+char	**env_to_array(t_env *env);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);
@@ -171,18 +191,22 @@ int		builtin_export(t_shell *shell, t_cmd *cmd);
 int		builtin_unset(t_shell *shell, t_cmd *cmd);
 int		builtin_env(t_shell *shell);
 int		builtin_exit(t_shell *shell, t_cmd *cmd);
-int     is_builtin(char *cmd);
-int	    execute_pipeline(t_shell *shell, t_cmd *cmd);
+int		is_builtin(char *cmd);
+int		execute_pipeline(t_shell *shell, t_cmd *cmd);
 void	print_sorted_env(t_shell *shell);
-int	    builtin_clear(void);
-int     builtin_pwd(t_shell *shell, t_cmd *cmd);
+int		builtin_clear(void);
+int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 
-/*main.c functions*/
+/* Main.c functions */
 void	setup_terminal(void);
 void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
+t_shell	*init_shell(char **envp);
+t_cmd	*parse_input(char *input);
+void	process_input(t_shell *shell, char *input);
+void	execute_parsed_commands(t_shell *shell);
 
-/*expander functions*/
+/* Expander functions */
 char	*expand_variables(t_shell *shell, char *str);
 void	expand_token_variables(t_shell *shell, t_token *tokens);
 
@@ -191,13 +215,15 @@ void	free_token_list(t_token *tokens);
 void	free_cmd_list(t_cmd *cmd);
 void	free_shell(t_shell *shell);
 
-/*error functions*/
+/* Error functions */
 void	print_error(char *cmd, char *msg);
-void    free_str_array(char **array);
+void	free_str_array(char **array);
 
-/*extra functions*/
-void    display_welcome_message(void);
-void    create_prompt(char *prompt, int exit_status);
-int     builtin_help(t_shell *shell);
+/* Extra functions */
+void	display_welcome_message(void);
+void	create_prompt(char *prompt, int exit_status);
+int		builtin_help(t_shell *shell);
+void	save_history_to_file(const char *filename);
+void	load_history_from_file(const char *filename);
 
 #endif
