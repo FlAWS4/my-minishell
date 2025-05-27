@@ -6,22 +6,50 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 17:22:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/27 00:25:50 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-
-void    print_error(char *cmd, char *msg)
+/**
+ * Check if string contains substring
+ */
+static int	str_contains(const char *haystack, const char *needle)
 {
-    ft_putstr_fd(BOLD_RED "Error: " RESET, STDERR_FILENO);
-    if (cmd)
+    int	i;
+    int	j;
+
+    if (!haystack || !needle)
+        return (0);
+    i = 0;
+    while (haystack[i])
     {
-        ft_putstr_fd(cmd, STDERR_FILENO);
-        ft_putstr_fd(": ", STDERR_FILENO);
+        j = 0;
+        while (needle[j] && haystack[i + j] && haystack[i + j] == needle[j])
+            j++;
+        if (!needle[j])
+            return (1);
+        i++;
     }
-    ft_putendl_fd(msg, STDERR_FILENO);
+    return (0);
+}
+
+/**
+ * Print error message to stderr
+ */
+void	print_error(char *cmd, char *msg)
+{
+    int	error_type;
+
+    error_type = 0;
+    if (str_contains(msg, "not found"))
+        error_type = ERROR_COMMAND;
+    else if (str_contains(msg, "permission"))
+        error_type = ERROR_PERMISSION;
+    else if (str_contains(msg, "syntax"))
+        error_type = ERROR_SYNTAX;
+    display_error(error_type, cmd, msg);
 }
 
 void free_str_array(char **array)
@@ -38,4 +66,35 @@ void free_str_array(char **array)
         i++;
     }
     free(array);
+}
+#include "minishell.h"
+
+/**
+ * Get error prefix based on error type
+ */
+static char	*get_error_prefix(int error_type)
+{
+    if (error_type == ERROR_SYNTAX)
+        return (BOLD_RED "✘ Syntax Error" RESET ": ");
+    else if (error_type == ERROR_COMMAND)
+        return (BOLD_YELLOW "⚠ Command Error" RESET ": ");
+    else if (error_type == ERROR_PERMISSION)
+        return (BOLD_MAGENTA "🔒 Permission Denied" RESET ": ");
+    else
+        return (BOLD_RED "Error" RESET ": ");
+}
+
+/**
+ * Display visually enhanced error message
+ */
+void	display_error(int error_type, char *command, char *message)
+{
+    char	*prefix;
+
+    prefix = get_error_prefix(error_type);
+    ft_putstr_fd(prefix, 2);
+    ft_putstr_fd(command, 2);
+    ft_putstr_fd(" - ", 2);
+    ft_putstr_fd(message, 2);
+    ft_putstr_fd("\n", 2);
 }

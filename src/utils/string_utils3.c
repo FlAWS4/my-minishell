@@ -1,28 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   striings_utils3.c                                  :+:      :+:    :+:   */
+/*   string_utils3.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:32:52 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/17 20:34:55 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:31:46 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/**
+ * Allocate and zero-initialize memory
+ */
 void	*ft_calloc(size_t nmemb, size_t size)
 {
-	void	*mem;
+    void	*mem;
 
-	if (size != 0 && nmemb * size / size != nmemb)
-		return (NULL);
-	mem = malloc(nmemb * size);
-	if (!mem)
-		return (NULL);
-	ft_bzero(mem, nmemb * size);
-	return (mem);
+    if (size != 0 && nmemb * size / size != nmemb)
+        return (NULL);
+    mem = malloc(nmemb * size);
+    if (!mem)
+        return (NULL);
+    ft_bzero(mem, nmemb * size);
+    return (mem);
 }
 
 /**

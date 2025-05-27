@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/24 20:05:11 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/27 01:43:35 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,13 @@
 # define BOLD_PURPLE "\033[1;35m"
 # define BOLD_CYAN "\033[1;36m"
 # define BOLD_WHITE "\033[1;37m"
+# define BOLD_RESET "\033[1;0m"
+# define BOLD_MAGENTA "\033[1;35m"
 
-// Reset color
+/* Error types */
+#define ERROR_SYNTAX    1
+#define ERROR_COMMAND   2
+#define ERROR_PERMISSION 3
 # define RESET "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
@@ -73,7 +78,8 @@ typedef enum e_token_type
     TOKEN_REDIR_IN,
     TOKEN_REDIR_OUT,
     TOKEN_REDIR_APPEND,
-    TOKEN_HEREDOC
+    TOKEN_HEREDOC,
+    TOKEN_WHITESPACE,
 }	t_token_type;
 
 /* Token structure */
@@ -140,7 +146,6 @@ void	ft_putendl_fd(char *s, int fd);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
 int		is_whitespace(char c);
-int		is_special_char(char c);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -152,7 +157,13 @@ int		handle_word(char *input, int i, t_token **tokens);
 t_token	*process_tokens(char *input);
 t_token	*tokenize(char *input);
 int		handle_quotes(char *input, int i, char quote, t_token **tokens);
-int		count_quoted_len(char *str, char quote);
+int     is_special(char c);
+int	handle_special(char *input, int i, t_token **tokens);
+
+/* Token management functions */
+t_token	*create_token(t_token_type type, char *value);
+void	add_token(t_token **list, t_token *new);
+int	handle_quote(char *input, int i, t_token **tokens);
 
 /* Command creation and management */
 t_cmd	*create_cmd(void);
@@ -167,13 +178,11 @@ int		parse_redirections(t_token **tokens, t_cmd *cmd);
 int		setup_redirections(t_cmd *cmd);
 
 /* Token parsing */
-void	handle_word_token(t_cmd *cmd, t_token *token);
+void handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
 int		validate_syntax(t_token *tokens);
-void	handle_escape_chars(char *str);
-
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
@@ -208,6 +217,12 @@ void	execute_parsed_commands(t_shell *shell);
 
 /* Expander functions */
 char	*expand_variables(t_shell *shell, char *str);
+char	*expand_one_var(t_shell *shell, char *str, int *i);
+void	free_expansion_parts(char *name, char *value, char **parts);
+
+/* Expander utilities */
+char	*get_var_name(char *str);
+char	*get_var_value(t_shell *shell, char *name);
 void	expand_token_variables(t_shell *shell, t_token *tokens);
 
 /* Free functions */
@@ -220,10 +235,16 @@ void	print_error(char *cmd, char *msg);
 void	free_str_array(char **array);
 
 /* Extra functions */
-void	display_welcome_message(void);
+void	ft_display_welcome(void);
 void	create_prompt(char *prompt, int exit_status);
 int		builtin_help(t_shell *shell);
 void	save_history_to_file(const char *filename);
 void	load_history_from_file(const char *filename);
+void	display_error(int error_type, char *command, char *message);
+
+/* History functions */
+void	init_history(void);
+void	save_history(void);
+void	add_to_history(char *cmd);
 
 #endif

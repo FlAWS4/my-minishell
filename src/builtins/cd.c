@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:33:17 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 17:20:02 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:34:33 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ static int	cd_to_home(t_shell *shell)
 {
     char	*home_dir;
     char	old_pwd[1024];
+    char	error_msg[1024];
 
     home_dir = get_env_value(shell->env, "HOME");
     if (!home_dir)
@@ -58,8 +59,6 @@ static int	cd_to_home(t_shell *shell)
         return (1);
     if (chdir(home_dir) != 0)
     {
-        char error_msg[1024];
-        
         ft_strlcpy(error_msg, home_dir, sizeof(error_msg));
         ft_strlcat(error_msg, ": cannot change directory", sizeof(error_msg));
         print_error("cd", error_msg);
@@ -69,9 +68,12 @@ static int	cd_to_home(t_shell *shell)
     return (0);
 }
 
-static char *expand_tilde(t_shell *shell, char *path)
+/**
+ * Expand tilde in path to home directory
+ */
+static char	*expand_tilde(t_shell *shell, char *path)
 {
-    char *home;
+    char	*home;
     
     if (!path || path[0] != '~')
         return (ft_strdup(path));
@@ -95,8 +97,9 @@ static char *expand_tilde(t_shell *shell, char *path)
 static int	cd_to_dir(t_shell *shell, char *dir)
 {
     char	old_pwd[1024];
-    char    *expanded_path;
-    int     ret;
+    char	*expanded_path;
+    char	error_msg[1024];
+    int		ret;
 
     if (getcwd(old_pwd, sizeof(old_pwd)) == NULL)
         return (1);
@@ -104,7 +107,6 @@ static int	cd_to_dir(t_shell *shell, char *dir)
     ret = chdir(expanded_path);
     if (ret != 0)
     {
-        char error_msg[1024];
         ft_strlcpy(error_msg, dir, sizeof(error_msg));
         if (access(expanded_path, F_OK) != 0)
             ft_strlcat(error_msg, ": no such file or directory", sizeof(error_msg));

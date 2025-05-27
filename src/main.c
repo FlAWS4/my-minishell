@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/24 20:01:49 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:45:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,21 @@ void	execute_parsed_commands(t_shell *shell)
 }
 
 /**
+ * Handle pending signals
+ */
+void	handle_pending_signals(t_shell *shell)
+{
+    if (g_signal)
+    {
+        if (g_signal == SIGINT)
+            shell->exit_status = 130;
+        else if (g_signal == SIGQUIT)
+            shell->exit_status = 131;
+        g_signal = 0;
+    }
+}
+
+/**
  * Main shell loop
  */
 void	shell_loop(t_shell *shell)
@@ -71,14 +86,7 @@ void	shell_loop(t_shell *shell)
     while (!shell->should_exit)
     {
         setup_signals();
-        if (g_signal)
-        {
-            if (g_signal == SIGINT)
-                shell->exit_status = 130;
-            else if (g_signal == SIGQUIT)
-                shell->exit_status = 131;
-            g_signal = 0;
-        }
+        handle_pending_signals(shell);
         create_prompt(prompt, shell->exit_status);
         input = readline(prompt);
         if (!input)
@@ -93,24 +101,33 @@ void	shell_loop(t_shell *shell)
     }
 }
 
-/**
- * Main function
- */
+
 int	main(int argc, char **argv, char **envp)
 {
     t_shell	*shell;
-    int		exit_status;
+    char	*input;
+    char	prompt[100];
 
     (void)argc;
     (void)argv;
     shell = init_shell(envp);
     if (!shell)
         return (1);
-    display_welcome_message();
     setup_signals();
     setup_terminal();
-    shell_loop(shell);
-    exit_status = shell->exit_status;
+    init_history();  // Initialize history
+    ft_display_welcome();
+    while (!shell->should_exit)
+    {
+        create_prompt(prompt, shell->exit_status);
+        input = readline(prompt);
+        if (!input)
+            break ;
+        add_to_history(input);  // Add to history
+        process_input(shell, input);
+        free(input);
+    }
+    save_history();  // Save history before exit
     free_shell(shell);
-    return (exit_status);
+    return (shell->exit_status);
 }

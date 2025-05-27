@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:13:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:38:57 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,14 +59,15 @@ static long	ft_atol(const char *str)
     return (result * sign);
 }
 
-int    builtin_exit(t_shell *shell, t_cmd *cmd)
+/**
+ * Built-in exit command
+ */
+int	builtin_exit(t_shell *shell, t_cmd *cmd)
 {
-    int exit_code = 0;
+    int	exit_code;
 
-    // Display "exit" message
+    exit_code = 0;
     ft_putendl_fd("exit", STDOUT_FILENO);
-    
-    // Parse exit code if provided
     if (cmd->args[1])
     {
         if (!is_numeric(cmd->args[1]))
@@ -77,13 +78,12 @@ int    builtin_exit(t_shell *shell, t_cmd *cmd)
         else if (cmd->args[2])
         {
             print_error("exit", "too many arguments");
-            return (1); // Continue execution
+            return (1);
         }
         else
-            exit_code = ft_atol(cmd->args[1]);
+            exit_code = (unsigned char)ft_atol(cmd->args[1]);
     }
     shell->exit_status = exit_code;
-    shell->should_exit = 1; // Add this flag to t_shell struct
-    
+    shell->should_exit = 1;
     return (0);
 }
