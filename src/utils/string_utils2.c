@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:19:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/19 21:39:42 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:29:42 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,6 +82,9 @@ void	ft_putstr_fd(char *s, int fd)
     write(fd, s, len);
 }
 
+/**
+ * Check if character is alphanumeric
+ */
 int	ft_isalnum(int c)
 {
     return ((c >= 'a' && c <= 'z') || 

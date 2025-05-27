@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 21:37:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/23 21:38:13 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:22:09 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,9 @@
 /**
  * Process child termination status
  */
-static int process_child_status(int status)
+static int	process_child_status(int status)
 {
-    int last_status;
+    int	last_status;
 
     if (WIFEXITED(status))
         last_status = WEXITSTATUS(status);
@@ -44,11 +44,11 @@ static int process_child_status(int status)
 /**
  * Wait for all child processes in a pipeline
  */
-int wait_for_children(t_shell *shell)
+int	wait_for_children(t_shell *shell)
 {
-    int status;
-    int last_status;
-    pid_t pid;
+    int		status;
+    int		last_status;
+    pid_t	pid;
 
     last_status = 0;
     while ((pid = wait(&status)) > 0)

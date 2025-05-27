@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:51:04 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/27 00:02:56 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,10 @@
 /**
  * Create shell prompt string
  */
-void create_prompt(char *prompt, int exit_status)
+void	create_prompt(char *prompt, int exit_status)
 {
-    char *username;
-    char cwd[1024];
+    char	*username;
+    char	cwd[1024];
     
     username = getenv("USER");
     if (!username)
@@ -41,7 +41,7 @@ void create_prompt(char *prompt, int exit_status)
 /**
  * Display commands usage
  */
-static void display_commands(void)
+static void	display_commands(void)
 {
     ft_putstr_fd(BOLD_WHITE "cd" RESET " <dir>     ", 1);
     ft_putstr_fd("Change directory\n", 1);
@@ -56,7 +56,7 @@ static void display_commands(void)
 /**
  * Display environment commands
  */
-static void display_env_commands(void)
+static void	display_env_commands(void)
 {
     ft_putstr_fd(BOLD_WHITE "env" RESET "          ", 1);
     ft_putstr_fd("Display environment variables\n", 1);
@@ -69,7 +69,7 @@ static void display_env_commands(void)
 /**
  * Built-in help command
  */
-int builtin_help(t_shell *shell)
+int	builtin_help(t_shell *shell)
 {
     (void)shell;
     

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/21 18:31:34 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/26 23:41:25 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,11 @@
 /**
  * Built-in pwd command
  */
-int    builtin_pwd(t_shell *shell, t_cmd *cmd)
+int	builtin_pwd(t_shell *shell, t_cmd *cmd)
 {
-    char    cwd[1024];
+    char	cwd[1024];
     
-    (void)shell; // Unused parameter
-    // Check for extra arguments
+    (void)shell;
     if (cmd->args[1] != NULL)
     {
         if (cmd->args[1][0] == '-' && cmd->args[1][1] != '\0')
