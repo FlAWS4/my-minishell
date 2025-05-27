@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:22:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/27 01:49:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:29:40 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,10 +35,7 @@ static char	*search_in_path(char **paths, char *cmd)
     {
         full_path = create_path(paths[i], cmd);
         if (full_path && access(full_path, X_OK) == 0)
-        {
-            free_str_array(paths);
             return (full_path);
-        }
         free(full_path);
         i++;
     }
@@ -69,11 +66,8 @@ char	*find_command(t_shell *shell, char *cmd)
     free(path_env);
     
     result = search_in_path(paths, cmd);
-    if (result)
-        return (result);
-        
-    free_str_array(paths);
-    return (NULL);
+    free_str_array(paths); // Always free paths, not inside search_in_path
+    return (result);
 }
 
 /**
@@ -119,7 +113,7 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
 
     if (!cmd)
         return (1);
-    if (is_empty_command(cmd) && cmd->output_file)
+    if (is_empty_command(cmd) && (cmd->output_file || cmd->redirections))
         return (handle_empty_with_redir(shell, cmd));
     if (!cmd->args)
         return (1);

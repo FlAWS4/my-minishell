@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/27 00:36:15 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:30:47 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,14 +36,10 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
         return (builtin_env(shell));
     else if (ft_strcmp(cmd_name, "exit") == 0)
         return (builtin_exit(shell, cmd));
-    else if (ft_strcmp(cmd_name, "clear") == 0)
-        return (builtin_clear());
     else if (ft_strcmp(cmd_name, "help") == 0)
         return (builtin_help(shell));
     return (1);
 }
-
-#include "minishell.h"
 
 /**
  * Handle error when command is not found
@@ -53,6 +49,22 @@ static void	handle_command_not_found(char *cmd, char **env_array)
     display_error(ERROR_COMMAND, cmd, "command not found");
     free_str_array(env_array);
     exit(127);
+}
+
+/**
+ * Handle execution errors after execve fails
+ */
+static void	handle_execution_error(char *cmd, char *cmd_path, char **env_array)
+{
+    free(cmd_path);
+    free_str_array(env_array);
+    if (errno == ENOEXEC)
+        display_error(ERROR_COMMAND, cmd, "not an executable");
+    else if (errno == EACCES)
+        display_error(ERROR_PERMISSION, cmd, "permission denied");
+    else
+        display_error(0, cmd, strerror(errno));
+    exit(126);
 }
 
 /**
@@ -78,17 +90,8 @@ void	execute_child(t_shell *shell, t_cmd *cmd)
     if (!cmd_path)
         handle_command_not_found(cmd->args[0], env_array);
     execve(cmd_path, cmd->args, env_array);
-    free(cmd_path);
-    free_str_array(env_array);
-    if (errno == ENOEXEC)
-        display_error(ERROR_COMMAND, cmd->args[0], "not an executable");
-    else if (errno == EACCES)
-        display_error(ERROR_PERMISSION, cmd->args[0], "permission denied");
-    else
-        display_error(0, cmd->args[0], strerror(errno));
-    exit(126);
+    handle_execution_error(cmd->args[0], cmd_path, env_array);
 }
-
 
 /**
  * Check if command is a builtin
@@ -105,7 +108,6 @@ int	is_builtin(char *cmd)
         ft_strcmp(cmd, "unset") == 0 ||
         ft_strcmp(cmd, "env") == 0 ||
         ft_strcmp(cmd, "exit") == 0 ||
-        ft_strcmp(cmd, "help") == 0 ||
-        ft_strcmp(cmd, "clear") == 0
+        ft_strcmp(cmd, "help") == 0
     );
 }

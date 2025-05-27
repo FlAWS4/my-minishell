@@ -6,13 +6,27 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:45:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 01:08:48 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 int	g_signal;
+
+void free_redirection_list(t_redirection *redirections)
+{
+    t_redirection *tmp;
+
+    while (redirections)
+    {
+        if (redirections->word)
+            free(redirections->word);
+        tmp = redirections;
+        redirections = redirections->next;
+        free(tmp);
+    }
+}
 
 /**
  * Free command list
@@ -37,12 +51,13 @@ void	free_cmd_list(t_cmd *cmd)
             free(cmd->output_file);
         if (cmd->heredoc_delim)
             free(cmd->heredoc_delim);
+        if (cmd->redirections)
+            free_redirection_list(cmd->redirections);
         tmp = cmd;
         cmd = cmd->next;
         free(tmp);
     }
 }
-
 
 /**
  * Execute parsed commands
@@ -92,7 +107,7 @@ void	shell_loop(t_shell *shell)
         if (!input)
         {
             ft_putstr_fd("exit\n", 1);
-            break ;
+            break;
         }
         if (input[0] != '\0')
             add_history(input);
@@ -101,12 +116,12 @@ void	shell_loop(t_shell *shell)
     }
 }
 
-
+/**
+ * Main function
+ */
 int	main(int argc, char **argv, char **envp)
 {
     t_shell	*shell;
-    char	*input;
-    char	prompt[100];
 
     (void)argc;
     (void)argv;
@@ -115,19 +130,8 @@ int	main(int argc, char **argv, char **envp)
         return (1);
     setup_signals();
     setup_terminal();
-    init_history();  // Initialize history
     ft_display_welcome();
-    while (!shell->should_exit)
-    {
-        create_prompt(prompt, shell->exit_status);
-        input = readline(prompt);
-        if (!input)
-            break ;
-        add_to_history(input);  // Add to history
-        process_input(shell, input);
-        free(input);
-    }
-    save_history();  // Save history before exit
+    shell_loop(shell);
     free_shell(shell);
     return (shell->exit_status);
 }

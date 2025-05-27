@@ -6,26 +6,38 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/27 01:59:50 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:25:25 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Parse additional arguments after command name
+ * Add any token type that can be an argument
+ */
+static int	is_arg_token(t_token *token)
+{
+    return (token && (token->type == TOKEN_WORD ||
+            token->type == TOKEN_SINGLE_QUOTE ||
+            token->type == TOKEN_DOUBLE_QUOTE));
+}
+
+/**
+ * Parse arguments (handles both regular and quoted args)
  */
 static void	parse_args(t_token **token, t_cmd *cmd)
 {
-    t_token *current = *token;
-    t_token *next = current->next;
-    
-    // Skip to next token after command name
-    if (next && next->type == TOKEN_WORD)
+    t_token	*next;
+    char	*arg;
+
+    next = (*token)->next;
+    if (next && is_arg_token(next))
     {
-        // Found argument, add it
-        add_arg(cmd, ft_strdup(next->value));
-        *token = next; // Update token position
+        arg = ft_strdup(next->value);
+        if (!arg)
+            return ;
+        add_arg(cmd, arg);
+        *token = next;
     }
 }
 
@@ -40,13 +52,39 @@ t_cmd	*handle_pipe_token(t_cmd *current)
     return (current->next);
 }
 
+/**
+ * Handle word token (command name or argument)
+ */
+void	handle_word_token(t_cmd *cmd, t_token **token)
+{
+    char	*word;
+
+    if (!cmd->args)
+    {
+        word = ft_strdup((*token)->value);
+        if (!word)
+            return ;
+        init_args(cmd, word);
+    }
+    else
+    {
+        word = ft_strdup((*token)->value);
+        if (!word)
+            return ;
+        add_arg(cmd, word);
+    }
+}
+
+/**
+ * Process a single token
+ */
 int	process_token(t_token **token, t_cmd **current)
 {
-    if ((*token)->type == TOKEN_WORD)
+    if (is_arg_token(*token))
     {
         handle_word_token(*current, token);
         if ((*current)->args && (*current)->args[0] && 
-            (*token)->next && (*token)->next->type == TOKEN_WORD)
+            (*token)->next && is_arg_token((*token)->next))
         {
             parse_args(token, *current);
         }
@@ -57,14 +95,11 @@ int	process_token(t_token **token, t_cmd **current)
         if (!*current)
             return (0);
     }
-    else if ((*token)->type == TOKEN_REDIR_OUT || 
-         (*token)->type == TOKEN_REDIR_IN ||
-         (*token)->type == TOKEN_REDIR_APPEND ||
-         (*token)->type == TOKEN_HEREDOC)
+    else if (is_redirection_token(*token))
     {
         if (!parse_redirections(token, *current))
             return (0);
-        return (1);
+        // Don't return here - let the main loop advance the token
     }
     return (1);
 }
@@ -74,15 +109,17 @@ int	process_token(t_token **token, t_cmd **current)
  */
 static int	handle_initial_redirections(t_token **token, t_cmd *current)
 {
-    if ((*token) && ((*token)->type == TOKEN_REDIR_OUT || 
-                     (*token)->type == TOKEN_REDIR_IN ||
-                     (*token)->type == TOKEN_REDIR_APPEND ||
-                     (*token)->type == TOKEN_HEREDOC))
+    if ((*token) && is_redirection_token(*token))
     {
         if (!parse_redirections(token, current))
             return (0);
         if (!current->args)
-            add_arg(current, ft_strdup(""));
+        {
+            char *empty = ft_strdup("");
+            if (!empty)
+                return (0);
+            add_arg(current, empty);
+        }
         return (1);
     }
     return (1);
