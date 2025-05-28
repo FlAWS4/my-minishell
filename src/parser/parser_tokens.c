@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:25:25 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 22:02:29 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,10 +76,17 @@ void	handle_word_token(t_cmd *cmd, t_token **token)
 }
 
 /**
- * Process a single token
+ * Process a single token and return status for token advancement
+ * Return values: 
+ * - 0 = error
+ * - 1 = success (advance token)
+ * - 2 = success (don't advance token - already advanced)
  */
-int	process_token(t_token **token, t_cmd **current)
+int process_token(t_token **token, t_cmd **current)
 {
+    if (!token || !*token || !current || !*current)
+        return 0;  // Safety check
+        
     if (is_arg_token(*token))
     {
         handle_word_token(*current, token);
@@ -88,20 +95,22 @@ int	process_token(t_token **token, t_cmd **current)
         {
             parse_args(token, *current);
         }
+        return 1;  // Normal token advancement
     }
     else if ((*token)->type == TOKEN_PIPE)
     {
         *current = handle_pipe_token(*current);
         if (!*current)
-            return (0);
+            return 0;  // Error
+        return 1;  // Normal token advancement
     }
     else if (is_redirection_token(*token))
     {
         if (!parse_redirections(token, *current))
-            return (0);
-        // Don't return here - let the main loop advance the token
+            return 0;  // Error
+        return 2;  // Token already advanced, don't advance again
     }
-    return (1);
+    return 1;  // Default: normal token advancement
 }
 
 /**
@@ -126,20 +135,21 @@ static int	handle_initial_redirections(t_token **token, t_cmd *current)
 }
 
 /**
- * Parse tokens into command structures
+ * Parse tokens into command structure
  */
 t_cmd	*parse_tokens(t_token *tokens)
 {
     t_cmd	*cmd_list;
     t_cmd	*current;
     t_token	*token;
-    
+    int		result;
+
     if (!tokens)
         return (NULL);
-    current = create_cmd();
-    if (!current)
+    cmd_list = create_cmd();
+    if (!cmd_list)
         return (NULL);
-    cmd_list = current;
+    current = cmd_list;
     token = tokens;
     if (!handle_initial_redirections(&token, current))
     {
@@ -148,9 +158,14 @@ t_cmd	*parse_tokens(t_token *tokens)
     }
     while (token)
     {
-        if (!process_token(&token, &current))
-            break;
-        token = token->next;
+        result = process_token(&token, &current);
+        if (result == 0)
+        {
+            free_cmd_list(cmd_list);
+            return (NULL);
+        }
+        if (result == 1)
+            token = token->next;
     }
     return (cmd_list);
 }

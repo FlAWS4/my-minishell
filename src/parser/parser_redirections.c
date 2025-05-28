@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:24:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/29 00:23:28 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,35 +42,36 @@ int	handle_redir_in(t_token **token, t_cmd *cmd)
  */
 int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 {
+    int	token_type;
+
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
     cmd->output_file = ft_strdup((*token)->next->value);
     if (!cmd->output_file)
         return (0);
     cmd->append_mode = append;
-    add_redirection(cmd, append ? TOKEN_REDIR_APPEND : TOKEN_REDIR_OUT, 
-        (*token)->next->value);
+    if (append)
+        token_type = TOKEN_REDIR_APPEND;
+    else
+        token_type = TOKEN_REDIR_OUT;
+    add_redirection(cmd, token_type, (*token)->next->value);
     *token = (*token)->next;
     return (1);
 }
 
 /**
- * Handle heredoc redirection
+ * Handle heredoc redirection - FIXED
  */
 int	handle_heredoc(t_token **token, t_cmd *cmd)
 {
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
-        
-    // Store in legacy field (last heredoc only)
-    if (cmd->heredoc_delim)
-        free(cmd->heredoc_delim);
-    cmd->heredoc_delim = ft_strdup((*token)->next->value);
-    if (!cmd->heredoc_delim)
-        return (0);
     
-    // Add to redirections list (all heredocs)
+    // Only add to redirections list
     add_redirection(cmd, TOKEN_HEREDOC, (*token)->next->value);
+    
+    // REMOVED: Code that updates cmd->heredoc_delim
+    // This was causing double processing of heredocs
     
     *token = (*token)->next;
     return (1);
@@ -111,8 +112,6 @@ int	parse_redirections(t_token **tokens, t_cmd *cmd)
             
         if (!success)
             return (0);
-            
-        *tokens = (*tokens)->next;
     }
     return (1);
 }

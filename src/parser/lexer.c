@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:22:57 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 20:46:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,18 +130,3 @@ int	validate_syntax(t_token *tokens)
     return (1);
 }
 
-/**
- * Print tokens for debugging
- */
-void	print_tokens(t_token *tokens)
-{
-    t_token	*current;
-
-    current = tokens;
-    printf("Tokens:\n");
-    while (current)
-    {
-        printf("Type: %d, Value: %s\n", current->type, current->value);
-        current = current->next;
-    }
-}

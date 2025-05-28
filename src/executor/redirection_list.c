@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:32:19 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:44:55 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/29 00:12:15 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,36 +63,65 @@ int	process_output_redir(t_redirection *redir)
     close(fd);
     return (0);
 }
+/**
+ * Set up a temporary file for heredoc content
+ 
+static int	setup_heredoc_file(char *tmp_file, int *tmp_fd)
+{
+    ft_strlcpy(tmp_file, "/tmp/minishell_heredoc_XXXXXX", 32);
+    *tmp_fd = mkstemp(tmp_file);
+    unlink(tmp_file);
+    
+    if (*tmp_fd == -1)
+    {
+        display_error(ERR_REDIR, "heredoc", strerror(errno));
+        return (1);
+    }
+    return (0);
+}
+*/
 
 /**
- * Process heredoc redirection from list
+ * Process heredoc redirection
  */
 int	process_heredoc_redir(t_redirection *redir)
 {
-    int	pipe_fds[2];
-    int	result;
+    int		pipe_fds[2];
+    int		result;
 
+    ft_putstr_fd("DEBUG: Processing heredoc: ", 2);
+    ft_putstr_fd(redir->word, 2);
+    ft_putstr_fd("\n", 2);
+    
+    // Create pipe for heredoc content
     if (pipe(pipe_fds) == -1)
     {
-        display_error(ERR_PIPE, "pipe", strerror(errno));
+        display_error(ERR_REDIR, "heredoc", strerror(errno));
         return (1);
     }
+    
+    // Collect heredoc content into pipe
     result = collect_heredoc_input(redir->word, pipe_fds[1]);
-    close(pipe_fds[1]);
-    if (result != 0)
+    close(pipe_fds[1]); // Close write end
+    
+    if (result == 0)
     {
         close(pipe_fds[0]);
         return (1);
     }
+    
+    // Connect pipe to stdin
     if (dup2(pipe_fds[0], STDIN_FILENO) == -1)
     {
         close(pipe_fds[0]);
         display_error(ERR_REDIR, "heredoc", strerror(errno));
         return (1);
     }
-    close(pipe_fds[0]);
+    
+    close(pipe_fds[0]); // Close original FD after duplication
     return (0);
 }
+
 
 /**
  * Process a single redirection based on type

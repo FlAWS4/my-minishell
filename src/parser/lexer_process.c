@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:40:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:19:36 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 20:39:28 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,7 +62,7 @@ t_token	*process_tokens(char *input)
         if (i == -1)
         {
             free_token_list(tokens);
-            ft_putstr_fd("minishell: syntax error\n", 2);
+            ft_putstr_fd("minishell: syntax error: unclosed quote\n", 2);
             return (NULL);
         }
     }
@@ -97,6 +97,9 @@ t_token	*tokenize(char *input)
     tokens = process_tokens(input);
     if (!tokens)
         return (NULL);
+    
+    // Add this line to merge adjacent quoted tokens
+    merge_adjacent_quoted_tokens(&tokens);
         
     if (!validate_syntax(tokens))
     {
@@ -106,4 +109,27 @@ t_token	*tokenize(char *input)
     }
     
     return (tokens);
+}
+
+// debugging function to print tokens
+
+void print_tokens(t_token *tokens)
+{
+    t_token *current = tokens;
+    int i = 0;
+    
+    ft_putstr_fd("Token list:\n", 2);
+    while (current)
+    {
+        ft_putstr_fd("  ", 2);
+        ft_putnbr_fd(i++, 2);
+        ft_putstr_fd(": type=", 2);
+        ft_putnbr_fd(current->type, 2);
+        ft_putstr_fd(" value='", 2);
+        ft_putstr_fd(current->value, 2);
+        ft_putstr_fd("' space=", 2);
+        ft_putnbr_fd(current->preceded_by_space, 2);
+        ft_putstr_fd("\n", 2);
+        current = current->next;
+    }
 }

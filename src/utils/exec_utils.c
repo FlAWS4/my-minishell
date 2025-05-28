@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:02:37 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:54:32 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:06:47 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,7 +71,7 @@ static char	*build_env_string(t_env *env)
 /**
  * Counts the number of environment variables
  */
-static int	count_env_vars(t_env *env)
+int	count_env_vars(t_env *env)
 {
     int		count;
     t_env	*temp;
@@ -89,7 +89,7 @@ static int	count_env_vars(t_env *env)
 /**
  * Free the environment array when an error occurs
  */
-static void	free_env_array(char **array, int count)
+void	free_env_array(char **array, int count)
 {
     int	i;
 

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:05:00 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 21:28:20 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,19 +27,16 @@ void	sigint_handler(int signum)
     }
 }
 
-/**
- * Signal handler for heredoc
- */
-void	sigint_heredoc_handler(int signum)
+void sigint_heredoc_handler(int signum)
 {
     if (signum == SIGINT)
     {
-        g_signal = SIGINT;  // Store actual signal value
-        write(1, "\n", 1);
-        close(0);  // Close stdin to interrupt the heredoc
+        g_signal = SIGINT;
+        ft_putstr_fd("\n", 1);
+        // Don't actually close stdin - just set a flag
+        // close(STDIN_FILENO); // REMOVE THIS LINE
     }
 }
-
 /**
  * Setup signals for interactive mode
  */
@@ -82,20 +79,22 @@ void	setup_signals_noninteractive(void)
     g_signal = 0;  // Reset global signal state
 }
 
-/**
- * Setup signals for heredoc
- */
-void	setup_signals_heredoc(void)
+void setup_signals_heredoc(void)
 {
-    struct sigaction	sa_int;
-    struct sigaction	sa_quit;
+    struct sigaction sa_int;
+    struct sigaction sa_quit;
 
+    // Clear signal handler structures
+    memset(&sa_int, 0, sizeof(sa_int));
+    memset(&sa_quit, 0, sizeof(sa_quit));
+
+    // Setup SIGINT handler
     sa_int.sa_handler = sigint_heredoc_handler;
     sigemptyset(&sa_int.sa_mask);
-    sigaddset(&sa_int.sa_mask, SIGQUIT);  // Block SIGQUIT during handler
     sa_int.sa_flags = 0;
     sigaction(SIGINT, &sa_int, NULL);
 
+    // Ignore SIGQUIT
     sa_quit.sa_handler = SIG_IGN;
     sigemptyset(&sa_quit.sa_mask);
     sa_quit.sa_flags = 0;

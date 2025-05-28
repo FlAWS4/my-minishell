@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:14:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:31:35 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,6 +140,8 @@ char	*get_env_value(t_env *env, const char *key);
 //void	update_env_var(t_env *env, const char *key, const char *value);
 //int		remove_env_var(t_env **env, const char *key);
 t_env	*find_env_var(t_env *env, const char *key);
+int	    count_env_vars(t_env *env);
+void	free_env_array(char **array, int count);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -160,6 +162,8 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
 int		is_whitespace(char c);
 char	*get_next_line(int fd);
+void	ft_putnbr_fd(int n, int fd);
+void    reset_gnl_buffer(void);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -200,7 +204,9 @@ int     process_output_redir(t_redirection *redir);
 int     process_heredoc_redir(t_redirection *redir);
 int     process_single_redir(t_redirection *redir);
 int	    is_redirection_token(t_token *token);
-void free_redirection_list(t_redirection *redirections);
+void    free_redirection_list(t_redirection *redirections);
+int	    collect_and_discard_heredoc(char *delimiter);
+int	    check_heredoc_line(char *line, char *delimiter, int fd);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
@@ -208,6 +214,7 @@ t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
 int		validate_syntax(t_token *tokens);
+void merge_adjacent_quoted_tokens(t_token **tokens);
 
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);

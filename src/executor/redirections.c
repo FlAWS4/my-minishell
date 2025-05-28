@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:46:02 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/29 00:19:09 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,21 +99,30 @@ static int	setup_heredoc(t_cmd *cmd)
     close(pipe_fds[0]);
     return (0);
 }
-
 /**
- * Collect heredoc input until delimiter is seen
+ * Collect heredoc input and write to file descriptor
  */
 int	collect_heredoc_input(char *delimiter, int fd)
 {
     char	*line;
     int		len;
-    
+
+    setup_signals_heredoc();
+    if (g_signal == SIGINT)
+    {
+        setup_signals();
+        return (0);
+    }
     while (1)
     {
-        ft_putstr_fd("> ", 1);
+        if (isatty(STDIN_FILENO))
+            ft_putstr_fd("> ", 1);
         line = get_next_line(STDIN_FILENO);
-        if (!line)
+        if (g_signal == SIGINT || !line)
+        {
+            setup_signals();
             return (0);
+        }
         len = ft_strlen(line);
         if (len > 0 && line[len - 1] == '\n')
             line[len - 1] = '\0';
@@ -126,24 +135,25 @@ int	collect_heredoc_input(char *delimiter, int fd)
         ft_putstr_fd("\n", fd);
         free(line);
     }
+    setup_signals();
     return (1);
 }
 
 /**
- * Set up all redirections for a command
+ * Set up redirections for a command
  */
 int	setup_redirections(t_cmd *cmd)
 {
-    /* Use ONLY the redirections list for all redirections */
+    // Process redirections list if it exists
     if (cmd->redirections)
         return (process_redirections(cmd));
     
-    /* Legacy fallback (will be rare) */
+    // Only fall back to legacy methods if no redirections list
     if (cmd->heredoc_delim && setup_heredoc(cmd) != 0)
         return (1);
-    if (setup_input(cmd) != 0)
+    if (cmd->input_file && setup_input(cmd) != 0)
         return (1);
-    if (setup_output(cmd) != 0)
+    if (cmd->output_file && setup_output(cmd) != 0)
         return (1);
     
     return (0);

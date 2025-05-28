@@ -6,27 +6,11 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 20:45:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:57:30 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:25:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-/**
- * Count environment variables
- */
-static int	count_env_vars(t_env *env)
-{
-    int	count;
-
-    count = 0;
-    while (env)
-    {
-        count++;
-        env = env->next;
-    }
-    return (count);
-}
 
 /**
  * Sort environment variables
