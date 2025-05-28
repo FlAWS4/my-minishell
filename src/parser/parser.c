@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/14 20:38:19 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:26:28 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ t_cmd	*create_cmd(void)
     cmd->append_mode = 0;
     cmd->heredoc_delim = NULL;
     cmd->next = NULL;
+    cmd->redirections = NULL;
     return (cmd);
 }
 
@@ -38,7 +39,10 @@ int	init_args(t_cmd *cmd, char *arg)
 {
     cmd->args = malloc(sizeof(char *) * 2);
     if (!cmd->args)
+    {
+        free(arg);
         return (0);
+    }
     cmd->args[0] = arg;
     cmd->args[1] = NULL;
     return (1);
@@ -63,94 +67,46 @@ void	add_arg(t_cmd *cmd, char *arg)
         i++;
     new_args = malloc(sizeof(char *) * (i + 2));
     if (!new_args)
-        return ;
-    i = 0;
-    while (cmd->args[i])
     {
-        new_args[i] = cmd->args[i];
-        i++;
+        free(arg);
+        return ;
     }
+    i = -1;
+    while (cmd->args[++i])
+        new_args[i] = cmd->args[i];
     new_args[i] = arg;
     new_args[i + 1] = NULL;
     free(cmd->args);
     cmd->args = new_args;
 }
 
-
 /**
- * Parse redirection tokens
- 
-int	parse_redirections(t_token **tokens, t_cmd *cmd)
+ * Add redirection to command
+ */
+void	add_redirection(t_cmd *cmd, int type, char *word)
 {
-    t_token	*token;
+    t_redirection	*new;
+    t_redirection	*last;
     
-    token = *tokens;
-    if (token->type == TOKEN_REDIR_IN)
+    new = malloc(sizeof(t_redirection));
+    if (!new)
+        return ;
+    new->type = type;
+    new->word = ft_strdup(word);
+    if (!new->word)
     {
-        if (!token->next || token->next->type != TOKEN_WORD)
-            return (0);
-        cmd->input_file = ft_strdup(token->next->value);
-        *tokens = token->next;
+        free(new);
+        return ;
     }
-    else if (token->type == TOKEN_REDIR_OUT)
+    new->next = NULL;
+    
+    if (!cmd->redirections)
+        cmd->redirections = new;
+    else
     {
-        if (!token->next || token->next->type != TOKEN_WORD)
-            return (0);
-        cmd->output_file = ft_strdup(token->next->value);
-        cmd->append_mode = 0;
-        *tokens = token->next;
+        last = cmd->redirections;
+        while (last->next)
+            last = last->next;
+        last->next = new;
     }
-    else if (token->type == TOKEN_REDIR_APPEND)
-    {
-        if (!token->next || token->next->type != TOKEN_WORD)
-            return (0);
-        cmd->output_file = ft_strdup(token->next->value);
-        cmd->append_mode = 1;
-        *tokens = token->next;
-    }
-    else if (token->type == TOKEN_HEREDOC)
-    {
-        if (!token->next || token->next->type != TOKEN_WORD)
-            return (0);
-        cmd->heredoc_delim = ft_strdup(token->next->value);
-        *tokens = token->next;
-    }
-    return (1);
 }
-
-
- * Parse tokens into command structures
-
-t_cmd	*parse_tokens(t_token *tokens)
-{
-    t_cmd	*cmd_list;
-    t_cmd	*current_cmd;
-    t_token	*token;
-    
-    cmd_list = NULL;
-    current_cmd = create_cmd();
-    if (!current_cmd)
-        return (NULL);
-    cmd_list = current_cmd;
-    token = tokens;
-    while (token)
-    {
-        if (token->type == TOKEN_WORD)
-            add_arg(current_cmd, ft_strdup(token->value));
-        else if (token->type == TOKEN_PIPE)
-        {
-            current_cmd->next = create_cmd();
-            if (!current_cmd->next)
-                return (cmd_list); // Should handle error better
-            current_cmd = current_cmd->next;
-        }
-        else if (token->type >= TOKEN_REDIR_IN && token->type <= TOKEN_HEREDOC)
-        {
-            if (!parse_redirections(&token, current_cmd))
-                return (cmd_list); // Should handle error better
-        }
-        token = token->next;
-    }
-    return (cmd_list);
-}\
-*/

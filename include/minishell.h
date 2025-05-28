@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/27 01:43:35 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:31:35 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@
 # include <string.h>
 # include <sys/stat.h>
 # include <termios.h>
+
+# define BUFFER_SIZE 10
 
 // Text colors
 # define BLACK "\033[0;30m"
@@ -80,7 +82,16 @@ typedef enum e_token_type
     TOKEN_REDIR_APPEND,
     TOKEN_HEREDOC,
     TOKEN_WHITESPACE,
+    TOKEN_SINGLE_QUOTE,
+    TOKEN_DOUBLE_QUOTE,
 }	t_token_type;
+
+typedef struct s_redirection
+{
+    int                     type;  // REDIR_IN, REDIR_OUT, HEREDOC
+    char                    *word;
+    struct s_redirection    *next;
+} t_redirection;
 
 /* Token structure */
 typedef struct s_token
@@ -88,18 +99,20 @@ typedef struct s_token
     t_token_type	type;
     char			*value;
     struct s_token	*next;
+    int             preceded_by_space; // For handling whitespace
 }	t_token;
 
 /* Command structure */
 typedef struct s_cmd
 {
-    char			**args;
-    char			*input_file;
-    char			*output_file;
-    int				append_mode;
-    char			*heredoc_delim;
-    struct s_cmd	*next;
-}	t_cmd;
+    char            **args;
+    char            *input_file;    // Keep for backward compatibility
+    char            *output_file;   // Keep for backward compatibility
+    int             append_mode;    // Keep for backward compatibility
+    char            *heredoc_delim; // Keep for single heredoc support
+    t_redirection   *redirections;  // Add this new field for multiple redirections
+    struct s_cmd    *next;
+}   t_cmd;
 
 /* Environment structure */
 typedef struct s_env
@@ -127,6 +140,8 @@ char	*get_env_value(t_env *env, const char *key);
 //void	update_env_var(t_env *env, const char *key, const char *value);
 //int		remove_env_var(t_env **env, const char *key);
 t_env	*find_env_var(t_env *env, const char *key);
+int	    count_env_vars(t_env *env);
+void	free_env_array(char **array, int count);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -146,6 +161,9 @@ void	ft_putendl_fd(char *s, int fd);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
 int		is_whitespace(char c);
+char	*get_next_line(int fd);
+void	ft_putnbr_fd(int n, int fd);
+void    reset_gnl_buffer(void);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -158,12 +176,13 @@ t_token	*process_tokens(char *input);
 t_token	*tokenize(char *input);
 int		handle_quotes(char *input, int i, char quote, t_token **tokens);
 int     is_special(char c);
-int	handle_special(char *input, int i, t_token **tokens);
+int	    handle_special(char *input, int i, t_token **tokens);
 
 /* Token management functions */
-t_token	*create_token(t_token_type type, char *value);
+t_token	*create_token(t_token_type type, char *value, int preceded_by_space);
 void	add_token(t_token **list, t_token *new);
-int	handle_quote(char *input, int i, t_token **tokens);
+int	    handle_quote(char *input, int i, t_token **tokens);\
+t_token	*get_last_token(t_token *tokens);
 
 /* Command creation and management */
 t_cmd	*create_cmd(void);
@@ -176,13 +195,27 @@ int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
 int		handle_heredoc(t_token **token, t_cmd *cmd);
 int		parse_redirections(t_token **tokens, t_cmd *cmd);
 int		setup_redirections(t_cmd *cmd);
+int		process_redirections(t_cmd *cmd);
+char	*read_heredoc_line(void);
+int		collect_heredoc_input(char *delimiter, int fd);
+void    add_redirection(t_cmd *cmd, int type, char *word);
+int     process_input_redir(t_redirection *redir);
+int     process_output_redir(t_redirection *redir);
+int     process_heredoc_redir(t_redirection *redir);
+int     process_single_redir(t_redirection *redir);
+int	    is_redirection_token(t_token *token);
+void    free_redirection_list(t_redirection *redirections);
+int	    collect_and_discard_heredoc(char *delimiter);
+int	    check_heredoc_line(char *line, char *delimiter, int fd);
 
 /* Token parsing */
-void handle_word_token(t_cmd *cmd, t_token **token);
+void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
 t_cmd	*parse_tokens(t_token *tokens);
 int		validate_syntax(t_token *tokens);
+void merge_adjacent_quoted_tokens(t_token **tokens);
+
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
@@ -190,7 +223,6 @@ void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
 char	*create_path(char *dir, char *cmd);
 void	process_cmd_status(t_shell *shell, int status);
-int		wait_for_children(t_shell *shell);
 char	**env_to_array(t_env *env);
 
 /* Built-in command functions */
@@ -216,9 +248,10 @@ void	process_input(t_shell *shell, char *input);
 void	execute_parsed_commands(t_shell *shell);
 
 /* Expander functions */
-char	*expand_variables(t_shell *shell, char *str);
+char    *expand_variables(t_shell *shell, char *str);
 char	*expand_one_var(t_shell *shell, char *str, int *i);
 void	free_expansion_parts(char *name, char *value, char **parts);
+void	expand_variables_in_tokens(t_token *tokens, t_shell *shell);
 
 /* Expander utilities */
 char	*get_var_name(char *str);
@@ -246,5 +279,8 @@ void	display_error(int error_type, char *command, char *message);
 void	init_history(void);
 void	save_history(void);
 void	add_to_history(char *cmd);
+
+/* Debugging functions */
+void	print_tokens(t_token *tokens);
 
 #endif

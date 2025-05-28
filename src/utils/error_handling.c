@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/27 00:25:50 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:50:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,40 +36,6 @@ static int	str_contains(const char *haystack, const char *needle)
 }
 
 /**
- * Print error message to stderr
- */
-void	print_error(char *cmd, char *msg)
-{
-    int	error_type;
-
-    error_type = 0;
-    if (str_contains(msg, "not found"))
-        error_type = ERROR_COMMAND;
-    else if (str_contains(msg, "permission"))
-        error_type = ERROR_PERMISSION;
-    else if (str_contains(msg, "syntax"))
-        error_type = ERROR_SYNTAX;
-    display_error(error_type, cmd, msg);
-}
-
-void free_str_array(char **array)
-{
-    int i;
-    
-    if (!array)
-        return;
-    
-    i = 0;
-    while (array[i])
-    {
-        free(array[i]);
-        i++;
-    }
-    free(array);
-}
-#include "minishell.h"
-
-/**
  * Get error prefix based on error type
  */
 static char	*get_error_prefix(int error_type)
@@ -97,4 +63,40 @@ void	display_error(int error_type, char *command, char *message)
     ft_putstr_fd(" - ", 2);
     ft_putstr_fd(message, 2);
     ft_putstr_fd("\n", 2);
+}
+
+/**
+ * Print error message to stderr
+ */
+void	print_error(char *cmd, char *msg)
+{
+    int	error_type;
+
+    error_type = 0;
+    if (str_contains(msg, "not found"))
+        error_type = ERROR_COMMAND;
+    else if (str_contains(msg, "permission"))
+        error_type = ERROR_PERMISSION;
+    else if (str_contains(msg, "syntax"))
+        error_type = ERROR_SYNTAX;
+    display_error(error_type, cmd, msg);
+}
+
+/**
+ * Free array of strings
+ */
+void	free_str_array(char **array)
+{
+    int	i;
+    
+    if (!array)
+        return ;
+    
+    i = 0;
+    while (array[i])
+    {
+        free(array[i]);
+        i++;
+    }
+    free(array);
 }

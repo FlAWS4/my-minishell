@@ -6,11 +6,42 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/24 19:56:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/24 19:59:10 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 01:00:49 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+/**
+ * Process command status from waitpid
+ * Sets shell exit status based on child process termination
+ */
+void	process_cmd_status(t_shell *shell, int status)
+{
+    int	sig;
+
+    shell->exit_status = 1;
+    if (WIFEXITED(status))
+    {
+        shell->exit_status = WEXITSTATUS(status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        sig = WTERMSIG(status);
+        if (sig == SIGINT)
+        {
+            ft_putstr_fd("\n", 1);
+            shell->exit_status = 130;
+        }
+        else if (sig == SIGQUIT)
+        {
+            ft_putstr_fd("Quit (core dumped)\n", 1);
+            shell->exit_status = 131;
+        }
+        else
+            shell->exit_status = 128 + sig;
+    }
+}
 
 /**
  * Initialize the shell
@@ -50,7 +81,7 @@ t_cmd	*parse_input(char *input)
     t_token	*tokens;
     t_cmd	*cmd;
 
-    if (!*input)
+    if (!input || !*input)
         return (NULL);
     tokens = tokenize(input);
     if (!tokens)
@@ -65,19 +96,18 @@ t_cmd	*parse_input(char *input)
  */
 void	process_input(t_shell *shell, char *input)
 {
-    if (!*input)
-        return ;
-    
-    shell->cmd = parse_input(input);
-    if (!shell->cmd)
-    {
-        ft_putstr_fd("minishell: syntax error\n", 2);
-        shell->exit_status = 2;
-        return ;
-    }
-    
-    execute_parsed_commands(shell);
+    t_token	*tokens;
+
+    if (!input || input[0] == '\0')
+        return;
+    tokens = tokenize(input);
+    if (!tokens)
+        return;
+    expand_variables_in_tokens(tokens, shell);
+    shell->cmd = parse_tokens(tokens);
+    free_token_list(tokens);
+    if (shell->cmd)
+        execute_parsed_commands(shell);
     free_cmd_list(shell->cmd);
     shell->cmd = NULL;
-    setup_signals();
 }

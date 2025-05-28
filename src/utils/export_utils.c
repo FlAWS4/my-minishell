@@ -6,28 +6,11 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 20:45:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:17:37 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:25:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
-
-/**
- * Count environment variables
- */
-static int	count_env_vars(t_env *env)
-{
-    int	count;
-
-    count = 0;
-    while (env)
-    {
-        count++;
-        env = env->next;
-    }
-    return (count);
-}
 
 /**
  * Sort environment variables
@@ -63,9 +46,13 @@ static void	print_env_var(t_env *env)
 {
     ft_putstr_fd("declare -x ", 1);
     ft_putstr_fd(env->key, 1);
-    ft_putstr_fd("=\"", 1);
-    ft_putstr_fd(env->value, 1);
-    ft_putstr_fd("\"\n", 1);
+    if (env->value)
+    {
+        ft_putstr_fd("=\"", 1);
+        ft_putstr_fd(env->value, 1);
+        ft_putstr_fd("\"", 1);
+    }
+    ft_putstr_fd("\n", 1);
 }
 
 /**
@@ -78,10 +65,12 @@ void	print_sorted_env(t_shell *shell)
     int		count;
     int		i;
 
+    if (!shell || !shell->env)
+        return;
     count = count_env_vars(shell->env);
     env_array = malloc(sizeof(t_env *) * count);
     if (!env_array)
-        return ;
+        return;
     i = 0;
     curr = shell->env;
     while (curr)

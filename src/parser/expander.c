@@ -6,11 +6,50 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 22:00:01 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 00:47:08 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+/**
+ * Expand variables in all tokens
+ */
+void	expand_variables_in_tokens(t_token *tokens, t_shell *shell)
+{
+    t_token	*current;
+    char	*expanded;
+
+    current = tokens;
+    while (current)
+    {
+        if (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE)
+        {
+            expanded = expand_variables(shell, current->value);
+            if (expanded)
+            {
+                free(current->value);
+                current->value = expanded;
+            }
+        }
+        current = current->next;
+    }
+}
+
+/**
+ * Free memory allocated during expansion
+ */
+void	free_expansion_parts(char *name, char *value, char **parts)
+{
+    if (name)
+        free(name);
+    if (value)
+        free(value);
+    if (parts[0])
+        free(parts[0]);
+    if (parts[1])
+        free(parts[1]);
+}
 
 /**
  * Expand a single variable
@@ -42,17 +81,6 @@ char	*expand_one_var(t_shell *shell, char *str, int *i)
     free_expansion_parts(var_name, var_value, parts);
     free(str);
     return (result);
-}
-
-/**
- * Free memory allocated during expansion
- */
-void	free_expansion_parts(char *name, char *value, char **parts)
-{
-    free(name);
-    free(value);
-    free(parts[0]);
-    free(parts[1]);
 }
 
 /**

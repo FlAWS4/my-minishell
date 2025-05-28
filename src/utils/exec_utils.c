@@ -6,43 +6,11 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:02:37 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:34:01 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/05/28 23:06:47 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
-
-/**
- * Process command status from waitpid
- * Sets shell exit status based on child process termination
- */
-void	process_cmd_status(t_shell *shell, int status)
-{
-    int	sig;
-
-    shell->exit_status = 1;
-    if (WIFEXITED(status))
-    {
-        shell->exit_status = WEXITSTATUS(status);
-    }
-    else if (WIFSIGNALED(status))
-    {
-        sig = WTERMSIG(status);
-        if (sig == SIGINT)
-        {
-            ft_putstr_fd("\n", 1);
-            shell->exit_status = 130;
-        }
-        else if (sig == SIGQUIT)
-        {
-            ft_putstr_fd("Quit (core dumped)\n", 1);
-            shell->exit_status = 131;
-        }
-        else
-            shell->exit_status = 128 + sig;
-    }
-}
 
 /**
  * Create a full path by joining directory and command
@@ -101,6 +69,52 @@ static char	*build_env_string(t_env *env)
 }
 
 /**
+ * Counts the number of environment variables
+ */
+int	count_env_vars(t_env *env)
+{
+    int		count;
+    t_env	*temp;
+
+    count = 0;
+    temp = env;
+    while (temp)
+    {
+        count++;
+        temp = temp->next;
+    }
+    return (count);
+}
+
+/**
+ * Free the environment array when an error occurs
+ */
+void	free_env_array(char **array, int count)
+{
+    int	i;
+
+    i = 0;
+    while (i < count)
+    {
+        free(array[i]);
+        i++;
+    }
+    free(array);
+}
+
+/**
+ * Initialize environment array
+ */
+static char	**init_env_array(t_env *env, int *count)
+{
+    char	**array;
+    
+    *count = count_env_vars(env);
+    array = malloc(sizeof(char *) * (*count + 1));
+    return (array);
+}
+
+/**
  * Convert environment linked list to string array for execve
  */
 char	**env_to_array(t_env *env)
@@ -110,11 +124,9 @@ char	**env_to_array(t_env *env)
     char	**array;
     int		i;
 
-    count = 0;
-    temp = env;
-    while (temp && ++count)
-        temp = temp->next;
-    array = malloc(sizeof(char *) * (count + 1));
+    if (!env)
+        return (NULL);
+    array = init_env_array(env, &count);
     if (!array)
         return (NULL);
     temp = env;
@@ -124,7 +136,7 @@ char	**env_to_array(t_env *env)
         array[i] = build_env_string(temp);
         if (!array[i])
         {
-            free_str_array(array);
+            free_env_array(array, i);
             return (NULL);
         }
         temp = temp->next;
