@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_tokens.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 22:02:29 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 04:39:30 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ static void	parse_args(t_token **token, t_cmd *cmd)
     {
         arg = ft_strdup(next->value);
         if (!arg)
-            return ;
+            return;
         add_arg(cmd, arg);
         *token = next;
     }
@@ -46,6 +46,9 @@ static void	parse_args(t_token **token, t_cmd *cmd)
  */
 t_cmd	*handle_pipe_token(t_cmd *current)
 {
+    if (!current)
+        return (NULL);
+        
     current->next = create_cmd();
     if (!current->next)
         return (NULL);
@@ -59,18 +62,21 @@ void	handle_word_token(t_cmd *cmd, t_token **token)
 {
     char	*word;
 
+    if (!cmd || !token || !*token)
+        return;
+        
     if (!cmd->args)
     {
         word = ft_strdup((*token)->value);
         if (!word)
-            return ;
+            return;
         init_args(cmd, word);
     }
     else
     {
         word = ft_strdup((*token)->value);
         if (!word)
-            return ;
+            return;
         add_arg(cmd, word);
     }
 }
@@ -82,10 +88,10 @@ void	handle_word_token(t_cmd *cmd, t_token **token)
  * - 1 = success (advance token)
  * - 2 = success (don't advance token - already advanced)
  */
-int process_token(t_token **token, t_cmd **current)
+int	process_token(t_token **token, t_cmd **current)
 {
     if (!token || !*token || !current || !*current)
-        return 0;  // Safety check
+        return (0);  // Safety check
         
     if (is_arg_token(*token))
     {
@@ -95,22 +101,22 @@ int process_token(t_token **token, t_cmd **current)
         {
             parse_args(token, *current);
         }
-        return 1;  // Normal token advancement
+        return (1);  // Normal token advancement
     }
     else if ((*token)->type == TOKEN_PIPE)
     {
         *current = handle_pipe_token(*current);
         if (!*current)
-            return 0;  // Error
-        return 1;  // Normal token advancement
+            return (0);  // Error
+        return (1);  // Normal token advancement
     }
     else if (is_redirection_token(*token))
     {
         if (!parse_redirections(token, *current))
-            return 0;  // Error
-        return 2;  // Token already advanced, don't advance again
+            return (0);  // Error
+        return (2);  // Token already advanced, don't advance again
     }
-    return 1;  // Default: normal token advancement
+    return (1);  // Default: normal token advancement
 }
 
 /**
@@ -118,6 +124,9 @@ int process_token(t_token **token, t_cmd **current)
  */
 static int	handle_initial_redirections(t_token **token, t_cmd *current)
 {
+    if (!token || !*token || !current)
+        return (0);
+        
     if ((*token) && is_redirection_token(*token))
     {
         if (!parse_redirections(token, current))
@@ -137,7 +146,7 @@ static int	handle_initial_redirections(t_token **token, t_cmd *current)
 /**
  * Parse tokens into command structure
  */
-t_cmd	*parse_tokens(t_token *tokens)
+t_cmd	*parse_tokens(t_token *tokens, t_shell *shell)
 {
     t_cmd	*cmd_list;
     t_cmd	*current;
@@ -167,5 +176,6 @@ t_cmd	*parse_tokens(t_token *tokens)
         if (result == 1)
             token = token->next;
     }
+    (void)shell; // Unused parameter for now
     return (cmd_list);
 }

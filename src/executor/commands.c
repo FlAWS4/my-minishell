@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   commands.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:22:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 22:30:22 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 02:31:24 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,13 +103,10 @@ static int	is_empty_command(t_cmd *cmd)
     return (!cmd->args || !cmd->args[0] || !*cmd->args[0]);
 }
 
-/**
- * Execute a single command
- */
-int	execute_command(t_shell *shell, t_cmd *cmd)
+int execute_command(t_shell *shell, t_cmd *cmd)
 {
-    pid_t	pid;
-    int		status;
+    pid_t pid;
+    int status;
 
     if (!cmd)
         return (1);
@@ -130,7 +127,22 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
         display_error(0, "fork", strerror(errno));
         return (1);
     }
+    
+    // Wait for command to complete
     waitpid(pid, &status, 0);
+    
+    // Enhanced output synchronization
+    write(STDOUT_FILENO, "", 0);
+    fflush(stdout);
+    fflush(stderr);
+    usleep(25000);  // Add a 25ms delay to ensure output is processed
+    
+    // Cleanup any file descriptors that might be left open
+    if (cmd->input_fd > 2)
+        close(cmd->input_fd);
+    if (cmd->output_fd > 2)
+        close(cmd->output_fd);
+    
     process_cmd_status(shell, status);
     return (shell->exit_status);
 }

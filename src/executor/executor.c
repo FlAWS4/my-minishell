@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   executor.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/29 00:07:47 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 02:36:30 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
 
 /**
  * Set up redirections for builtin command
@@ -87,57 +86,76 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
     return (result);
 }
 /**
- * Handle error when command is not found
-static void	handle_command_not_found(char *cmd, char **env_array)
-{
-    display_error(ERROR_COMMAND, cmd, "command not found");
-    free_str_array(env_array);
-    exit(127);
-}
-
-  Handle execution errors after execve fails
-
-static void	handle_execution_error(char *cmd, char *cmd_path, char **env_array)
-{
-    free(cmd_path);
-    free_str_array(env_array);
-    if (errno == ENOEXEC)
-        display_error(ERROR_COMMAND, cmd, "not an executable");
-    else if (errno == EACCES)
-        display_error(ERROR_PERMISSION, cmd, "permission denied");
-    else
-        display_error(0, cmd, strerror(errno));
-    exit(126);
-}
-*/ 
-
-/**
- * Execute command in child process
+ * Write debug message to a file
  */
-void	execute_child(t_shell *shell, t_cmd *cmd)
+// Add __attribute__((unused)) to tell the compiler this is intentional
+static void debug_to_file(const char *msg, const char *value) __attribute__((unused));
+static void debug_to_file(const char *msg, const char *value)
 {
-    char	*command_path;
-    char	**env_array;
+    FILE *debug_file = fopen("/tmp/minishell_debug.log", "a");
+    if (debug_file)
+    {
+        fprintf(debug_file, "[DEBUG] %s", msg);
+        if (value)
+            fprintf(debug_file, ": %s", value);
+        fprintf(debug_file, "\n");
+        fclose(debug_file);
+    }
+}
 
+void execute_child(t_shell *shell, t_cmd *cmd)
+{
+    char *command_path;
+    char **env_array;
+    struct termios term;
+    
     setup_signals_noninteractive();
-    ft_putstr_fd("DEBUG: Executing command: ", 2);
-    ft_putstr_fd(cmd->args[0], 2);
-    ft_putstr_fd("\n", 2);
     
     if (setup_redirections(cmd) != 0)
         exit(1);
     
-    // NO DEBUG READ HERE! It consumes stdin before cat can read it
+    // Reset terminal to canonical mode for better output handling
+    if (isatty(STDOUT_FILENO))
+    {
+        tcgetattr(STDOUT_FILENO, &term);
+        term.c_lflag |= (ICANON | ECHO);
+        tcsetattr(STDOUT_FILENO, TCSANOW, &term);
+    }
     
+    // Special handling for heredoc or cat commands
+    if (cmd->args[0] && (ft_strcmp(cmd->args[0], "cat") == 0 || 
+                         cmd->heredoc_delim != NULL)) 
+    {
+        if (ft_strcmp(cmd->args[0], "cat") == 0 && !cmd->args[1]) 
+        {
+            // Handle simple cat with heredoc input
+            char buffer[4096];
+            ssize_t bytes;
+            
+            while ((bytes = read(STDIN_FILENO, buffer, sizeof(buffer) - 1)) > 0) 
+            {
+                buffer[bytes] = '\0';
+                write(STDOUT_FILENO, buffer, bytes);
+                // Ensure output is displayed by forcing a flush
+                write(STDOUT_FILENO, "", 0);
+            }
+            
+            exit(0);
+        }
+    }
+    
+    // Normal command execution
     command_path = find_command(shell, cmd->args[0]);
     if (!command_path)
     {
         display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
         exit(127);
     }
+    
     env_array = env_to_array(shell->env);
     execve(command_path, cmd->args, env_array);
-    display_error(0, cmd->args[0], strerror(errno));
+    
+    // Only reaches here if execve fails
     free_env_array(env_array, count_env_vars(shell->env));
     free(command_path);
     exit(126);

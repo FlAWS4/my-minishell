@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokens.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 20:56:40 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 17:06:30 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,51 @@ void	free_token_list(t_token *tokens)
             free(tmp->value);
         free(tmp);
     }
+}
+
+/**
+ * Free a single command and its resources
+ */
+void	free_cmd(t_cmd *cmd)
+{
+    int			i;
+    t_redirection	*redir;
+    t_redirection	*next_redir;
+
+    if (!cmd)
+        return;
+    if (cmd->args)
+    {
+        i = 0;
+        while (cmd->args[i])
+            free(cmd->args[i++]);
+        free(cmd->args);
+    }
+    if (cmd->input_file)
+        free(cmd->input_file);
+    if (cmd->output_file)
+        free(cmd->output_file);
+    if (cmd->heredoc_delim)
+        free(cmd->heredoc_delim);
+        
+    // Free redirections list
+    redir = cmd->redirections;
+    while (redir)
+    {
+        next_redir = redir->next;
+        if (redir->word)
+            free(redir->word);
+        free(redir);
+        redir = next_redir;
+    }
+    
+    // Close any open file descriptors
+    if (cmd->input_fd >= 0)
+        close(cmd->input_fd);
+    if (cmd->output_fd >= 0)
+        close(cmd->output_fd);
+        
+    free(cmd);
 }
 
 /**
@@ -106,10 +151,20 @@ void	join_word_tokens(t_cmd *cmd, t_token **token)
     add_arg(cmd, word);
     *token = current;
 }
+
+/**
+ * Merge adjacent quoted tokens and words
+ */
 void merge_adjacent_quoted_tokens(t_token **tokens)
 {
-    t_token *current = *tokens;
+    t_token *current;
+    t_token *to_delete;
+    char *new_value;
     
+    if (!tokens || !*tokens)
+        return;
+        
+    current = *tokens;
     while (current && current->next)
     {
         // Only merge tokens that are NOT separated by space
@@ -119,17 +174,24 @@ void merge_adjacent_quoted_tokens(t_token **tokens)
             (current->next->type == TOKEN_WORD ||
              current->next->type == TOKEN_SINGLE_QUOTE ||
              current->next->type == TOKEN_DOUBLE_QUOTE) &&
-            !current->next->preceded_by_space)  // Add this condition
+            !current->next->preceded_by_space)
         {
             // Merge the values
-            char *new_value = ft_strjoin(current->value, current->next->value);
+            new_value = ft_strjoin(current->value, current->next->value);
+            if (!new_value)
+                return;  // Memory allocation failed
+                
             free(current->value);
             current->value = new_value;
-            current->type = TOKEN_WORD;
-            t_token *to_delete = current->next;
+            current->type = TOKEN_WORD;  // Merged tokens become words
+            
+            // Remove next token from list
+            to_delete = current->next;
             current->next = to_delete->next;
             free(to_delete->value);
             free(to_delete);
+            
+            // Don't advance current - we might need to merge more tokens
         }
         else
         {

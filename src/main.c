@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:08:48 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:33:40 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,9 @@
 
 int	g_signal;
 
+/**
+ * Free redirection list
+ */
 void free_redirection_list(t_redirection *redirections)
 {
     t_redirection *tmp;
@@ -53,6 +56,13 @@ void	free_cmd_list(t_cmd *cmd)
             free(cmd->heredoc_delim);
         if (cmd->redirections)
             free_redirection_list(cmd->redirections);
+            
+        // Close any open file descriptors
+        if (cmd->input_fd >= 0)
+            close(cmd->input_fd);
+        if (cmd->output_fd >= 0)
+            close(cmd->output_fd);
+            
         tmp = cmd;
         cmd = cmd->next;
         free(tmp);
@@ -62,11 +72,20 @@ void	free_cmd_list(t_cmd *cmd)
 /**
  * Execute parsed commands
  */
-void	execute_parsed_commands(t_shell *shell)
+void execute_parsed_commands(t_shell *shell)
 {
     if (shell->cmd && shell->cmd->args)
     {
+        // Execute the command
         execute_command(shell, shell->cmd);
+        
+        // Ensure all output is flushed
+        write(STDOUT_FILENO, "", 0);  // Force any pending output
+        fflush(stdout);
+        fflush(stderr);
+        
+        // We don't need the sleep, proper file-based heredocs will work without it
+        
         if (g_signal)
         {
             shell->exit_status = 130;
@@ -125,6 +144,8 @@ int	main(int argc, char **argv, char **envp)
 
     (void)argc;
     (void)argv;
+    g_signal = 0;  // Initialize global signal variable
+    
     shell = init_shell(envp);
     if (!shell)
         return (1);

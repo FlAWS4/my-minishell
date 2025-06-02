@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   lexer_token.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:39:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:21:20 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:25:00 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,4 +111,120 @@ int	handle_word(char *input, int i, t_token **tokens)
         return (-1);
     add_token(tokens, create_token(TOKEN_WORD, word, preceded_by_space));
     return (i);  // Return current position - process_token_part doesn't increment
+}
+
+/**
+ * Handle special tokens (|, <, >, <<, >>)
+ */
+int	handle_special(char *input, int i, t_token **tokens)
+{
+    t_token_type	type;
+    char			*value;
+    int				preceded_by_space;
+    int				len;
+    
+    preceded_by_space = 0;
+    if (i > 0 && is_whitespace(input[i - 1]))
+        preceded_by_space = 1;
+    
+    // Handle double character tokens (<<, >>)
+    if (input[i] == '<' && input[i + 1] == '<')
+    {
+        type = TOKEN_HEREDOC;
+        len = 2;
+    }
+    else if (input[i] == '>' && input[i + 1] == '>')
+    {
+        type = TOKEN_REDIR_APPEND;
+        len = 2;
+    }
+    else if (input[i] == '<')
+    {
+        type = TOKEN_REDIR_IN;
+        len = 1;
+    }
+    else if (input[i] == '>')
+    {
+        type = TOKEN_REDIR_OUT;
+        len = 1;
+    }
+    else  // Must be pipe
+    {
+        type = TOKEN_PIPE;
+        len = 1;
+    }
+    
+    value = ft_substr(input, i, len);
+    if (!value)
+        return (-1);
+    add_token(tokens, create_token(type, value, preceded_by_space));
+    return (i + len);
+}
+
+/**
+ * Merge adjacent quoted tokens and words
+ * This is important for handling commands like 'echo' "hello" 'world'
+ */
+void	merge_adjacent_quoted_tokens(t_token **tokens)
+{
+    t_token	*current;
+    t_token	*next;
+    t_token	*temp;
+    char	*merged_value;
+    
+    if (!tokens || !*tokens)
+        return ;
+    
+    current = *tokens;
+    while (current && current->next)
+    {
+        next = current->next;
+        
+        // Check if we need to merge these tokens
+        // They should be adjacent with no whitespace between them
+        if (!next->preceded_by_space && 
+            ((current->type == TOKEN_WORD || 
+              current->type == TOKEN_SINGLE_QUOTE || 
+              current->type == TOKEN_DOUBLE_QUOTE) && 
+             (next->type == TOKEN_WORD ||
+              next->type == TOKEN_SINGLE_QUOTE ||
+              next->type == TOKEN_DOUBLE_QUOTE)))
+        {
+            // Merge the values
+            merged_value = ft_strjoin(current->value, next->value);
+            if (!merged_value)
+                return ;  // Memory allocation error
+            
+            // Update current token
+            free(current->value);
+            current->value = merged_value;
+            current->type = TOKEN_WORD;  // Merged tokens become words
+            
+            // Remove next token from list
+            temp = next;
+            current->next = next->next;
+            free(temp->value);
+            free(temp);
+        }
+        else
+        {
+            current = current->next;
+        }
+    }
+}
+
+/**
+ * Free the entire token list
+ */
+void	free_token_list(t_token *tokens)
+{
+    t_token	*temp;
+    
+    while (tokens)
+    {
+        temp = tokens;
+        tokens = tokens->next;
+        free(temp->value);
+        free(temp);
+    }
 }

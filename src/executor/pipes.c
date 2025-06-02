@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   pipes.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:36:10 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 16:49:32 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,47 @@ static int	execute_piped_command(t_shell *shell, t_cmd *cmd,
         execute_child(shell, cmd);
         exit(1);
     }
+    else
+    {
+        // Store the pid in the command structure for better tracking
+        cmd->pid = pid;
+    }
     return (0);
+}
+
+/**
+ * Wait for all child processes to complete
+ */
+int	wait_for_children(t_shell *shell)
+{
+    int	status;
+    int	pid;
+    int	last_status;
+
+    last_status = 0;
+    while (1)
+    {
+        pid = waitpid(-1, &status, 0);
+        if (pid <= 0)
+            break;
+            
+        if (WIFEXITED(status))
+            last_status = WEXITSTATUS(status);
+        else if (WIFSIGNALED(status))
+        {
+            if (WTERMSIG(status) == SIGINT)
+                write(STDERR_FILENO, "\n", 1); // Print newline for Ctrl+C
+            last_status = 128 + WTERMSIG(status);
+        }
+    }
+    
+    // Force flush any pending output to ensure everything is displayed
+    write(STDOUT_FILENO, "", 0);
+    fflush(stdout);
+    fflush(stderr);
+    
+    shell->exit_status = last_status;
+    return (last_status);
 }
 
 /**
@@ -95,30 +135,6 @@ static int	manage_parent_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
         return (pipe_fds[0]);
     }
     return (-1);
-}
-
-/**
- * Wait for all child processes to complete
- */
-static int	wait_for_children(t_shell *shell)
-{
-    int	status;
-    int	pid;
-    int	last_status;
-
-    last_status = 0;
-    while (1)
-    {
-        pid = waitpid(-1, &status, 0);
-        if (pid <= 0)
-            break ;
-        if (WIFEXITED(status))
-            last_status = WEXITSTATUS(status);
-        else if (WIFSIGNALED(status))
-            last_status = 128 + WTERMSIG(status);
-    }
-    shell->exit_status = last_status;
-    return (last_status);
 }
 
 /**

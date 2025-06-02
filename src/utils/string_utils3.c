@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils3.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:32:52 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:31:46 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 04:18:18 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 /**
  * Allocate and zero-initialize memory
+ * Checks for overflow before allocation
  */
 void	*ft_calloc(size_t nmemb, size_t size)
 {
@@ -30,6 +31,7 @@ void	*ft_calloc(size_t nmemb, size_t size)
 
 /**
  * Count words in a string
+ * Words are defined as sequences of characters separated by delimiter c
  */
 static int	count_words(const char *s, char c)
 {
@@ -52,6 +54,7 @@ static int	count_words(const char *s, char c)
 
 /**
  * Extract next word from string
+ * Updates the index pointer to position after the word
  */
 static char	*get_next_word(const char *s, char c, int *i)
 {
@@ -74,6 +77,7 @@ static char	*get_next_word(const char *s, char c, int *i)
 
 /**
  * Clean up split result on error
+ * Frees all allocated memory
  */
 static void	free_split(char **result, int count)
 {
@@ -90,6 +94,7 @@ static void	free_split(char **result, int count)
 
 /**
  * Split a string by delimiter
+ * Returns array of strings, last element is NULL
  */
 char	**ft_split(const char *s, char c)
 {
@@ -116,5 +121,26 @@ char	**ft_split(const char *s, char c)
         }
         j++;
     }
+    result[j] = NULL;
     return (result);
+}
+
+/**
+ * Check if string is composed of digits only
+ * Returns 1 if true, 0 if false
+ */
+int	ft_str_is_numeric(const char *str)
+{
+    int	i;
+
+    if (!str || !*str)
+        return (0);
+    i = 0;
+    while (str[i])
+    {
+        if (!ft_isdigit(str[i]))
+            return (0);
+        i++;
+    }
+    return (1);
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   process_redir.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 23:45:45 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/29 00:05:03 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 02:43:39 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,22 +44,44 @@ static int	collect_all_heredocs(t_cmd *cmd, t_redirection *last_heredoc)
 /**
  * Check line against delimiter for heredoc
  */
-int	check_heredoc_line(char *line, char *delimiter, int fd)
+
+int check_heredoc_line(char *line, char *delimiter, int fd)
 {
-    int	len;
+    int len;
+    char *line_copy;
 
     if (!line)
         return (0);
-    len = ft_strlen(line);
-    if (len > 0 && line[len - 1] == '\n')
-        line[len - 1] = '\0';
-    if (ft_strcmp(line, delimiter) == 0)
+        
+    // Make a copy for comparison (to preserve original for writing)
+    line_copy = ft_strdup(line);
+    if (!line_copy)
     {
+        free(line);
+        return (0);
+    }
+    
+    // Remove newline for comparison only
+    len = ft_strlen(line_copy);
+    if (len > 0 && line_copy[len - 1] == '\n')
+        line_copy[len - 1] = '\0';
+        
+    // Compare with delimiter
+    if (ft_strcmp(line_copy, delimiter) == 0)
+    {
+        free(line_copy);
         free(line);
         return (1);
     }
-    ft_putstr_fd(line, fd);
-    ft_putstr_fd("\n", fd);
+    
+    // CRITICAL: Write the original line to the pipe
+    write(fd, line, ft_strlen(line));
+    
+    // Ensure we have a newline
+    if (line[ft_strlen(line) - 1] != '\n')
+        write(fd, "\n", 1);
+    
+    free(line_copy);
     free(line);
     return (0);
 }
@@ -135,17 +157,19 @@ static t_redirection	*find_last_heredoc(t_redirection *redir_list)
     return (last_heredoc);
 }
 
-int	process_redirections(t_cmd *cmd)
+int process_redirections(t_cmd *cmd)
 {
-    t_redirection	*redir;
-    t_redirection	*last_heredoc;
+    t_redirection *redir;
+    t_redirection *last_heredoc;
 
     if (!cmd || !cmd->redirections)
         return (0);
     g_signal = 0;
     
-    // Process heredocs first
+    // Find last heredoc
     last_heredoc = find_last_heredoc(cmd->redirections);
+    
+    // First, collect all heredocs
     redir = cmd->redirections;
     while (redir)
     {
@@ -179,3 +203,4 @@ int	process_redirections(t_cmd *cmd)
     
     return (0);
 }
+

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/29 00:23:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:00:54 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,27 +91,30 @@ int	is_redirection_token(t_token *token)
             token->type == TOKEN_HEREDOC);
 }
 
-/**
- * Parse redirections and add them to command
- */
-int	parse_redirections(t_token **tokens, t_cmd *cmd)
+int parse_redirections(t_token **tokens, t_cmd *cmd)
 {
-    int	success;
+    int success;
     
     success = 1;
     while (*tokens && is_redirection_token(*tokens))
     {
-        if ((*tokens)->type == TOKEN_REDIR_IN)
+        t_token *current = *tokens;
+        
+        if (current->type == TOKEN_REDIR_IN)
             success = handle_redir_in(tokens, cmd);
-        else if ((*tokens)->type == TOKEN_REDIR_OUT)
+        else if (current->type == TOKEN_REDIR_OUT)
             success = handle_redir_out(tokens, cmd, 0);
-        else if ((*tokens)->type == TOKEN_REDIR_APPEND)
+        else if (current->type == TOKEN_REDIR_APPEND)
             success = handle_redir_out(tokens, cmd, 1);
-        else if ((*tokens)->type == TOKEN_HEREDOC)
+        else if (current->type == TOKEN_HEREDOC)
             success = handle_heredoc(tokens, cmd);
             
         if (!success)
             return (0);
+            
+        // Only advance if the handler didn't advance
+        if (*tokens == current)
+            *tokens = (*tokens)->next;
     }
     return (1);
 }

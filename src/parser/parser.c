@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:26:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:04:29 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,12 @@ t_cmd	*create_cmd(void)
     cmd->heredoc_delim = NULL;
     cmd->next = NULL;
     cmd->redirections = NULL;
+    
+    // Initialize new fields for better fd tracking
+    cmd->input_fd = -1;
+    cmd->output_fd = -1;
+    cmd->pid = -1;
+    
     return (cmd);
 }
 
@@ -99,6 +105,11 @@ void	add_redirection(t_cmd *cmd, int type, char *word)
         return ;
     }
     new->next = NULL;
+    
+    // Special handling for heredoc - store in cmd->heredoc_delim too
+    // This maintains backward compatibility
+    if (type == TOKEN_HEREDOC && !cmd->heredoc_delim)
+        cmd->heredoc_delim = ft_strdup(word);
     
     if (!cmd->redirections)
         cmd->redirections = new;

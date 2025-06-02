@@ -3,17 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   libft.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:49:23 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 04:02:21 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Check if character is a digit
+ * Check if character is a digit (0-9)
+ * Returns 1 if true, 0 if false
  */
 int	ft_isdigit(int c)
 {
@@ -22,15 +23,20 @@ int	ft_isdigit(int c)
 
 /**
  * Output string followed by newline to file descriptor
+ * Safely handles NULL strings
  */
 void	ft_putendl_fd(char *s, int fd)
 {
-    ft_putstr_fd(s, fd);
+    if (fd < 0)
+        return;
+    if (s)
+        ft_putstr_fd(s, fd);
     ft_putchar_fd('\n', fd);
 }
 
 /**
  * Concatenate strings with size limit
+ * Returns total length of string it tried to create
  */
 size_t	ft_strlcat(char *dst, const char *src, size_t size)
 {
@@ -39,12 +45,17 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size)
     size_t	s;
     size_t	j;
 
+    if (!dst || !src)
+        return (0);
+        
     i = 0;
     j = 0;
     d = ft_strlen(dst);
     s = ft_strlen(src);
+    
     if (size < d || size == 0)
         return (s + size);
+        
     j = d;
     while (src[i] != '\0' && j < (size - 1))
     {
@@ -58,14 +69,17 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size)
 
 /**
  * Output character to file descriptor
+ * Safely handles invalid file descriptors
  */
 void	ft_putchar_fd(char c, int fd)
 {
-    write(fd, &c, 1);
+    if (fd >= 0)
+        write(fd, &c, 1);
 }
 
 /**
  * Display welcome banner for minishell
+ * Uses ANSI color codes for better visual appearance
  */
 void	ft_display_welcome(void)
 {
@@ -83,9 +97,11 @@ void	ft_display_welcome(void)
 }
 
 /**
- * Check if character is whitespace
+ * Check if character is whitespace (space, tab, newline)
+ * Returns 1 if true, 0 if false
  */
 int	is_whitespace(char c)
 {
-    return (c == ' ' || c == '\t' || c == '\n');
+    return (c == ' ' || c == '\t' || c == '\n' || 
+            c == '\v' || c == '\f' || c == '\r');
 }

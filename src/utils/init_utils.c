@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init_utils.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/24 19:56:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:00:49 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:58:40 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,9 @@ void	process_cmd_status(t_shell *shell, int status)
 {
     int	sig;
 
+    if (!shell)
+        return;
+        
     shell->exit_status = 1;
     if (WIFEXITED(status))
     {
@@ -53,7 +56,14 @@ t_shell	*init_shell(char **envp)
     shell = malloc(sizeof(t_shell));
     if (!shell)
         return (NULL);
+        
     shell->env = init_env(envp);
+    if (!shell->env && envp && *envp)
+    {
+        free(shell);
+        return (NULL);
+    }
+    
     shell->cmd = NULL;
     shell->exit_status = 0;
     shell->should_exit = 0;
@@ -68,8 +78,9 @@ void	setup_terminal(void)
 {
     struct termios	term;
 
-    tcgetattr(STDIN_FILENO, &term);
-    term.c_lflag &= ~ECHOCTL;
+    if (tcgetattr(STDIN_FILENO, &term) == -1)
+        return;
+    term.c_lflag &= ~ECHOCTL;  // Disable control char echoing
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
@@ -86,7 +97,7 @@ t_cmd	*parse_input(char *input)
     tokens = tokenize(input);
     if (!tokens)
         return (NULL);
-    cmd = parse_tokens(tokens);
+    cmd = parse_tokens(tokens, NULL); // This function should handle NULL shell
     free_token_list(tokens);
     return (cmd);
 }
@@ -98,13 +109,13 @@ void	process_input(t_shell *shell, char *input)
 {
     t_token	*tokens;
 
-    if (!input || input[0] == '\0')
+    if (!shell || !input || input[0] == '\0')
         return;
     tokens = tokenize(input);
     if (!tokens)
         return;
     expand_variables_in_tokens(tokens, shell);
-    shell->cmd = parse_tokens(tokens);
+    shell->cmd = parse_tokens(tokens, shell);
     free_token_list(tokens);
     if (shell->cmd)
         execute_parsed_commands(shell);

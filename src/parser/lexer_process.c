@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   lexer_process.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:40:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 20:39:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 03:11:17 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 /**
  * Process a token at the current position
  * All handler functions return the index of the next character to process
+ * or -1 on error
  */
 static int	process_token_part(char *input, int i, t_token **tokens, int *was_space)
 {
@@ -32,20 +33,30 @@ static int	process_token_part(char *input, int i, t_token **tokens, int *was_spa
             return (-1);
     }
     else if (is_special(input[i]))
+    {
         i = handle_special(input, i, tokens);
+        if (i == -1)
+            return (-1);
+    }
     else
+    {
         i = handle_word(input, i, tokens);
-    if (i == -1)
-        return (-1);
+        if (i == -1)
+            return (-1);
+    }
+    
+    // Update preceded_by_space flag
     last = get_last_token(*tokens);
     if (last)
         last->preceded_by_space = *was_space;
     *was_space = 0;
+    
     return (i);
 }
 
 /**
  * Process tokens from input string
+ * Returns the list of tokens or NULL on error
  */
 t_token	*process_tokens(char *input)
 {
@@ -55,7 +66,8 @@ t_token	*process_tokens(char *input)
 
     tokens = NULL;
     i = 0;
-    was_space = 1;
+    was_space = 1;  // Assume leading space for the first token
+    
     while (input[i])
     {
         i = process_token_part(input, i, &tokens, &was_space);
@@ -66,11 +78,13 @@ t_token	*process_tokens(char *input)
             return (NULL);
         }
     }
+    
     return (tokens);
 }
 
 /**
  * Get the last token in a list
+ * Returns NULL if the list is empty
  */
 t_token	*get_last_token(t_token *tokens)
 {
@@ -78,14 +92,17 @@ t_token	*get_last_token(t_token *tokens)
 
     if (!tokens)
         return (NULL);
+    
     last = tokens;
     while (last->next)
         last = last->next;
+    
     return (last);
 }
 
 /**
  * Tokenize the input string
+ * This is the main entry point for the lexer
  */
 t_token	*tokenize(char *input)
 {
@@ -94,13 +111,15 @@ t_token	*tokenize(char *input)
     if (!input)
         return (NULL);
         
+    // Generate raw tokens
     tokens = process_tokens(input);
     if (!tokens)
         return (NULL);
     
-    // Add this line to merge adjacent quoted tokens
+    // Post-process tokens: merge adjacent quoted segments
     merge_adjacent_quoted_tokens(&tokens);
         
+    // Validate syntax
     if (!validate_syntax(tokens))
     {
         free_token_list(tokens);
@@ -111,8 +130,10 @@ t_token	*tokenize(char *input)
     return (tokens);
 }
 
-// debugging function to print tokens
-
+#ifdef DEBUG
+/**
+ * Print token list for debugging (only compiled in DEBUG mode)
+ */
 void print_tokens(t_token *tokens)
 {
     t_token *current = tokens;
@@ -133,3 +154,4 @@ void print_tokens(t_token *tokens)
         current = current->next;
     }
 }
+#endif

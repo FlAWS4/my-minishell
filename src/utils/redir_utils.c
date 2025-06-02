@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   redir_utils.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:55:39 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 21:46:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 04:13:42 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,13 @@
 
 /**
  * Read a line for heredoc input
+ * Returns a newly allocated string without newline
+ * Returns NULL on signal interrupt or EOF
  */
 char *read_heredoc_line(void)
 {
     char *line;
+    int len;
     
     ft_putstr_fd("> ", 1);
     line = get_next_line(STDIN_FILENO);
@@ -30,30 +33,42 @@ char *read_heredoc_line(void)
         return (NULL);
         
     // Remove newline character
-    int len = ft_strlen(line);
+    len = ft_strlen(line);
     if (len > 0 && line[len - 1] == '\n')
         line[len - 1] = '\0';
         
     return (line);
 }
 
+/**
+ * Output integer to file descriptor
+ * Handles negative numbers correctly
+ */
 void	ft_putnbr_fd(int n, int fd)
 {
-	unsigned int	nb;
+    unsigned int	nb;
 
-	if (n < 0)
-	{
-		ft_putchar_fd('-', fd);
-		nb = -n;
-	}
-	else
-		nb = (unsigned int)n;
-	if (nb >= 10)
-		ft_putnbr_fd(nb / 10, fd);
-	ft_putchar_fd((char)(nb % 10 + '0'), fd);
+    if (fd < 0)
+        return;
+        
+    if (n < 0)
+    {
+        ft_putchar_fd('-', fd);
+        nb = -n;
+    }
+    else
+        nb = (unsigned int)n;
+        
+    if (nb >= 10)
+        ft_putnbr_fd(nb / 10, fd);
+        
+    ft_putchar_fd((char)(nb % 10 + '0'), fd);
 }
 
-// Add to your utils.c or gnl.c file
+/**
+ * Reset get_next_line's static buffer
+ * Useful after interrupting heredoc input
+ */
 void reset_gnl_buffer(void)
 {
     static int dummy_fd = -1;
@@ -63,4 +78,74 @@ void reset_gnl_buffer(void)
     temp = get_next_line(dummy_fd);
     if (temp)
         free(temp);
+}
+
+/**
+ * Create a heredoc temporary file
+ * Returns the file descriptor or -1 on error
+ */
+int create_heredoc_file(void)
+{
+    char filename[32];
+    int fd;
+    static int counter = 0;
+    
+    snprintf(filename, sizeof(filename), "/tmp/minishell_heredoc_%d", counter++);
+    fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0600);
+    
+    if (fd == -1)
+    {
+        display_error(ERR_REDIR, "heredoc", "Failed to create temporary file");
+        return (-1);
+    }
+    
+    // Immediately unlink so file is cleaned up on close
+    unlink(filename);
+    return (fd);
+}
+
+/**
+ * Handle input redirection
+ * Returns file descriptor or -1 on error
+ */
+int handle_input_redirection(char *filename)
+{
+    int fd;
+    
+    if (!filename)
+        return (-1);
+        
+    fd = open(filename, O_RDONLY);
+    if (fd == -1)
+    {
+        display_error(ERR_REDIR, filename, strerror(errno));
+        return (-1);
+    }
+    
+    return (fd);
+}
+
+/**
+ * Handle output redirection
+ * Returns file descriptor or -1 on error
+ */
+int handle_output_redirection(char *filename, int append_mode)
+{
+    int fd;
+    int flags;
+    
+    if (!filename)
+        return (-1);
+        
+    flags = O_WRONLY | O_CREAT;
+    flags |= (append_mode ? O_APPEND : O_TRUNC);
+    
+    fd = open(filename, flags, 0644);
+    if (fd == -1)
+    {
+        display_error(ERR_REDIR, filename, strerror(errno));
+        return (-1);
+    }
+    
+    return (fd);
 }

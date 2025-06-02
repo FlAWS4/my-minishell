@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 23:31:35 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 17:04:25 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@
 # include <string.h>
 # include <sys/stat.h>
 # include <termios.h>
+# include <limits.h>
 
 # define BUFFER_SIZE 10
 
@@ -54,6 +55,7 @@
 #define ERROR_SYNTAX    1
 #define ERROR_COMMAND   2
 #define ERROR_PERMISSION 3
+#define ERROR_MEMORY    4
 # define RESET "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
@@ -102,7 +104,6 @@ typedef struct s_token
     int             preceded_by_space; // For handling whitespace
 }	t_token;
 
-/* Command structure */
 typedef struct s_cmd
 {
     char            **args;
@@ -110,7 +111,13 @@ typedef struct s_cmd
     char            *output_file;   // Keep for backward compatibility
     int             append_mode;    // Keep for backward compatibility
     char            *heredoc_delim; // Keep for single heredoc support
-    t_redirection   *redirections;  // Add this new field for multiple redirections
+    t_redirection   *redirections;  // For multiple redirections
+    
+    // Add these important fields
+    int             input_fd;       // File descriptor for input
+    int             output_fd;      // File descriptor for output
+    pid_t           pid;            // Process ID for waiting
+    
     struct s_cmd    *next;
 }   t_cmd;
 
@@ -137,11 +144,12 @@ void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
 char	*get_env_value(t_env *env, const char *key);
-//void	update_env_var(t_env *env, const char *key, const char *value);
-//int		remove_env_var(t_env **env, const char *key);
 t_env	*find_env_var(t_env *env, const char *key);
+int     set_env_var(t_env **env_list, char *key, char *value);
+int     delete_env_var(t_env **env_list, char *key);
 int	    count_env_vars(t_env *env);
 void	free_env_array(char **array, int count);
+int     is_valid_var_name(char *name);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -164,6 +172,11 @@ int		is_whitespace(char c);
 char	*get_next_line(int fd);
 void	ft_putnbr_fd(int n, int fd);
 void    reset_gnl_buffer(void);
+int     ft_count_char(const char *str, char c);
+int     ft_str_is_numeric(const char *str);
+int     ft_isalpha(int c);
+char	*ft_itoa(int n);
+int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -181,7 +194,7 @@ int	    handle_special(char *input, int i, t_token **tokens);
 /* Token management functions */
 t_token	*create_token(t_token_type type, char *value, int preceded_by_space);
 void	add_token(t_token **list, t_token *new);
-int	    handle_quote(char *input, int i, t_token **tokens);\
+int	    handle_quote(char *input, int i, t_token **tokens);
 t_token	*get_last_token(t_token *tokens);
 
 /* Command creation and management */
@@ -207,14 +220,17 @@ int	    is_redirection_token(t_token *token);
 void    free_redirection_list(t_redirection *redirections);
 int	    collect_and_discard_heredoc(char *delimiter);
 int	    check_heredoc_line(char *line, char *delimiter, int fd);
+int     create_heredoc_file(void);
+int     handle_input_redirection(char *filename);
+int     handle_output_redirection(char *filename, int append_mode);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
-t_cmd	*parse_tokens(t_token *tokens);
+t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
 int		validate_syntax(t_token *tokens);
-void merge_adjacent_quoted_tokens(t_token **tokens);
+void    merge_adjacent_quoted_tokens(t_token **tokens);
 
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);
@@ -224,6 +240,9 @@ int		execute_command(t_shell *shell, t_cmd *cmd);
 char	*create_path(char *dir, char *cmd);
 void	process_cmd_status(t_shell *shell, int status);
 char	**env_to_array(t_env *env);
+int     is_executable(char *path);
+char    *find_command_in_path(char *cmd, t_env *env);
+int     wait_for_children(t_shell *shell);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);
@@ -237,6 +256,7 @@ int		execute_pipeline(t_shell *shell, t_cmd *cmd);
 void	print_sorted_env(t_shell *shell);
 int		builtin_clear(void);
 int		builtin_pwd(t_shell *shell, t_cmd *cmd);
+int     builtin_help(t_shell *shell);
 
 /* Main.c functions */
 void	setup_terminal(void);
@@ -244,8 +264,9 @@ void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
 t_shell	*init_shell(char **envp);
 t_cmd	*parse_input(char *input);
-void	process_input(t_shell *shell, char *input);
 void	execute_parsed_commands(t_shell *shell);
+void    free_shell(t_shell *shell);
+void    handle_pending_signals(t_shell *shell);
 
 /* Expander functions */
 char    *expand_variables(t_shell *shell, char *str);
@@ -261,19 +282,19 @@ void	expand_token_variables(t_shell *shell, t_token *tokens);
 /* Free functions */
 void	free_token_list(t_token *tokens);
 void	free_cmd_list(t_cmd *cmd);
-void	free_shell(t_shell *shell);
+void	free_str_array(char **array);
 
 /* Error functions */
 void	print_error(char *cmd, char *msg);
-void	free_str_array(char **array);
+void	display_error(int error_type, char *command, char *message);
+int     get_error_exit_status(int error_type);
+void    print_syntax_error(char *token_value, int token_type);
 
 /* Extra functions */
 void	ft_display_welcome(void);
 void	create_prompt(char *prompt, int exit_status);
-int		builtin_help(t_shell *shell);
 void	save_history_to_file(const char *filename);
 void	load_history_from_file(const char *filename);
-void	display_error(int error_type, char *command, char *message);
 
 /* History functions */
 void	init_history(void);

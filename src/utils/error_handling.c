@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   error_handling.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 00:50:05 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/02 17:01:17 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,10 @@ static char	*get_error_prefix(int error_type)
         return (BOLD_YELLOW "⚠ Command Error" RESET ": ");
     else if (error_type == ERROR_PERMISSION)
         return (BOLD_MAGENTA "🔒 Permission Denied" RESET ": ");
+    else if (error_type == ERR_REDIR)
+        return (BOLD_CYAN "⤵ Redirection Error" RESET ": ");
+    else if (error_type == ERROR_MEMORY)
+        return (BOLD_RED "🧠 Memory Error" RESET ": ");
     else
         return (BOLD_RED "Error" RESET ": ");
 }
@@ -57,21 +61,32 @@ void	display_error(int error_type, char *command, char *message)
 {
     char	*prefix;
 
+    if (!command || !message)
+        return;
+        
     prefix = get_error_prefix(error_type);
     ft_putstr_fd(prefix, 2);
-    ft_putstr_fd(command, 2);
-    ft_putstr_fd(" - ", 2);
+    
+    if (command && command[0] != '\0')
+    {
+        ft_putstr_fd(command, 2);
+        ft_putstr_fd(": ", 2);
+    }
+    
     ft_putstr_fd(message, 2);
     ft_putstr_fd("\n", 2);
 }
 
 /**
- * Print error message to stderr
+ * Print error message to stderr with automatic error type detection
  */
 void	print_error(char *cmd, char *msg)
 {
     int	error_type;
 
+    if (!cmd || !msg)
+        return;
+        
     error_type = 0;
     if (str_contains(msg, "not found"))
         error_type = ERROR_COMMAND;
@@ -79,7 +94,35 @@ void	print_error(char *cmd, char *msg)
         error_type = ERROR_PERMISSION;
     else if (str_contains(msg, "syntax"))
         error_type = ERROR_SYNTAX;
+    else if (str_contains(msg, "cannot allocate") || 
+             str_contains(msg, "memory") || 
+             str_contains(msg, "malloc"))
+        error_type = ERROR_MEMORY;
+    else if (str_contains(msg, "redirect") || 
+             str_contains(msg, "file") ||
+             str_contains(msg, "directory"))
+        error_type = ERR_REDIR;
+        
     display_error(error_type, cmd, msg);
+}
+
+/**
+ * Get appropriate exit status based on error type
+ */
+int	get_error_exit_status(int error_type)
+{
+    if (error_type == ERROR_COMMAND)
+        return (127);  // Command not found
+    else if (error_type == ERROR_PERMISSION)
+        return (126);  // Permission denied
+    else if (error_type == ERROR_SYNTAX)
+        return (2);    // Syntax error
+    else if (error_type == ERR_REDIR)
+        return (1);    // General error
+    else if (error_type == ERROR_MEMORY)
+        return (12);   // Out of memory
+    else
+        return (1);    // Default error
 }
 
 /**
@@ -90,7 +133,7 @@ void	free_str_array(char **array)
     int	i;
     
     if (!array)
-        return ;
+        return;
     
     i = 0;
     while (array[i])
@@ -99,4 +142,23 @@ void	free_str_array(char **array)
         i++;
     }
     free(array);
+}
+
+void print_syntax_error(char *token_value, int token_type)
+{
+    char error_msg[100];
+    
+    if (!token_value)
+        token_value = "unexpected token";
+    
+    // Use token_type for more specific error messages if needed
+    if (token_type == TOKEN_PIPE)
+        snprintf(error_msg, sizeof(error_msg), "unexpected pipe operator '%s'", token_value);
+    else if (token_type == TOKEN_REDIR_IN || token_type == TOKEN_REDIR_OUT ||
+             token_type == TOKEN_REDIR_APPEND || token_type == TOKEN_HEREDOC)
+        snprintf(error_msg, sizeof(error_msg), "unexpected redirection '%s'", token_value);
+    else
+        snprintf(error_msg, sizeof(error_msg), "unexpected token '%s'", token_value);
+        
+    display_error(ERROR_SYNTAX, "syntax error", error_msg);
 }
