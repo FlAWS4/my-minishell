@@ -6,11 +6,22 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:14:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:51:28 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 20:22:48 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+#ifndef BUFFER_SIZE
+# define BUFFER_SIZE 128
+#endif
+
+#ifndef MAX_FD
+# define MAX_FD 1024
+#endif
+
+// Moved to file scope so gnl_cleanup can access it
+static char	*g_buffers[MAX_FD];
 
 /**
  * Find first occurrence of character in string
@@ -144,7 +155,7 @@ static char	*read_and_append(int fd, char *buffer)
         
         chunk[bytes_read] = '\0';
         temp = buffer;
-        buffer = ft_strjoin(buffer, chunk);
+        buffer = ft_strjoin(buffer ? buffer : "", chunk);
         if (temp)
             free(temp);
         if (!buffer)
@@ -159,33 +170,48 @@ static char	*read_and_append(int fd, char *buffer)
 }
 
 /**
- * Get next line from file descriptor
+ * Get next line from file descriptor with support for multiple FDs
  */
 char	*get_next_line(int fd)
 {
-    char		*line;
-    static char	*buffer;
+    char	*line;
 
     // Validate input
-    if (fd < 0 || BUFFER_SIZE <= 0)
+    if (fd < 0 || fd >= MAX_FD || BUFFER_SIZE <= 0)
         return (NULL);
         
     // Read from fd and append to buffer
-    buffer = read_and_append(fd, buffer);
-    if (!buffer)
+    g_buffers[fd] = read_and_append(fd, g_buffers[fd]);
+    if (!g_buffers[fd])
         return (NULL);
         
     // Extract line from buffer
-    line = extract_line(buffer);
+    line = extract_line(g_buffers[fd]);
     if (!line)
     {
-        free(buffer);
-        buffer = NULL;
+        free(g_buffers[fd]);
+        g_buffers[fd] = NULL;
         return (NULL);
     }
     
     // Save remainder for next call
-    buffer = save_remainder(buffer);
+    g_buffers[fd] = save_remainder(g_buffers[fd]);
     
     return (line);
+}
+
+/**
+ * Clean up any resources used by get_next_line for a specific fd
+ * Call this when closing a file descriptor
+ */
+void	gnl_cleanup(int fd)
+{
+    if (fd >= 0 && fd < MAX_FD)
+    {
+        if (g_buffers[fd])
+        {
+            free(g_buffers[fd]);
+            g_buffers[fd] = NULL;
+        }
+    }
 }

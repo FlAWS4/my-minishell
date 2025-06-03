@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 06:15:02 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 20:56:43 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ void sigint_heredoc_handler(int signum)
         ft_putstr_fd("\n", 1);
         
         // Reset get_next_line buffer
-        reset_gnl_buffer();
+        gnl_cleanup(STDIN_FILENO);  // Reset buffer for heredoc input
         
         // Exit the heredoc process with special status
         exit(130);  // 128 + SIGINT (2)

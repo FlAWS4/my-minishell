@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 04:44:02 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 19:09:01 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,12 +17,34 @@
  */
 static void	setup_child_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
 {
+    // CRITICAL CHANGE: Only use the pipe for input if there's no heredoc input
     if (prev_pipe != -1)
     {
-        if (dup2(prev_pipe, STDIN_FILENO) == -1)
-            exit(1);
+        // Only use the pipe input if we don't have a heredoc input
+        if (current->input_fd == -1)
+        {
+            printf("DEBUG: Using pipe input (fd=%d) for command\n", prev_pipe);
+            if (dup2(prev_pipe, STDIN_FILENO) == -1)
+                exit(1);
+        }
+        else
+        {
+            printf("DEBUG: Using heredoc input (fd=%d) instead of pipe input\n", 
+                   current->input_fd);
+            if (dup2(current->input_fd, STDIN_FILENO) == -1)
+                exit(1);
+        }
         close(prev_pipe);
     }
+    else if (current->input_fd != -1)
+    {
+        // If we have a heredoc but no previous pipe
+        printf("DEBUG: Using heredoc input (fd=%d) as stdin\n", current->input_fd);
+        if (dup2(current->input_fd, STDIN_FILENO) == -1)
+            exit(1);
+        close(current->input_fd);
+    }
+    
     if (current->next)
     {
         close(pipe_fds[0]);
@@ -31,6 +53,7 @@ static void	setup_child_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
         close(pipe_fds[1]);
     }
 }
+
 
 /**
  * Handle pipe creation failure
@@ -87,6 +110,9 @@ static int	execute_piped_command(t_shell *shell, t_cmd *cmd,
     return (0);
 }
 
+/**
+ * Wait for all child processes to complete
+ */
 int wait_for_children(t_shell *shell)
 {
     int status;
@@ -168,6 +194,10 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
     {
         if (current->heredoc_delim)
         {
+            printf("DEBUG: Processing heredoc with delimiter '%s' for command: %s\n", 
+                   current->heredoc_delim, 
+                   current->args ? current->args[0] : "NULL");
+                   
             if (!process_heredoc(current))
             {
                 // Cleanup any previous heredoc files
@@ -185,9 +215,10 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
                 return (1);
             }
             
-            // Set input file to heredoc file for redirection setup
-            if (current->heredoc_file)
-                current->input_file = current->heredoc_file;
+            // Verify that process_heredoc set up the input_fd correctly
+            printf("DEBUG: Heredoc processed, input_fd=%d, file=%s\n", 
+                   current->input_fd, 
+                   current->heredoc_file ? current->heredoc_file : "NULL");
         }
         current = current->next;
     }
@@ -197,6 +228,11 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
     current = cmd;
     while (current)
     {
+        // Debug the command before execution
+        printf("DEBUG: Executing piped command: %s (input_fd=%d)\n", 
+               current->args ? current->args[0] : "NULL", 
+               current->input_fd);
+               
         if (execute_piped_command(shell, current, prev_pipe, pipe_fds))
             return (1);
         prev_pipe = manage_parent_pipes(prev_pipe, pipe_fds, current);
@@ -214,6 +250,11 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
             unlink(current->heredoc_file);
             free(current->heredoc_file);
             current->heredoc_file = NULL;
+        }
+        if (current->input_fd != -1)
+        {
+            close(current->input_fd);
+            current->input_fd = -1;
         }
         current = current->next;
     }

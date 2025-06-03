@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 04:28:06 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 21:55:46 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,7 @@ int	builtin_echo(t_cmd *cmd)
     i = 1;
     n_flag = 0;
     
+     printf("DEBUG: In echo builtin\n");
     // Process all consecutive -n flags
     while (cmd->args[i] && is_n_flag(cmd->args[i]))
     {
