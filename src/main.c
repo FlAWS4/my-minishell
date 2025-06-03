@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:33:40 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 03:39:11 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,31 +66,6 @@ void	free_cmd_list(t_cmd *cmd)
         tmp = cmd;
         cmd = cmd->next;
         free(tmp);
-    }
-}
-
-/**
- * Execute parsed commands
- */
-void execute_parsed_commands(t_shell *shell)
-{
-    if (shell->cmd && shell->cmd->args)
-    {
-        // Execute the command
-        execute_command(shell, shell->cmd);
-        
-        // Ensure all output is flushed
-        write(STDOUT_FILENO, "", 0);  // Force any pending output
-        fflush(stdout);
-        fflush(stderr);
-        
-        // We don't need the sleep, proper file-based heredocs will work without it
-        
-        if (g_signal)
-        {
-            shell->exit_status = 130;
-            g_signal = 0;
-        }
     }
 }
 

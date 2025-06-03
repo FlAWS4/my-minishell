@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:09:14 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 05:45:48 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,20 +47,6 @@ void	expand_variables_in_tokens(t_token *tokens, t_shell *shell)
     }
 }
 
-/**
- * Free memory allocated during expansion
- */
-void	free_expansion_parts(char *name, char *value, char **parts)
-{
-    if (name)
-        free(name);
-    if (value)
-        free(value);
-    if (parts[0])
-        free(parts[0]);
-    if (parts[1])
-        free(parts[1]);
-}
 
 /**
  * Expand a single variable
@@ -121,82 +107,62 @@ char	*expand_one_var(t_shell *shell, char *str, int *i)
 /**
  * Expand variables in string
  */
-char	*expand_variables(t_shell *shell, char *str)
+char *expand_variables(t_shell *shell, char *token)
 {
-    int		i;
-    int		in_single_quote;
-    int		in_double_quote;
-    char	*result;
-
-    if (!str)
+    char *result = ft_strdup("");
+    char *var_name;
+    char *var_value;
+    int i = 0;
+    
+    if (!token || !result)
         return (NULL);
-        
-    i = 0;
-    in_single_quote = 0;
-    in_double_quote = 0;
-    result = ft_strdup(str);
-    if (!result)
-        return (NULL);
-        
-    while (result && result[i])
+    
+    while (token[i])
     {
-        // Handle quote state tracking
-        if (result[i] == '\'' && !in_double_quote)
-            in_single_quote = !in_single_quote;
-        else if (result[i] == '\"' && !in_single_quote)
-            in_double_quote = !in_double_quote;
-        // Expand variables outside single quotes
-        else if (result[i] == '$' && !in_single_quote && result[i + 1] &&
-                (ft_isalnum(result[i + 1]) || result[i + 1] == '?' ||
-                result[i + 1] == '_'))
+        if (token[i] == '$' && token[i+1] && ft_isalnum(token[i+1]))
         {
-            result = expand_one_var(shell, result, &i);
-            if (!result)
+            // Found a variable to expand
+            int start = i + 1;
+            int len = 0;
+            
+            // Find the length of the variable name
+            while (token[start + len] && (ft_isalnum(token[start + len]) || token[start + len] == '_'))
+                len++;
+                
+            // Extract the variable name
+            var_name = ft_substr(token, start, len);
+            if (!var_name)
+            {
+                free(result);
                 return (NULL);
-            // Avoid incrementing i after expansion since it's already adjusted
-            continue;
+            }
+            
+            // Get the variable value
+            var_value = get_env_value(shell->env, var_name);
+            
+            // Append the value to the result
+            char *temp = result;
+            if (var_value)
+                result = ft_strjoin(result, var_value);
+            else
+                result = ft_strjoin(result, "");
+                
+            free(temp);
+            free(var_name);
+            
+            // Skip past the variable name
+            i += len + 1;
         }
-        i++;
-    }
-    return (result);
-}
-
-/**
- * Get variable name from string
- */
-char	*get_var_name(char *str)
-{
-    int		i;
-    char	*name;
-
-    i = 0;
-    if (str[i] == '?')
-        return (ft_strdup("?"));
-        
-    while (str[i] && (ft_isalnum(str[i]) || str[i] == '_'))
-        i++;
-        
-    name = ft_substr(str, 0, i);
-    return (name);
-}
-
-/**
- * Get variable value from environment
- */
-char	*get_var_value(t_shell *shell, char *name)
-{
-    t_env	*env;
-    char	*exit_status_str;
-
-    if (ft_strcmp(name, "?") == 0)
-    {
-        exit_status_str = ft_itoa(shell->exit_status);
-        return (exit_status_str);
+        else
+        {
+            // Add the character to the result
+            char c[2] = {token[i], '\0'};
+            char *temp = result;
+            result = ft_strjoin(result, c);
+            free(temp);
+            i++;
+        }
     }
     
-    env = find_env_var(shell->env, name);
-    if (env && env->value)
-        return (ft_strdup(env->value));
-        
-    return (ft_strdup(""));
+    return result;
 }

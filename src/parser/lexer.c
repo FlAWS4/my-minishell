@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 16:48:43 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 01:49:32 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -225,15 +225,6 @@ int	validate_syntax(t_token *tokens)
     }
     
     return (1);
-}
-
-/**
- * Checks if a character is a whitespace
- */
-int	is_whitespace(char c)
-{
-    return (c == ' ' || c == '\t' || c == '\n' || 
-            c == '\v' || c == '\f' || c == '\r');
 }
 
 /**

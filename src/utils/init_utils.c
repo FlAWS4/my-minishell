@@ -6,43 +6,40 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/24 19:56:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:58:40 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 03:47:28 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Process command status from waitpid
- * Sets shell exit status based on child process termination
+ * Process command exit status
  */
-void	process_cmd_status(t_shell *shell, int status)
+void process_cmd_status(t_shell *shell, int status)
 {
-    int	sig;
-
+    // Add safety check
     if (!shell)
         return;
         
-    shell->exit_status = 1;
     if (WIFEXITED(status))
     {
         shell->exit_status = WEXITSTATUS(status);
     }
     else if (WIFSIGNALED(status))
     {
-        sig = WTERMSIG(status);
-        if (sig == SIGINT)
-        {
-            ft_putstr_fd("\n", 1);
-            shell->exit_status = 130;
-        }
-        else if (sig == SIGQUIT)
-        {
-            ft_putstr_fd("Quit (core dumped)\n", 1);
-            shell->exit_status = 131;
-        }
-        else
-            shell->exit_status = 128 + sig;
+        // Handle the case where the command was terminated by a signal
+        if (WTERMSIG(status) == SIGINT)
+            ft_putstr_fd("\n", STDOUT_FILENO);
+        shell->exit_status = 128 + WTERMSIG(status);
+    }
+    
+    // Force reset terminal state to ensure prompt displays correctly
+    if (isatty(STDIN_FILENO))
+    {
+        struct termios term;
+        tcgetattr(STDIN_FILENO, &term);
+        term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
+        tcsetattr(STDIN_FILENO, TCSANOW, &term);
     }
 }
 
@@ -63,6 +60,10 @@ t_shell	*init_shell(char **envp)
         free(shell);
         return (NULL);
     }
+    
+    // Initialize terminal settings
+    if (isatty(STDIN_FILENO))
+        tcgetattr(STDIN_FILENO, &shell->orig_termios);
     
     shell->cmd = NULL;
     shell->exit_status = 0;
@@ -101,24 +102,65 @@ t_cmd	*parse_input(char *input)
     free_token_list(tokens);
     return (cmd);
 }
+/**
+ * Process input and execute commands
+ */
+void process_input(t_shell *shell, char *input)
+{
+    // Clear any previous command data
+    if (shell->cmd)
+    {
+        free_cmd_list(shell->cmd);
+        shell->cmd = NULL;
+    }
+    
+    // Parse input
+    shell->cmd = parse_input(input);
+    if (!shell->cmd)
+        return;
+    
+    // Execute commands
+    execute_parsed_commands(shell);
+    
+    // Reset terminal state using the saved original settings
+    if (isatty(STDIN_FILENO))
+        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    
+    // Clear the command list after execution
+    if (shell->cmd)
+    {
+        free_cmd_list(shell->cmd);
+        shell->cmd = NULL;
+    }
+}
 
 /**
- * Process user input and execute commands
+ * Execute parsed commands
  */
-void	process_input(t_shell *shell, char *input)
+void execute_parsed_commands(t_shell *shell)
 {
-    t_token	*tokens;
-
-    if (!shell || !input || input[0] == '\0')
+    if (!shell || !shell->cmd)
         return;
-    tokens = tokenize(input);
-    if (!tokens)
-        return;
-    expand_variables_in_tokens(tokens, shell);
-    shell->cmd = parse_tokens(tokens, shell);
-    free_token_list(tokens);
-    if (shell->cmd)
-        execute_parsed_commands(shell);
-    free_cmd_list(shell->cmd);
-    shell->cmd = NULL;
+        
+    // Only try to execute if we have arguments
+    if (shell->cmd->args && shell->cmd->args[0])
+    {
+        // Execute the command and get the result
+        execute_command(shell, shell->cmd);
+        
+        // Ensure all output is flushed
+        write(STDOUT_FILENO, "", 0);
+        fflush(stdout);
+        fflush(stderr);
+    }
+    
+    // Handle signals properly
+    if (g_signal)
+    {
+        shell->exit_status = 130;
+        g_signal = 0;
+    }
+    
+    // Reset terminal for next prompt
+    setup_signals();
 }

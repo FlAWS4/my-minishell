@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 16:49:32 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 04:44:02 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,20 +87,33 @@ static int	execute_piped_command(t_shell *shell, t_cmd *cmd,
     return (0);
 }
 
-/**
- * Wait for all child processes to complete
- */
-int	wait_for_children(t_shell *shell)
+int wait_for_children(t_shell *shell)
 {
-    int	status;
-    int	pid;
-    int	last_status;
+    int status;
+    int pid;
+    int last_status;
 
+    if (!shell)
+        return (1);
+    
+    // Temporarily ignore signals while waiting for children
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+        
     last_status = 0;
     while (1)
     {
         pid = waitpid(-1, &status, 0);
-        if (pid <= 0)
+        if (pid < 0)
+        {
+            if (errno == ECHILD)  // No more children
+                break;
+            else if (errno == EINTR)
+                continue;  // Retry if interrupted by signal
+            else
+                return (1);  // Error occurred
+        }
+        else if (pid == 0)  // No children have exited
             break;
             
         if (WIFEXITED(status))
@@ -113,7 +126,10 @@ int	wait_for_children(t_shell *shell)
         }
     }
     
-    // Force flush any pending output to ensure everything is displayed
+    // Restore signal handlers
+    setup_signals();
+    
+    // Force flush any pending output
     write(STDOUT_FILENO, "", 0);
     fflush(stdout);
     fflush(stderr);
@@ -140,12 +156,43 @@ static int	manage_parent_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
 /**
  * Execute a pipeline of commands
  */
-int	execute_pipeline(t_shell *shell, t_cmd *cmd)
+int execute_pipeline(t_shell *shell, t_cmd *cmd)
 {
-    int		pipe_fds[2];
-    t_cmd	*current;
-    int		prev_pipe;
+    int     pipe_fds[2];
+    t_cmd   *current;
+    int     prev_pipe;
 
+    // PRE-PROCESS ALL HEREDOCS BEFORE EXECUTING THE PIPELINE
+    current = cmd;
+    while (current)
+    {
+        if (current->heredoc_delim)
+        {
+            if (!process_heredoc(current))
+            {
+                // Cleanup any previous heredoc files
+                t_cmd *cleanup = cmd;
+                while (cleanup != current)
+                {
+                    if (cleanup->heredoc_file)
+                    {
+                        unlink(cleanup->heredoc_file);
+                        free(cleanup->heredoc_file);
+                        cleanup->heredoc_file = NULL;
+                    }
+                    cleanup = cleanup->next;
+                }
+                return (1);
+            }
+            
+            // Set input file to heredoc file for redirection setup
+            if (current->heredoc_file)
+                current->input_file = current->heredoc_file;
+        }
+        current = current->next;
+    }
+
+    // NOW EXECUTE THE PIPELINE AS BEFORE
     prev_pipe = -1;
     current = cmd;
     while (current)
@@ -155,5 +202,21 @@ int	execute_pipeline(t_shell *shell, t_cmd *cmd)
         prev_pipe = manage_parent_pipes(prev_pipe, pipe_fds, current);
         current = current->next;
     }
-    return (wait_for_children(shell));
+    
+    int result = wait_for_children(shell);
+    
+    // CLEANUP HEREDOC FILES AFTER EXECUTION
+    current = cmd;
+    while (current)
+    {
+        if (current->heredoc_file)
+        {
+            unlink(current->heredoc_file);
+            free(current->heredoc_file);
+            current->heredoc_file = NULL;
+        }
+        current = current->next;
+    }
+    
+    return result;
 }

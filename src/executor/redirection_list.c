@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:32:19 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 02:47:31 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 04:48:41 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,37 +63,123 @@ int	process_output_redir(t_redirection *redir)
     close(fd);
     return (0);
 }
+
+/**
+ * Process heredoc content in child process
+ */
+static int collect_heredoc_content(char *delimiter, int fd)
+{
+    char *line;
+    
+    // Set up heredoc specific signal handling
+    setup_signals_heredoc();
+    
+    // Reset any existing buffers
+    reset_gnl_buffer();
+    
+    // Read heredoc content
+    ft_putstr_fd("heredoc> ", STDOUT_FILENO);
+    line = get_next_line(STDIN_FILENO);
+    
+    while (line != NULL)
+    {
+        // Remove newline for comparison
+        int len = ft_strlen(line);
+        if (len > 0 && line[len - 1] == '\n')
+            line[len - 1] = '\0';
+        
+        // Check for delimiter
+        if (ft_strcmp(line, delimiter) == 0)
+        {
+            free(line);
+            break;
+        }
+        
+        // Write line to file with newline
+        ft_putstr_fd(line, fd);
+        ft_putstr_fd("\n", fd);
+        
+        free(line);
+        ft_putstr_fd("heredoc> ", STDOUT_FILENO);
+        line = get_next_line(STDIN_FILENO);
+    }
+    
+    if (line)
+        free(line);
+        
+    exit(0);
+}
+
 /**
  * Process heredoc redirection
  */
 int process_heredoc_redir(t_redirection *redir)
 {
     int fd;
+    char *temp_file;
+    pid_t pid;
+    int status;
     
-    // Create temporary file
-    fd = open(".heredoc.tmp", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    // Use unique temp file name to avoid conflicts with multiple heredocs
+    temp_file = ft_strdup("/tmp/minishell_heredoc_XXXXXX");
+    if (!temp_file)
+    {
+        display_error(ERROR_MEMORY, "heredoc", "Memory allocation failed");
+        return (1);
+    }
+    
+    // Create temporary file with unique name
+    fd = mkstemp(temp_file);
     if (fd == -1)
     {
+        free(temp_file);
         display_error(ERR_REDIR, "heredoc", strerror(errno));
         return (1);
     }
     
-    // Collect heredoc content into file
-    if (!collect_heredoc_input(redir->word, fd))
+    // Use fork to handle heredoc input in a separate process
+    pid = fork();
+    if (pid == -1)
     {
         close(fd);
-        unlink(".heredoc.tmp");
+        unlink(temp_file);
+        free(temp_file);
+        display_error(ERR_FORK, "heredoc", strerror(errno));
+        return (1);
+    }
+    
+    if (pid == 0)
+    {
+        // Child process collects heredoc content
+        collect_heredoc_content(redir->word, fd);
+        // Not reached
+        exit(0);
+    }
+    
+    // Parent process
+    signal(SIGINT, SIG_IGN);
+    waitpid(pid, &status, 0);
+    setup_signals();
+    
+    // Check if heredoc was interrupted
+    if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT)
+    {
+        close(fd);
+        unlink(temp_file);
+        free(temp_file);
+        g_signal = SIGINT;
         return (1);
     }
     
     close(fd);
     
     // Reopen file for reading
-    fd = open(".heredoc.tmp", O_RDONLY);
+    fd = open(temp_file, O_RDONLY);
     if (fd == -1)
     {
+        unlink(temp_file);
+        free(temp_file);
         display_error(ERR_REDIR, "heredoc", strerror(errno));
-        unlink(".heredoc.tmp");
         return (1);
     }
     
@@ -101,15 +187,20 @@ int process_heredoc_redir(t_redirection *redir)
     if (dup2(fd, STDIN_FILENO) == -1)
     {
         close(fd);
-        unlink(".heredoc.tmp");
+        unlink(temp_file);
+        free(temp_file);
         display_error(ERR_REDIR, "heredoc", strerror(errno));
         return (1);
     }
     
+    // Clean up
     close(fd);
-    unlink(".heredoc.tmp");  // Remove temp file
+    unlink(temp_file);
+    free(temp_file);
+    
     return (0);
 }
+
 /**
  * Process a single redirection based on type
  */

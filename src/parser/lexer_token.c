@@ -6,12 +6,11 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:39:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:25:00 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 02:02:10 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
 /**
  * Checks if a character is a special token character
  */
@@ -111,54 +110,6 @@ int	handle_word(char *input, int i, t_token **tokens)
         return (-1);
     add_token(tokens, create_token(TOKEN_WORD, word, preceded_by_space));
     return (i);  // Return current position - process_token_part doesn't increment
-}
-
-/**
- * Handle special tokens (|, <, >, <<, >>)
- */
-int	handle_special(char *input, int i, t_token **tokens)
-{
-    t_token_type	type;
-    char			*value;
-    int				preceded_by_space;
-    int				len;
-    
-    preceded_by_space = 0;
-    if (i > 0 && is_whitespace(input[i - 1]))
-        preceded_by_space = 1;
-    
-    // Handle double character tokens (<<, >>)
-    if (input[i] == '<' && input[i + 1] == '<')
-    {
-        type = TOKEN_HEREDOC;
-        len = 2;
-    }
-    else if (input[i] == '>' && input[i + 1] == '>')
-    {
-        type = TOKEN_REDIR_APPEND;
-        len = 2;
-    }
-    else if (input[i] == '<')
-    {
-        type = TOKEN_REDIR_IN;
-        len = 1;
-    }
-    else if (input[i] == '>')
-    {
-        type = TOKEN_REDIR_OUT;
-        len = 1;
-    }
-    else  // Must be pipe
-    {
-        type = TOKEN_PIPE;
-        len = 1;
-    }
-    
-    value = ft_substr(input, i, len);
-    if (!value)
-        return (-1);
-    add_token(tokens, create_token(type, value, preceded_by_space));
-    return (i + len);
 }
 
 /**

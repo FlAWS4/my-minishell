@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:55:39 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 04:13:42 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 04:30:23 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,15 +71,23 @@ void	ft_putnbr_fd(int n, int fd)
  */
 void reset_gnl_buffer(void)
 {
-    static int dummy_fd = -1;
+    // Create and immediately close a real file descriptor
+    int temp_fd = open("/dev/null", O_RDONLY);
     char *temp;
     
-    // Force GNL to reset its static variable by calling with invalid fd
-    temp = get_next_line(dummy_fd);
+    if (temp_fd != -1) {
+        // Read from this fd to clear any lingering content
+        temp = get_next_line(temp_fd);
+        if (temp)
+            free(temp);
+        close(temp_fd);
+    }
+    
+    // Also explicitly call with STDIN_FILENO to reset that buffer
+    temp = get_next_line(STDIN_FILENO);
     if (temp)
         free(temp);
 }
-
 /**
  * Create a heredoc temporary file
  * Returns the file descriptor or -1 on error

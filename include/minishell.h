@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 17:04:25 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 06:10:42 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@
 #define ERROR_COMMAND   2
 #define ERROR_PERMISSION 3
 #define ERROR_MEMORY    4
+#define ERR_EXEC        5   // Execution error
 # define RESET "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
@@ -111,6 +112,7 @@ typedef struct s_cmd
     char            *output_file;   // Keep for backward compatibility
     int             append_mode;    // Keep for backward compatibility
     char            *heredoc_delim; // Keep for single heredoc support
+    char            *heredoc_file ; // File for heredoc content
     t_redirection   *redirections;  // For multiple redirections
     
     // Add these important fields
@@ -136,6 +138,7 @@ typedef struct s_shell
     t_cmd	*cmd;
     int		exit_status;
     int		should_exit;
+    struct termios	orig_termios; // Original terminal settings
 }	t_shell;
 
 /* Environment functions */
@@ -182,6 +185,8 @@ int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
+void    handle_sigint_heredoc(int sig);
+
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -223,6 +228,7 @@ int	    check_heredoc_line(char *line, char *delimiter, int fd);
 int     create_heredoc_file(void);
 int     handle_input_redirection(char *filename);
 int     handle_output_redirection(char *filename, int append_mode);
+int     process_heredoc(t_cmd *cmd);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);

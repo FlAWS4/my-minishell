@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 02:36:30 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 05:40:45 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,81 +85,6 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
     restore_redirections(saved_stdin, saved_stdout);
     return (result);
 }
-/**
- * Write debug message to a file
- */
-// Add __attribute__((unused)) to tell the compiler this is intentional
-static void debug_to_file(const char *msg, const char *value) __attribute__((unused));
-static void debug_to_file(const char *msg, const char *value)
-{
-    FILE *debug_file = fopen("/tmp/minishell_debug.log", "a");
-    if (debug_file)
-    {
-        fprintf(debug_file, "[DEBUG] %s", msg);
-        if (value)
-            fprintf(debug_file, ": %s", value);
-        fprintf(debug_file, "\n");
-        fclose(debug_file);
-    }
-}
-
-void execute_child(t_shell *shell, t_cmd *cmd)
-{
-    char *command_path;
-    char **env_array;
-    struct termios term;
-    
-    setup_signals_noninteractive();
-    
-    if (setup_redirections(cmd) != 0)
-        exit(1);
-    
-    // Reset terminal to canonical mode for better output handling
-    if (isatty(STDOUT_FILENO))
-    {
-        tcgetattr(STDOUT_FILENO, &term);
-        term.c_lflag |= (ICANON | ECHO);
-        tcsetattr(STDOUT_FILENO, TCSANOW, &term);
-    }
-    
-    // Special handling for heredoc or cat commands
-    if (cmd->args[0] && (ft_strcmp(cmd->args[0], "cat") == 0 || 
-                         cmd->heredoc_delim != NULL)) 
-    {
-        if (ft_strcmp(cmd->args[0], "cat") == 0 && !cmd->args[1]) 
-        {
-            // Handle simple cat with heredoc input
-            char buffer[4096];
-            ssize_t bytes;
-            
-            while ((bytes = read(STDIN_FILENO, buffer, sizeof(buffer) - 1)) > 0) 
-            {
-                buffer[bytes] = '\0';
-                write(STDOUT_FILENO, buffer, bytes);
-                // Ensure output is displayed by forcing a flush
-                write(STDOUT_FILENO, "", 0);
-            }
-            
-            exit(0);
-        }
-    }
-    
-    // Normal command execution
-    command_path = find_command(shell, cmd->args[0]);
-    if (!command_path)
-    {
-        display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
-        exit(127);
-    }
-    
-    env_array = env_to_array(shell->env);
-    execve(command_path, cmd->args, env_array);
-    
-    // Only reaches here if execve fails
-    free_env_array(env_array, count_env_vars(shell->env));
-    free(command_path);
-    exit(126);
-}
 
 /**
  * Check if command is a builtin
@@ -178,4 +103,172 @@ int	is_builtin(char *cmd)
         ft_strcmp(cmd, "exit") == 0 ||
         ft_strcmp(cmd, "help") == 0
     );
+}
+
+
+/**
+ * Execute child process with proper error handling
+ */
+void execute_child(t_shell *shell, t_cmd *cmd)
+{
+    char *command_path;
+    char **env_array = NULL;
+    
+    // Validate command before proceeding
+    if (!cmd || !cmd->args || !cmd->args[0]) 
+    {
+        exit(127);
+    }
+    
+    // Reset signals to default behavior for child processes
+    setup_signals_noninteractive();
+    
+    // Reset terminal attributes for interactive commands
+    struct termios term;
+    if (tcgetattr(STDIN_FILENO, &term) == 0)
+    {
+        term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
+        tcsetattr(STDIN_FILENO, TCSANOW, &term);
+    }
+    
+    // IMPORTANT: First check if command exists
+    command_path = find_command(shell, cmd->args[0]);
+    if (!command_path)
+    {
+        display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
+        exit(127);
+    }
+    
+    // Now it's safe to set up redirections
+    if (setup_redirections(cmd) != 0)
+    {
+        free(command_path);
+        exit(1);
+    }
+    
+    // Create environment array
+    env_array = env_to_array(shell->env);
+    if (!env_array)
+    {
+        free(command_path);
+        display_error(ERROR_MEMORY, "env_to_array", "Failed to allocate memory");
+        exit(126);
+    }
+    
+    // Execute command
+    execve(command_path, cmd->args, env_array);
+    
+    // Only reached if execve fails
+    display_error(ERR_EXEC, command_path, strerror(errno));
+    free_env_array(env_array, count_env_vars(shell->env));
+    free(command_path);
+    exit(126);
+}
+
+/**
+ * Execute a command with proper signal and terminal handling
+ */
+/**
+ * Execute a command with proper signal and terminal handling
+ */
+int execute_command(t_shell *shell, t_cmd *cmd)
+{
+    int status = 0;
+    pid_t pid;
+    
+    if (!cmd || !cmd->args || !cmd->args[0])
+        return (1);
+    
+    // Process heredoc if needed
+    if (cmd->heredoc_delim)
+    {
+        if (!process_heredoc(cmd))
+            return (1);
+    }
+    
+    // For builtins, execute directly
+    if (is_builtin(cmd->args[0]))
+    {
+        int ret = execute_builtin(shell, cmd);
+        
+        // Clean up after builtins
+        if (cmd->input_fd != -1)
+        {
+            close(cmd->input_fd);
+            cmd->input_fd = -1;
+        }
+        
+        // CRITICAL FIX: Don't attempt to unlink/free heredoc_file
+        // It was already taken care of in process_heredoc
+        
+        return (ret);
+    }
+    
+    // For external commands
+    pid = fork();
+    if (pid == 0)
+    {
+        // Child process
+        setup_signals_noninteractive();
+        
+        // Find command path
+        char *cmd_path = find_command(shell, cmd->args[0]);
+        if (!cmd_path)
+        {
+            display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
+            exit(127);
+        }
+        
+        // Set up redirections
+        if (setup_redirections(cmd) != 0)
+        {
+            free(cmd_path);
+            exit(1);
+        }
+        
+        // Create environment array and execute
+        char **env_array = env_to_array(shell->env);
+        if (!env_array)
+        {
+            free(cmd_path);
+            exit(126);
+        }
+        
+        execve(cmd_path, cmd->args, env_array);
+        
+        // Only reached on error
+        display_error(ERR_EXEC, cmd_path, strerror(errno));
+        free(cmd_path);
+        free_env_array(env_array, count_env_vars(shell->env));
+        exit(126);
+    }
+    else if (pid < 0)
+    {
+        // Fork failed
+        display_error(0, "fork", strerror(errno));
+        return (1);
+    }
+    
+    // Parent process
+    signal(SIGINT, SIG_IGN);
+    waitpid(pid, &status, 0);
+    setup_signals();
+    
+    // Clean up resources
+    if (cmd->input_fd != -1)
+    {
+        close(cmd->input_fd);
+        cmd->input_fd = -1;
+    }
+    
+    // CRITICAL FIX: Don't attempt to cleanup heredoc_file again
+    // It was already handled in process_heredoc
+    
+    // Process status
+    if (WIFEXITED(status))
+        shell->exit_status = WEXITSTATUS(status);
+    else if (WIFSIGNALED(status))
+        shell->exit_status = 128 + WTERMSIG(status);
+    
+    return (shell->exit_status);
 }

@@ -6,36 +6,12 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 16:53:21 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 01:57:11 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Check if variable name is valid (same as export)
- * Name must start with letter or underscore and contain only alphanumerics
- */
-int	is_valid_var_name(char *name)
-{
-    int	i;
-
-    if (!name || !*name)
-        return (0);
-    if (!(name[0] == '_' || (name[0] >= 'a' && name[0] <= 'z')
-            || (name[0] >= 'A' && name[0] <= 'Z')))
-        return (0);
-    i = 1;
-    while (name[i])
-    {
-        if (!(name[i] == '_' || (name[i] >= 'a' && name[i] <= 'z')
-                || (name[i] >= 'A' && name[i] <= 'Z')
-                || (name[i] >= '0' && name[i] <= '9')))
-            return (0);
-        i++;
-    }
-    return (1);
-}
 
 /**
  * Free environment node

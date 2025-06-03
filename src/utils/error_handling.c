@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 17:01:17 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 03:15:53 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,25 +57,36 @@ static char	*get_error_prefix(int error_type)
 /**
  * Display visually enhanced error message
  */
-void	display_error(int error_type, char *command, char *message)
+void display_error(int error_type, char *command, char *message)
 {
-    char	*prefix;
+    char *prefix;
 
+    if (error_type == ERR_NOT_FOUND)
+    {
+        prefix = BOLD_RED "🔍 Command Not Found" RESET ": ";
+        ft_putstr_fd(prefix, 2);   
+        if (command && command[0] != '\0')
+        {
+            ft_putstr_fd(command, 2);
+            ft_putstr_fd(": command not found\n", 2);
+        }
+        else
+            ft_putstr_fd("command not found\n", 2);
+        return;
+    }
     if (!command || !message)
         return;
-        
     prefix = get_error_prefix(error_type);
     ft_putstr_fd(prefix, 2);
-    
     if (command && command[0] != '\0')
     {
         ft_putstr_fd(command, 2);
         ft_putstr_fd(": ", 2);
     }
-    
     ft_putstr_fd(message, 2);
     ft_putstr_fd("\n", 2);
 }
+
 
 /**
  * Print error message to stderr with automatic error type detection

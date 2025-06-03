@@ -6,28 +6,11 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 17:06:30 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 01:40:31 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-/**
- * Free token list
- */
-void	free_token_list(t_token *tokens)
-{
-    t_token	*tmp;
-
-    while (tokens)
-    {
-        tmp = tokens;
-        tokens = tokens->next;
-        if (tmp->value)
-            free(tmp->value);
-        free(tmp);
-    }
-}
 
 /**
  * Free a single command and its resources
@@ -150,52 +133,4 @@ void	join_word_tokens(t_cmd *cmd, t_token **token)
     
     add_arg(cmd, word);
     *token = current;
-}
-
-/**
- * Merge adjacent quoted tokens and words
- */
-void merge_adjacent_quoted_tokens(t_token **tokens)
-{
-    t_token *current;
-    t_token *to_delete;
-    char *new_value;
-    
-    if (!tokens || !*tokens)
-        return;
-        
-    current = *tokens;
-    while (current && current->next)
-    {
-        // Only merge tokens that are NOT separated by space
-        if ((current->type == TOKEN_WORD || 
-             current->type == TOKEN_SINGLE_QUOTE || 
-             current->type == TOKEN_DOUBLE_QUOTE) &&
-            (current->next->type == TOKEN_WORD ||
-             current->next->type == TOKEN_SINGLE_QUOTE ||
-             current->next->type == TOKEN_DOUBLE_QUOTE) &&
-            !current->next->preceded_by_space)
-        {
-            // Merge the values
-            new_value = ft_strjoin(current->value, current->next->value);
-            if (!new_value)
-                return;  // Memory allocation failed
-                
-            free(current->value);
-            current->value = new_value;
-            current->type = TOKEN_WORD;  // Merged tokens become words
-            
-            // Remove next token from list
-            to_delete = current->next;
-            current->next = to_delete->next;
-            free(to_delete->value);
-            free(to_delete);
-            
-            // Don't advance current - we might need to merge more tokens
-        }
-        else
-        {
-            current = current->next;
-        }
-    }
 }

@@ -6,7 +6,7 @@
 /*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 03:00:54 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/03 05:54:52 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,22 +60,27 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 }
 
 /**
- * Handle heredoc redirection - FIXED
+ * Handle heredoc redirection
  */
-int	handle_heredoc(t_token **token, t_cmd *cmd)
+int handle_heredoc(t_token **token, t_cmd *cmd)
 {
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
     
-    // Only add to redirections list
+    // Store the delimiter
+    cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    if (!cmd->heredoc_delim)
+        return (0);
+    
+    // CRITICAL: Add to redirections list like other redirection types
     add_redirection(cmd, TOKEN_HEREDOC, (*token)->next->value);
     
-    // REMOVED: Code that updates cmd->heredoc_delim
-    // This was causing double processing of heredocs
-    
+    // Skip the delimiter token so it's not processed as an argument
     *token = (*token)->next;
+    
     return (1);
 }
+
 
 /**
  * Check if token is a redirection token
