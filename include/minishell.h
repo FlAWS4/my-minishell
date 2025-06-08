@@ -6,9 +6,10 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 23:31:35 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/08 23:02:09 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #ifndef MINISHELL_H
 # define MINISHELL_H
@@ -25,8 +26,15 @@
 # include <string.h>
 # include <sys/stat.h>
 # include <termios.h>
+# include <limits.h>
 
-# define BUFFER_SIZE 10
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 128
+# endif
+
+# ifndef MAX_FD
+#  define MAX_FD 1024
+# endif
 
 // Text colors
 # define BLACK "\033[0;30m"
@@ -51,9 +59,11 @@
 # define BOLD_MAGENTA "\033[1;35m"
 
 /* Error types */
-#define ERROR_SYNTAX    1
-#define ERROR_COMMAND   2
-#define ERROR_PERMISSION 3
+# define ERROR_SYNTAX    1
+# define ERROR_COMMAND   2
+# define ERROR_PERMISSION 3
+# define ERROR_MEMORY    4
+# define ERR_EXEC        5   // Execution error
 # define RESET "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
@@ -89,8 +99,12 @@ typedef enum e_token_type
 typedef struct s_redirection
 {
     int                     type;  // REDIR_IN, REDIR_OUT, HEREDOC
+    int                    quoted; // Flag to indicate if the word is quoted
     char                    *word;
     struct s_redirection    *next;
+    int                     input_fd;  // File descriptor for input redirection
+    int                     output_fd; // File descriptor for output redirection
+    char                    *temp_file; // Temporary file for heredoc
 } t_redirection;
 
 /* Token structure */
@@ -102,7 +116,6 @@ typedef struct s_token
     int             preceded_by_space; // For handling whitespace
 }	t_token;
 
-/* Command structure */
 typedef struct s_cmd
 {
     char            **args;
@@ -110,7 +123,13 @@ typedef struct s_cmd
     char            *output_file;   // Keep for backward compatibility
     int             append_mode;    // Keep for backward compatibility
     char            *heredoc_delim; // Keep for single heredoc support
-    t_redirection   *redirections;  // Add this new field for multiple redirections
+    char            *heredoc_file ; // File for heredoc content
+    t_redirection   *redirections;  // For multiple redirections
+    int             heredocs_processed; // Flag to indicate if heredocs are processed
+    int             input_fd;       // File descriptor for input
+    int             output_fd;      // File descriptor for output
+    pid_t           pid;            // Process ID for waiting
+    
     struct s_cmd    *next;
 }   t_cmd;
 
@@ -129,7 +148,19 @@ typedef struct s_shell
     t_cmd	*cmd;
     int		exit_status;
     int		should_exit;
+    struct termios	orig_termios; // Original terminal settings
 }	t_shell;
+
+/**
+ * Create a struct to track file descriptors for multiple heredocs
+ */
+typedef struct s_heredoc_fds
+{
+    int fd;                   // File descriptor
+    char *delimiter;          // Heredoc delimiter for debugging
+    struct s_heredoc_fds *next;
+} t_heredoc_fds;
+
 
 /* Environment functions */
 t_env	*create_env_node(char *key, char *value);
@@ -137,11 +168,13 @@ void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
 char	*get_env_value(t_env *env, const char *key);
-//void	update_env_var(t_env *env, const char *key, const char *value);
-//int		remove_env_var(t_env **env, const char *key);
 t_env	*find_env_var(t_env *env, const char *key);
+int     set_env_var(t_env **env_list, char *key, char *value);
+int     delete_env_var(t_env **env_list, char *key);
 int	    count_env_vars(t_env *env);
-void	free_env_array(char **array, int count);
+void	free_env_array(char **array);
+int     is_valid_var_name(char *name);
+char	**env_to_array(t_env *env);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -151,7 +184,7 @@ char	*ft_substr(char const *s, unsigned int start, size_t len);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 char	**ft_split(const char *s, char c);
 char	*ft_strjoin(const char *s1, const char *s2);
-char	*ft_strjoin_free(char *s1, const char *s2);
+char	*ft_strjoin_free(char *s1, char *s2);
 void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
 void	*ft_calloc(size_t nmemb, size_t size);
@@ -162,13 +195,19 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
 int		is_whitespace(char c);
 char	*get_next_line(int fd);
+void	gnl_cleanup(int fd);
 void	ft_putnbr_fd(int n, int fd);
-void    reset_gnl_buffer(void);
+int     ft_count_char(const char *str, char c);
+int     ft_str_is_numeric(const char *str);
+int     ft_isalpha(int c);
+char	*ft_itoa(int n);
+int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 
 /* Signal handling */
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
+void    handle_sigint_heredoc(int sig);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -181,13 +220,14 @@ int	    handle_special(char *input, int i, t_token **tokens);
 /* Token management functions */
 t_token	*create_token(t_token_type type, char *value, int preceded_by_space);
 void	add_token(t_token **list, t_token *new);
-int	    handle_quote(char *input, int i, t_token **tokens);\
+int	    handle_quote(char *input, int i, t_token **tokens);
 t_token	*get_last_token(t_token *tokens);
 
 /* Command creation and management */
 t_cmd	*create_cmd(void);
 int		init_args(t_cmd *cmd, char *arg);
-void	add_arg(t_cmd *cmd, char *arg);
+void   add_arg(t_cmd *cmd, char *arg);
+
 
 /* Redirection handling */
 int		handle_redir_in(t_token **token, t_cmd *cmd);
@@ -198,7 +238,7 @@ int		setup_redirections(t_cmd *cmd);
 int		process_redirections(t_cmd *cmd);
 char	*read_heredoc_line(void);
 int		collect_heredoc_input(char *delimiter, int fd);
-void    add_redirection(t_cmd *cmd, int type, char *word);
+int     add_redirection(t_cmd *cmd, int type, char *word);
 int     process_input_redir(t_redirection *redir);
 int     process_output_redir(t_redirection *redir);
 int     process_heredoc_redir(t_redirection *redir);
@@ -207,14 +247,21 @@ int	    is_redirection_token(t_token *token);
 void    free_redirection_list(t_redirection *redirections);
 int	    collect_and_discard_heredoc(char *delimiter);
 int	    check_heredoc_line(char *line, char *delimiter, int fd);
+int     create_heredoc_file(void);
+int     handle_input_redirection(char *filename);
+int     handle_output_redirection(char *filename, int append_mode);
+int     process_heredoc(t_cmd *cmd);
+void    cleanup_redirections(t_cmd *cmd);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
 int		process_token(t_token **token, t_cmd **current);
-t_cmd	*parse_tokens(t_token *tokens);
+t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
 int		validate_syntax(t_token *tokens);
-void merge_adjacent_quoted_tokens(t_token **tokens);
+void    merge_adjacent_quoted_tokens(t_token **tokens);
+t_token *tokenize_and_expand(char *input, t_shell *shell);
+void    join_word_tokens(t_cmd *cmd, t_token **token);
 
 /* Executor functions */
 char	*find_command(t_shell *shell, char *cmd);
@@ -223,7 +270,12 @@ void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
 char	*create_path(char *dir, char *cmd);
 void	process_cmd_status(t_shell *shell, int status);
-char	**env_to_array(t_env *env);
+int     is_executable(char *path);
+int     wait_for_children(t_shell *shell);
+int     execute(t_shell *shell, t_cmd *cmd);
+int     execute_pipeline(t_shell *shell, t_cmd *cmd);
+int has_heredoc_redirection(t_cmd *cmd);
+int process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);
@@ -233,47 +285,54 @@ int		builtin_unset(t_shell *shell, t_cmd *cmd);
 int		builtin_env(t_shell *shell);
 int		builtin_exit(t_shell *shell, t_cmd *cmd);
 int		is_builtin(char *cmd);
-int		execute_pipeline(t_shell *shell, t_cmd *cmd);
 void	print_sorted_env(t_shell *shell);
 int		builtin_clear(void);
 int		builtin_pwd(t_shell *shell, t_cmd *cmd);
+int     builtin_help(t_shell *shell);
 
 /* Main.c functions */
 void	setup_terminal(void);
 void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
 t_shell	*init_shell(char **envp);
-t_cmd	*parse_input(char *input);
-void	process_input(t_shell *shell, char *input);
+t_cmd	*parse_input(char *input, t_shell *shell);
 void	execute_parsed_commands(t_shell *shell);
+void    free_shell(t_shell *shell);
+void    handle_pending_signals(t_shell *shell);
 
 /* Expander functions */
 char    *expand_variables(t_shell *shell, char *str);
 char	*expand_one_var(t_shell *shell, char *str, int *i);
 void	free_expansion_parts(char *name, char *value, char **parts);
 void	expand_variables_in_tokens(t_token *tokens, t_shell *shell);
-
-/* Expander utilities */
 char	*get_var_name(char *str);
 char	*get_var_value(t_shell *shell, char *name);
-void	expand_token_variables(t_shell *shell, t_token *tokens);
+char    *expand_heredoc_content(t_shell *shell, char *content);
+int     should_expand_heredoc(char *delimiter);
+char    *process_heredoc_content(t_shell *shell, char *content, char *delimiter);
 
 /* Free functions */
 void	free_token_list(t_token *tokens);
 void	free_cmd_list(t_cmd *cmd);
-void	free_shell(t_shell *shell);
+void	free_str_array(char **array);
 
 /* Error functions */
 void	print_error(char *cmd, char *msg);
-void	free_str_array(char **array);
+void	display_error(int error_type, char *command, char *message);
+int     get_error_exit_status(int error_type);
+void    print_syntax_error(char *token_value, int token_type);
+int     handle_execution_error(t_shell *shell, char *cmd, char *message, int error_type);
+int     handle_redirection_error(t_shell *shell, char *filename, char *message);
+void    handle_memory_error(t_shell *shell, char *location);
+void    print_error_and_exit(t_shell *shell, int error_type, char *cmd, char *message);
+int     handle_pipe_error(t_shell *shell, char *context);
+int     handle_fork_error(t_shell *shell, char *context);
 
 /* Extra functions */
 void	ft_display_welcome(void);
 void	create_prompt(char *prompt, int exit_status);
-int		builtin_help(t_shell *shell);
 void	save_history_to_file(const char *filename);
 void	load_history_from_file(const char *filename);
-void	display_error(int error_type, char *command, char *message);
 
 /* History functions */
 void	init_history(void);

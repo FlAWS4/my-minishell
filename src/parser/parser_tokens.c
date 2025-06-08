@@ -3,169 +3,123 @@
 /*                                                        :::      ::::::::   */
 /*   parser_tokens.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 22:02:29 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/03 21:59:48 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Add any token type that can be an argument
- */
-static int	is_arg_token(t_token *token)
-{
-    return (token && (token->type == TOKEN_WORD ||
-            token->type == TOKEN_SINGLE_QUOTE ||
-            token->type == TOKEN_DOUBLE_QUOTE));
-}
-
-/**
- * Parse arguments (handles both regular and quoted args)
- */
-static void	parse_args(t_token **token, t_cmd *cmd)
-{
-    t_token	*next;
-    char	*arg;
-
-    next = (*token)->next;
-    if (next && is_arg_token(next))
-    {
-        arg = ft_strdup(next->value);
-        if (!arg)
-            return ;
-        add_arg(cmd, arg);
-        *token = next;
-    }
-}
-
-/**
- * Handle pipe token during parsing
- */
-t_cmd	*handle_pipe_token(t_cmd *current)
-{
-    current->next = create_cmd();
-    if (!current->next)
-        return (NULL);
-    return (current->next);
-}
-
-/**
- * Handle word token (command name or argument)
- */
-void	handle_word_token(t_cmd *cmd, t_token **token)
-{
-    char	*word;
-
-    if (!cmd->args)
-    {
-        word = ft_strdup((*token)->value);
-        if (!word)
-            return ;
-        init_args(cmd, word);
-    }
-    else
-    {
-        word = ft_strdup((*token)->value);
-        if (!word)
-            return ;
-        add_arg(cmd, word);
-    }
-}
-
-/**
- * Process a single token and return status for token advancement
- * Return values: 
- * - 0 = error
- * - 1 = success (advance token)
- * - 2 = success (don't advance token - already advanced)
+ * Process a token and update the command structure
+ * Returns 0 on success, non-zero on error
  */
 int process_token(t_token **token, t_cmd **current)
 {
     if (!token || !*token || !current || !*current)
-        return 0;  // Safety check
+        return (1);
         
-    if (is_arg_token(*token))
+    if ((*token)->type == TOKEN_WORD || 
+        (*token)->type == TOKEN_SINGLE_QUOTE || 
+        (*token)->type == TOKEN_DOUBLE_QUOTE)
     {
+        // Handle word or quoted tokens as arguments
         handle_word_token(*current, token);
-        if ((*current)->args && (*current)->args[0] && 
-            (*token)->next && is_arg_token((*token)->next))
-        {
-            parse_args(token, *current);
-        }
-        return 1;  // Normal token advancement
     }
     else if ((*token)->type == TOKEN_PIPE)
     {
+        // Handle pipe token by creating a new command
         *current = handle_pipe_token(*current);
         if (!*current)
-            return 0;  // Error
-        return 1;  // Normal token advancement
+            return (1);
     }
     else if (is_redirection_token(*token))
     {
-        if (!parse_redirections(token, *current))
-            return 0;  // Error
-        return 2;  // Token already advanced, don't advance again
+        // Handle redirection tokens
+        if (parse_redirections(token, *current) != 0)
+            return (1);
     }
-    return 1;  // Default: normal token advancement
+    
+    return (0);
 }
 
 /**
- * Handle initial redirection tokens
+ * Handle word tokens by adding them as arguments to the command
  */
-static int	handle_initial_redirections(t_token **token, t_cmd *current)
+void handle_word_token(t_cmd *cmd, t_token **token)
 {
-    if ((*token) && is_redirection_token(*token))
-    {
-        if (!parse_redirections(token, current))
-            return (0);
-        if (!current->args)
-        {
-            char *empty = ft_strdup("");
-            if (!empty)
-                return (0);
-            add_arg(current, empty);
-        }
-        return (1);
-    }
-    return (1);
+    if (!cmd || !token || !*token)
+        return;
+    
+    join_word_tokens(cmd, token);
 }
 
 /**
- * Parse tokens into command structure
+ * Handle pipe token by creating a new command in the chain
  */
-t_cmd	*parse_tokens(t_token *tokens)
+t_cmd *handle_pipe_token(t_cmd *current)
 {
-    t_cmd	*cmd_list;
-    t_cmd	*current;
-    t_token	*token;
-    int		result;
-
-    if (!tokens)
+    t_cmd *new_cmd;
+    
+    if (!current)
         return (NULL);
-    cmd_list = create_cmd();
-    if (!cmd_list)
+    
+    new_cmd = create_cmd();
+    if (!new_cmd)
         return (NULL);
-    current = cmd_list;
-    token = tokens;
-    if (!handle_initial_redirections(&token, current))
-    {
-        free_cmd_list(cmd_list);
+    
+    current->next = new_cmd;
+    return (new_cmd);
+}
+/**
+ * Parse tokens into command structures
+ */
+t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
+{
+    t_cmd *cmd;
+    t_cmd *head;
+    t_token *current;
+    
+    (void)shell; // Unused parameter, can be used for shell context later
+    printf("DEBUG: Parsing tokens into commands\n");
+    
+    if (!tokens) {
+        printf("DEBUG: No tokens to parse\n");
         return (NULL);
     }
-    while (token)
+    
+    // Create first command
+    cmd = create_cmd();
+    if (!cmd)
+        return (NULL);
+    
+    head = cmd;
+    current = tokens;
+    
+    // Process each token
+    while (current)
     {
-        result = process_token(&token, &current);
-        if (result == 0)
+        printf("DEBUG: Processing token: %s (type %d)\n", 
+               current->value, current->type);
+               
+        if (process_token(&current, &cmd) != 0)
         {
-            free_cmd_list(cmd_list);
+            printf("DEBUG: Error processing token\n");
+            free_cmd_list(head);
             return (NULL);
         }
-        if (result == 1)
-            token = token->next;
+        
+        if (current)
+            current = current->next;
     }
-    return (cmd_list);
+    
+    // Show first command's args for debugging
+    if (head && head->args && head->args[0])
+        printf("DEBUG: First command: %s\n", head->args[0]);
+    else
+        printf("DEBUG: No command args found\n");
+        
+    return (head);
 }

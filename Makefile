@@ -3,16 +3,16 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+         #
+#    By: my42 <my42@student.42.fr>                  +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/11 02:39:27 by mshariar          #+#    #+#              #
-#    Updated: 2025/05/28 23:24:04 by mshariar         ###   ########.fr        #
+#    Updated: 2025/06/03 03:02:43 by my42             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = minishell
 CC = cc
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -g3
 
 SRCS = src/main.c \
        src/parser/lexer.c src/parser/parser.c src/parser/tokens.c src/parser/parser_tokens.c src/parser/parser_redirections.c\

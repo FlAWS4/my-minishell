@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 01:08:48 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/03 21:57:52 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,9 @@
 
 int	g_signal;
 
+/**
+ * Free redirection list
+ */
 void free_redirection_list(t_redirection *redirections)
 {
     t_redirection *tmp;
@@ -28,50 +31,109 @@ void free_redirection_list(t_redirection *redirections)
     }
 }
 
-/**
- * Free command list
- */
-void	free_cmd_list(t_cmd *cmd)
-{
-    t_cmd	*tmp;
-    int		i;
 
-    while (cmd)
+/**
+ * Free all shell resources
+ */
+void free_shell(t_shell *shell)
+{
+    t_env *env;
+    t_env *next_env;
+    
+    if (!shell)
+        return;
+    
+    // Free command list
+    if (shell->cmd)
+        free_cmd_list(shell->cmd);
+    
+    // Free environment list
+    env = shell->env;
+    while (env)
     {
-        if (cmd->args)
-        {
-            i = 0;
-            while (cmd->args[i])
-                free(cmd->args[i++]);
-            free(cmd->args);
-        }
-        if (cmd->input_file)
-            free(cmd->input_file);
-        if (cmd->output_file)
-            free(cmd->output_file);
-        if (cmd->heredoc_delim)
-            free(cmd->heredoc_delim);
-        if (cmd->redirections)
-            free_redirection_list(cmd->redirections);
-        tmp = cmd;
-        cmd = cmd->next;
-        free(tmp);
+        next_env = env->next;
+        if (env->key)
+            free(env->key);
+        if (env->value)
+            free(env->value);
+        free(env);
+        env = next_env;
     }
+    
+    // Free shell structure
+    free(shell);
 }
 
 /**
- * Execute parsed commands
+ * Initialize the shell
  */
-void	execute_parsed_commands(t_shell *shell)
+t_shell	*init_shell(char **envp)
 {
-    if (shell->cmd && shell->cmd->args)
+    t_shell	*shell;
+
+    shell = malloc(sizeof(t_shell));
+    if (!shell)
+        return (NULL);
+        
+    shell->env = init_env(envp);
+    if (!shell->env && envp && *envp)
     {
-        execute_command(shell, shell->cmd);
-        if (g_signal)
-        {
-            shell->exit_status = 130;
-            g_signal = 0;
-        }
+        free(shell);
+        return (NULL);
+    }
+    
+    // Initialize terminal settings
+    if (isatty(STDIN_FILENO))
+        tcgetattr(STDIN_FILENO, &shell->orig_termios);
+    
+    shell->cmd = NULL;
+    shell->exit_status = 0;
+    shell->should_exit = 0;
+    g_signal = 0;
+    return (shell);
+}
+
+/**
+ * Set up the terminal attributes
+ */
+void	setup_terminal(void)
+{
+    struct termios	term;
+
+    if (tcgetattr(STDIN_FILENO, &term) == -1)
+        return;
+    term.c_lflag &= ~ECHOCTL;  // Disable control char echoing
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+/**
+ * Process command exit status
+ */
+void process_cmd_status(t_shell *shell, int status)
+{
+    // Add safety check
+    if (!shell)
+        return;
+        
+    if (WIFEXITED(status))
+    {
+        shell->exit_status = WEXITSTATUS(status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        // Handle the case where the command was terminated by a signal
+        if (WTERMSIG(status) == SIGINT)
+            ft_putstr_fd("\n", STDOUT_FILENO);
+        shell->exit_status = 128 + WTERMSIG(status);
+    }
+    
+    // Force reset terminal state to ensure prompt displays correctly
+    if (isatty(STDIN_FILENO))
+    {
+        struct termios term;
+        tcgetattr(STDIN_FILENO, &term);
+        term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
+        tcsetattr(STDIN_FILENO, TCSANOW, &term);
     }
 }
 
@@ -87,6 +149,82 @@ void	handle_pending_signals(t_shell *shell)
         else if (g_signal == SIGQUIT)
             shell->exit_status = 131;
         g_signal = 0;
+    }
+}
+
+/**
+ * Parse input into commands - UPDATED to pass shell
+ */
+t_cmd *parse_input(char *input, t_shell *shell)
+{
+    t_token *tokens;
+    t_cmd *cmd;
+
+    if (!input || !*input)
+        return (NULL);
+        
+    // Pass shell to tokenize_and_expand for variable expansion
+    tokens = tokenize_and_expand(input, shell); 
+    if (!tokens)
+        return (NULL);
+        
+    // Pass shell to parse_tokens for proper command handling
+    cmd = parse_tokens(tokens, shell);
+    free_token_list(tokens);
+    return (cmd);
+}
+
+void execute_parsed_commands(t_shell *shell)
+{
+    if (!shell || !shell->cmd) {
+        printf("DEBUG: No commands to execute\n");
+        return;
+    }
+    
+    // Debug the command being executed
+    if (shell->cmd->args && shell->cmd->args[0])
+        printf("DEBUG: About to execute command: %s\n", shell->cmd->args[0]);
+    else
+        printf("DEBUG: Command has no args\n");
+    
+    // Execute the command properly handling pipes and heredocs
+    int result = execute(shell, shell->cmd);
+    printf("DEBUG: Command execution returned: %d\n", result);
+    
+    // Ensure all output is flushed
+    fflush(stdout);
+    fflush(stderr);
+}
+
+/**
+ * Process input and execute commands - UPDATED to use updated parse_input
+ */
+void process_input(t_shell *shell, char *input)
+{
+    // Clear any previous command data
+    if (shell->cmd)
+    {
+        free_cmd_list(shell->cmd);
+        shell->cmd = NULL;
+    }
+    
+    // Parse input with the shell context
+    shell->cmd = parse_input(input, shell);
+    if (!shell->cmd)
+        return;
+    
+    // Execute commands
+    execute_parsed_commands(shell);
+    
+    // Reset terminal state using the saved original settings
+    if (isatty(STDIN_FILENO))
+        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    
+    // Clear the command list after execution
+    if (shell->cmd)
+    {
+        free_cmd_list(shell->cmd);
+        shell->cmd = NULL;
     }
 }
 
@@ -125,6 +263,8 @@ int	main(int argc, char **argv, char **envp)
 
     (void)argc;
     (void)argv;
+    g_signal = 0;  // Initialize global signal variable
+    
     shell = init_shell(envp);
     if (!shell)
         return (1);

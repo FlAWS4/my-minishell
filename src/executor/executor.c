@@ -3,26 +3,129 @@
 /*                                                        :::      ::::::::   */
 /*   executor.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/29 00:07:47 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/03 21:54:36 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/**
+ * Create a full path by joining directory and command
+ */
+char *create_path(char *dir, char *cmd)
+{
+    char *path;
+    char *with_slash;
+    
+    if (!dir || !cmd)
+        return (NULL);
+        
+    with_slash = ft_strjoin(dir, "/");
+    if (!with_slash)
+        return (NULL);
+        
+    path = ft_strjoin(with_slash, cmd);
+    free(with_slash);
+    return (path);
+}
+
+/**
+ * Check if a command exists and is executable in the given path
+ */
+int is_executable(char *path)
+{
+    struct stat file_stat;
+    
+    if (!path)
+        return (0);
+        
+    if (stat(path, &file_stat) == -1)
+        return (0);
+        
+    return (S_ISREG(file_stat.st_mode) && (file_stat.st_mode & S_IXUSR));
+}
+
+/**
+ * Find a command in the PATH environment
+ */
+char *find_command(t_shell *shell, char *cmd)
+{
+    char *path_var;
+    char **paths;
+    char *cmd_path;
+    int i;
+    
+    if (!cmd || !cmd[0] || !shell || !shell->env)
+        return (NULL);
+    
+    // Validate command characters
+    i = 0;
+    while (cmd[i])
+    {
+        if (!ft_isalnum(cmd[i]) && cmd[i] != '/' && cmd[i] != '.' && 
+            cmd[i] != '_' && cmd[i] != '-')
+            return (NULL);
+        i++;
+    }
+    
+    // Check if cmd is already a path
+    if (cmd[0] == '/' || (cmd[0] == '.' && cmd[1] == '/'))
+    {
+        if (access(cmd, X_OK) == 0)
+            return (ft_strdup(cmd));
+        return (NULL);
+    }
+    
+    // Get PATH variable
+    path_var = get_env_value(shell->env, "PATH");
+    if (!path_var)
+        return (NULL);
+    
+    // Debug output
+    printf("DEBUG: Searching for '%s' in PATH\n", cmd);
+    
+    // Split PATH into directories
+    paths = ft_split(path_var, ':');
+    free(path_var);
+    if (!paths)
+        return (NULL);
+    
+    // Check each directory
+    i = 0;
+    while (paths[i])
+    {
+        cmd_path = create_path(paths[i], cmd);
+        if (cmd_path && access(cmd_path, X_OK) == 0)
+        {
+            printf("DEBUG: Found command at: %s\n", cmd_path);
+            free_env_array(paths);
+            return (cmd_path);
+        }
+        free(cmd_path);
+        i++;
+    }
+    
+    free_env_array(paths);
+    return (NULL);
+}
 
 /**
  * Set up redirections for builtin command
  */
-static int	setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
-                                    int *saved_stdout)
+static int setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
+                                   int *saved_stdout)
 {
     *saved_stdin = dup(STDIN_FILENO);
     *saved_stdout = dup(STDOUT_FILENO);
     if (*saved_stdin == -1 || *saved_stdout == -1)
         return (1);
+    
+    // Add debug output to track heredoc processing
+    printf("DEBUG: Setting up builtin redirections, input_fd=%d\n", cmd->input_fd);
+    
     if (setup_redirections(cmd) != 0)
     {
         close(*saved_stdin);
@@ -84,63 +187,10 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
     cmd_name = cmd->args[0];
     result = run_builtin_command(shell, cmd, cmd_name);
     restore_redirections(saved_stdin, saved_stdout);
+    
+    // Clean up redirections
+    cleanup_redirections(cmd);
     return (result);
-}
-/**
- * Handle error when command is not found
-static void	handle_command_not_found(char *cmd, char **env_array)
-{
-    display_error(ERROR_COMMAND, cmd, "command not found");
-    free_str_array(env_array);
-    exit(127);
-}
-
-  Handle execution errors after execve fails
-
-static void	handle_execution_error(char *cmd, char *cmd_path, char **env_array)
-{
-    free(cmd_path);
-    free_str_array(env_array);
-    if (errno == ENOEXEC)
-        display_error(ERROR_COMMAND, cmd, "not an executable");
-    else if (errno == EACCES)
-        display_error(ERROR_PERMISSION, cmd, "permission denied");
-    else
-        display_error(0, cmd, strerror(errno));
-    exit(126);
-}
-*/ 
-
-/**
- * Execute command in child process
- */
-void	execute_child(t_shell *shell, t_cmd *cmd)
-{
-    char	*command_path;
-    char	**env_array;
-
-    setup_signals_noninteractive();
-    ft_putstr_fd("DEBUG: Executing command: ", 2);
-    ft_putstr_fd(cmd->args[0], 2);
-    ft_putstr_fd("\n", 2);
-    
-    if (setup_redirections(cmd) != 0)
-        exit(1);
-    
-    // NO DEBUG READ HERE! It consumes stdin before cat can read it
-    
-    command_path = find_command(shell, cmd->args[0]);
-    if (!command_path)
-    {
-        display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
-        exit(127);
-    }
-    env_array = env_to_array(shell->env);
-    execve(command_path, cmd->args, env_array);
-    display_error(0, cmd->args[0], strerror(errno));
-    free_env_array(env_array, count_env_vars(shell->env));
-    free(command_path);
-    exit(126);
 }
 
 /**
@@ -160,4 +210,147 @@ int	is_builtin(char *cmd)
         ft_strcmp(cmd, "exit") == 0 ||
         ft_strcmp(cmd, "help") == 0
     );
+}
+
+/**
+ * Execute a child process for an external command
+ */
+void execute_child(t_shell *shell, t_cmd *cmd)
+{
+    char *cmd_path;
+    char **env_array;
+    
+    // Set up redirections
+    if (setup_redirections(cmd) != 0)
+        exit(1);
+    
+    // Handle builtin commands in child process
+    if (is_builtin(cmd->args[0]))
+    {
+        exit(run_builtin_command(shell, cmd, cmd->args[0]));
+    }
+    
+    // Find command path
+    cmd_path = find_command(shell, cmd->args[0]);
+    if (!cmd_path)
+    {
+        display_error(ERR_NOT_FOUND, cmd->args[0], NULL);
+        exit(127);  // Command not found
+    }
+    
+    // Convert environment to array for execve
+    env_array = env_to_array(shell->env);
+    if (!env_array)
+    {
+        free(cmd_path);
+        exit(126);  // Memory allocation failure
+    }
+    
+    // Execute the command
+    execve(cmd_path, cmd->args, env_array);
+    
+    // If we get here, execve failed
+    display_error(ERR_EXEC, cmd_path, strerror(errno));
+    free(cmd_path);
+    free_env_array(env_array);
+    exit(126);  // Command exists but could not be executed
+}
+/**
+ * Execute a command with proper error handling
+ */
+int execute_command(t_shell *shell, t_cmd *cmd)
+{
+    char *path;
+    int status;
+    pid_t pid;
+    
+    if (!cmd || !cmd->args || !cmd->args[0])
+    {
+        printf("DEBUG: No command to execute\n");
+        return (0);
+    }
+    
+    printf("DEBUG: Executing command: %s\n", cmd->args[0]);
+    
+    // Check for built-in commands first
+    if (is_builtin(cmd->args[0]))
+    {
+        printf("DEBUG: Executing builtin: %s\n", cmd->args[0]);
+        return (execute_builtin(shell, cmd));
+    }
+    
+    // Find the command in PATH
+    path = find_command(shell, cmd->args[0]);
+    if (!path)
+    {
+        // Command not found error
+        printf("minishell: %s: command not found\n", cmd->args[0]);
+        shell->exit_status = 127;  // Standard error for command not found
+        return (127);
+    }
+    
+    printf("DEBUG: Found command at path: %s\n", path);
+    
+    // Fork and execute
+    pid = fork();
+    if (pid == -1)
+    {
+        printf("minishell: fork error: %s\n", strerror(errno));
+        free(path);
+        return (1);
+    }
+    
+    if (pid == 0)
+    {
+        // Child process
+        setup_redirections(cmd);
+        // Add this after setup_redirections(cmd):
+        printf("DEBUG: In child process, about to execve\n");
+        fflush(stdout); // Force output before execv
+        execve(path, cmd->args, env_to_array(shell->env));
+        // If execve returns, it failed
+        printf("minishell: %s: %s\n", cmd->args[0], strerror(errno));
+        exit(126); // Permission denied or other exec error
+    }
+    
+    // Parent process
+    free(path);
+    waitpid(pid, &status, 0);
+    process_cmd_status(shell, status);
+    
+    return (shell->exit_status);
+}
+/**
+ * Execute a command or pipeline with proper handling
+ */
+int execute(t_shell *shell, t_cmd *cmd)
+{
+    if (!shell || !cmd)
+        return (1);
+    
+    // Debug output to see what's happening
+    printf("DEBUG: In execute function\n");
+    if (cmd->args && cmd->args[0])
+        printf("DEBUG: Attempting to execute: '%s'\n", cmd->args[0]);
+    else
+        printf("DEBUG: No command to execute (null args)\n");
+    
+    // Handle heredocs specially if present
+    if (cmd->heredoc_delim || has_heredoc_redirection(cmd))
+    {
+        printf("DEBUG: Executing with heredoc\n");
+        return (process_and_execute_heredoc_command(shell, cmd));
+    }
+    
+    // Route to proper execution function based on presence of pipes
+    if (cmd->next)
+    {
+        printf("DEBUG: Executing pipeline\n");
+        return (execute_pipeline(shell, cmd));
+    }
+    else
+    {
+        printf("DEBUG: Executing single command\n");
+        return (execute_command(shell, cmd));
+    }
 }

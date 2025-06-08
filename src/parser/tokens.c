@@ -3,65 +3,190 @@
 /*                                                        :::      ::::::::   */
 /*   tokens.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/28 20:56:40 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:40:59 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "minishell.h"
 
 /**
- * Free token list
+ * Forward declaration to fix implicit declaration error
  */
-void	free_token_list(t_token *tokens)
-{
-    t_token	*tmp;
+static void free_cmd(t_cmd *cmd);
 
-    while (tokens)
+/**
+ * Create a new command structure
+ */
+t_cmd *create_cmd(void)
+{
+    t_cmd *cmd;
+    
+    cmd = (t_cmd *)malloc(sizeof(t_cmd));
+    if (!cmd)
+        return (NULL);
+    
+    // Initialize all fields to default values
+    cmd->args = NULL;
+    cmd->input_file = NULL;
+    cmd->output_file = NULL;
+    cmd->heredoc_delim = NULL;
+    cmd->heredoc_file = NULL;
+    cmd->input_fd = -1;
+    cmd->output_fd = -1;
+    cmd->append_mode = 0;
+    cmd->redirections = NULL;
+    cmd->next = NULL;
+    
+    return (cmd);
+}
+
+/**
+ * Initialize arguments array with the first argument
+ */
+int init_args(t_cmd *cmd, char *arg)
+{
+    if (!cmd || !arg)
+        return (0);
+    
+    // Allocate for 2 args (arg + NULL terminator)
+    cmd->args = (char **)malloc(sizeof(char *) * 2);
+    if (!cmd->args)
     {
-        tmp = tokens;
-        tokens = tokens->next;
-        if (tmp->value)
-            free(tmp->value);
-        free(tmp);
+        free(arg);
+        return (0);
+    }
+    
+    cmd->args[0] = arg;
+    cmd->args[1] = NULL;
+    
+    return (1);
+}
+
+/**
+ * Add an argument to the command's args array
+ */
+void add_arg(t_cmd *cmd, char *arg)
+{
+    int i;
+    char **new_args;
+    
+    if (!cmd || !arg)
+        return;
+    
+    // If args is NULL, initialize it with this arg
+    if (!cmd->args)
+    {
+        init_args(cmd, arg);
+        return;
+    }
+    
+    // Count existing args
+    i = 0;
+    while (cmd->args[i])
+        i++;
+    
+    // Allocate new array with space for one more arg + NULL terminator
+    new_args = (char **)malloc(sizeof(char *) * (i + 2));
+    if (!new_args)
+    {
+        free(arg);
+        return;
+    }
+    
+    // Copy existing args
+    i = 0;
+    while (cmd->args[i])
+    {
+        new_args[i] = cmd->args[i];
+        i++;
+    }
+    
+    // Add new arg and NULL terminator
+    new_args[i] = arg;
+    new_args[i + 1] = NULL;
+    
+    // Free old array and update cmd
+    free(cmd->args);
+    cmd->args = new_args;
+}
+
+/**
+ * Free a command list
+ */
+void free_cmd_list(t_cmd *cmd)
+{
+    t_cmd *current;
+    t_cmd *next;
+    
+    current = cmd;
+    while (current)
+    {
+        next = current->next;
+        free_cmd(current);
+        current = next;
     }
 }
 
 /**
- * Free the shell structure and all its components
+ * Free a single command and its resources
  */
-void	free_shell(t_shell *shell)
+static void free_cmd(t_cmd *cmd)
 {
-    t_env	*current;
-    t_env	*next;
-    
-    if (!shell)
+    int i;
+    t_redirection *redir;
+    t_redirection *next_redir;
+
+    if (!cmd)
         return;
-    current = shell->env;
-    while (current)
+    if (cmd->args)
     {
-        next = current->next;
-        if (current->key)
-            free(current->key);
-        if (current->value)
-            free(current->value);
-        free(current);
-        current = next;
+        i = 0;
+        while (cmd->args[i])
+            free(cmd->args[i++]);
+        free(cmd->args);
     }
-    if (shell->cmd)
-        free_cmd_list(shell->cmd);
-    free(shell);
+    if (cmd->input_file)
+        free(cmd->input_file);
+    if (cmd->output_file)
+        free(cmd->output_file);
+    if (cmd->heredoc_delim)
+        free(cmd->heredoc_delim);
+    if (cmd->heredoc_file)
+        free(cmd->heredoc_file);
+        
+    // Free redirections list
+    redir = cmd->redirections;
+    while (redir)
+    {
+        next_redir = redir->next;
+        if (redir->word)
+            free(redir->word);
+        if (redir->temp_file)
+            free(redir->temp_file);
+        free(redir);
+        redir = next_redir;
+    }
+    
+    // Close any open file descriptors
+    if (cmd->input_fd >= 0)
+        close(cmd->input_fd);
+    if (cmd->output_fd >= 0)
+        close(cmd->output_fd);
+        
+    free(cmd);
 }
 
 /**
  * Join consecutive tokens without spaces
  */
-static char	*join_consecutive_tokens(char *word, t_token **current)
+static char *join_consecutive_tokens(char *word, t_token **current)
 {
-    t_token	*next;
-    char	*temp;
+    t_token *next;
+    char *temp;
 
     next = (*current)->next;
     while (next && (next->type == TOKEN_WORD || 
@@ -84,11 +209,11 @@ static char	*join_consecutive_tokens(char *word, t_token **current)
 /**
  * Process word tokens and handle token joining when no spaces
  */
-void	join_word_tokens(t_cmd *cmd, t_token **token)
+void join_word_tokens(t_cmd *cmd, t_token **token)
 {
-    char	*word;
-    t_token	*current;
-    int		is_first_arg;
+    char *word;
+    t_token *current;
+    int is_first_arg;
 
     is_first_arg = (cmd->args == NULL);
     word = ft_strdup((*token)->value);
@@ -106,34 +231,13 @@ void	join_word_tokens(t_cmd *cmd, t_token **token)
     add_arg(cmd, word);
     *token = current;
 }
-void merge_adjacent_quoted_tokens(t_token **tokens)
+
+/**
+ * Check if a token is a valid argument token
+ */
+int is_arg_token(t_token *token)
 {
-    t_token *current = *tokens;
-    
-    while (current && current->next)
-    {
-        // Only merge tokens that are NOT separated by space
-        if ((current->type == TOKEN_WORD || 
-             current->type == TOKEN_SINGLE_QUOTE || 
-             current->type == TOKEN_DOUBLE_QUOTE) &&
-            (current->next->type == TOKEN_WORD ||
-             current->next->type == TOKEN_SINGLE_QUOTE ||
-             current->next->type == TOKEN_DOUBLE_QUOTE) &&
-            !current->next->preceded_by_space)  // Add this condition
-        {
-            // Merge the values
-            char *new_value = ft_strjoin(current->value, current->next->value);
-            free(current->value);
-            current->value = new_value;
-            current->type = TOKEN_WORD;
-            t_token *to_delete = current->next;
-            current->next = to_delete->next;
-            free(to_delete->value);
-            free(to_delete);
-        }
-        else
-        {
-            current = current->next;
-        }
-    }
+    return (token && (token->type == TOKEN_WORD ||
+            token->type == TOKEN_SINGLE_QUOTE ||
+            token->type == TOKEN_DOUBLE_QUOTE));
 }

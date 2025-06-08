@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils2.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:19:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:29:42 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/03 21:08:41 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,17 +57,6 @@ char	*ft_strjoin(const char *s1, const char *s2)
     return (result);
 }
 
-/**
- * Join two strings and free the first one
- */
-char	*ft_strjoin_free(char *s1, const char *s2)
-{
-    char	*result;
-
-    result = ft_strjoin(s1, s2);
-    free(s1);
-    return (result);
-}
 
 /**
  * Write string to file descriptor
@@ -90,4 +79,52 @@ int	ft_isalnum(int c)
     return ((c >= 'a' && c <= 'z') || 
         (c >= 'A' && c <= 'Z') || 
         (c >= '0' && c <= '9'));
+}
+int	slen(int n)
+{
+	size_t	size;
+
+	if (n > 0)
+		size = 0;
+	else
+		size = 1;
+	while (n)
+	{
+		n = n / 10;
+		size++;
+	}
+	return (size);
+}
+
+char	*ft_itoa(int n)
+{
+	long	num;
+	size_t	len;
+	char	*str;
+
+	num = (long)n;
+	len = slen(n);
+	str = (char *)malloc (len + 1);
+	if (!str)
+		return (NULL);
+	*(str + len--) = '\0';
+	if (n < 0)
+		num *= -1;
+	while (num > 0)
+	{
+		*(str + len--) = num % 10 + '0';
+		num /= 10;
+	}
+	if (str[1] == '\0' && len == 0)
+		*(str + len) = '0';
+	else if (str[1] != '\0' && len == 0)
+		*(str + len) = '-';
+	return (str);
+}
+/**
+ * Check if character is alphabetic
+ */
+int ft_isalpha(int c)
+{
+    return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
 }
