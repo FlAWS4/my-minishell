@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 22:16:36 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 00:32:23 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ int	add_redirection(t_cmd *cmd, int type, char *word)
     // Initialize file descriptors to -1
     new->input_fd = -1;
     new->output_fd = -1;
+    new->quoted = 0; // Default to unquoted
     new->temp_file = NULL;
     new->next = NULL;
     

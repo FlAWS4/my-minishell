@@ -3,22 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   gnl.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:14:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 20:22:48 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/08 21:02:36 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-#ifndef BUFFER_SIZE
-# define BUFFER_SIZE 128
-#endif
-
-#ifndef MAX_FD
-# define MAX_FD 1024
-#endif
 
 // Moved to file scope so gnl_cleanup can access it
 static char	*g_buffers[MAX_FD];
