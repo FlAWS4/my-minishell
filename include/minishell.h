@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 00:04:03 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 00:56:41 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -240,7 +240,7 @@ int		process_redirections(t_cmd *cmd, t_shell *shell);
 char	*read_heredoc_line(void);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
 char    *expand_command_substitution(char *input, t_shell *shell);
-int     add_redirection(t_cmd *cmd, int type, char *word);
+int	    add_redirection(t_cmd *cmd, int type, char *word, int quoted);
 int     process_input_redir(t_redirection *redir);
 int     process_output_redir(t_redirection *redir);
 int     process_heredoc_redir(t_redirection *redir, t_shell *shell);

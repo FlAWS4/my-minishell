@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   executor.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:54:36 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 00:46:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,7 +116,7 @@ char *find_command(t_shell *shell, char *cmd)
  * Set up redirections for builtin command
  */
 static int setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
-                                   int *saved_stdout)
+                                   int *saved_stdout, t_shell *shell)
 {
     *saved_stdin = dup(STDIN_FILENO);
     *saved_stdout = dup(STDOUT_FILENO);
@@ -126,7 +126,7 @@ static int setup_builtin_redirections(t_cmd *cmd, int *saved_stdin,
     // Add debug output to track heredoc processing
     printf("DEBUG: Setting up builtin redirections, input_fd=%d\n", cmd->input_fd);
     
-    if (setup_redirections(cmd) != 0)
+    if (setup_redirections(cmd, shell) != 0)
     {
         close(*saved_stdin);
         close(*saved_stdout);
@@ -170,10 +170,7 @@ static int	run_builtin_command(t_shell *shell, t_cmd *cmd, char *cmd_name)
     return (1);
 }
 
-/**
- * Execute a shell builtin command
- */
-int	execute_builtin(t_shell *shell, t_cmd *cmd)
+int execute_builtin(t_shell *shell, t_cmd *cmd)
 {
     char	*cmd_name;
     int		saved_stdin;
@@ -182,7 +179,7 @@ int	execute_builtin(t_shell *shell, t_cmd *cmd)
 
     if (!cmd->args || !cmd->args[0])
         return (1);
-    if (setup_builtin_redirections(cmd, &saved_stdin, &saved_stdout) != 0)
+    if (setup_builtin_redirections(cmd, &saved_stdin, &saved_stdout, shell) != 0)
         return (1);
     cmd_name = cmd->args[0];
     result = run_builtin_command(shell, cmd, cmd_name);
@@ -221,7 +218,7 @@ void execute_child(t_shell *shell, t_cmd *cmd)
     char **env_array;
     
     // Set up redirections
-    if (setup_redirections(cmd) != 0)
+    if (setup_redirections(cmd, shell) != 0)
         exit(1);
     
     // Handle builtin commands in child process
@@ -303,7 +300,7 @@ int execute_command(t_shell *shell, t_cmd *cmd)
     if (pid == 0)
     {
         // Child process
-        setup_redirections(cmd);
+        setup_redirections(cmd, shell);
         // Add this after setup_redirections(cmd):
         printf("DEBUG: In child process, about to execve\n");
         fflush(stdout); // Force output before execv
