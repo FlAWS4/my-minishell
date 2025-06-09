@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   expander.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:40:40 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 20:39:04 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -272,31 +272,89 @@ char *expand_heredoc_content(t_shell *shell, char *content)
 }
 
 /**
- * Expand variables in tokens - Make sure this is implemented
+ * Expand variables in tokens with word splitting
+ * Returns updated token list with proper word splitting
  */
-void expand_variables_in_tokens(t_token *tokens, t_shell *shell)
+t_token *expand_variables_in_tokens_with_splitting(t_token *tokens, t_shell *shell)
 {
     t_token *current;
+    t_token *next;
+    t_token *head = tokens;
+    t_token *prev = NULL;
     char *expanded;
     
     if (!tokens || !shell)
-        return;
+        return (tokens);
     
     current = tokens;
     while (current)
     {
-        // Only expand variables in words and double-quoted strings
-        if (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE)
+        next = current->next;
+        
+        // Skip expansion for single-quoted tokens
+        if (current->type != TOKEN_SINGLE_QUOTE)
         {
+            // Expand variables
             expanded = expand_variables(shell, current->value);
-            if (expanded)
+            if (!expanded)
             {
+                prev = current;
+                current = next;
+                continue;
+            }
+            
+            // If value changed and it's not in quotes, perform word splitting
+            if (ft_strcmp(expanded, current->value) != 0 && 
+                current->type == TOKEN_WORD) 
+            {
+                char **words = ft_split(expanded, ' ');
+                free(expanded);
+                
+                if (!words || !words[0])
+                {
+                    if (words)
+                        free_env_array(words);
+                    prev = current;
+                    current = next;
+                    continue;
+                }
+                
+                // Replace current token with first word
+                free(current->value);
+                current->value = ft_strdup(words[0]);
+                
+                // Create new tokens for additional words
+                t_token *last = current;
+                for (int i = 1; words[i]; i++)
+                {
+                    t_token *new_token = create_token(TOKEN_WORD, 
+                                                     ft_strdup(words[i]), 1);
+                    if (!new_token)
+                        break;
+                    
+                    // Insert new token after last
+                    new_token->next = last->next;
+                    last->next = new_token;
+                    last = new_token;
+                }
+                
+                // Update next pointer to continue after all new tokens
+                next = last->next;
+                free_env_array(words);
+            }
+            else
+            {
+                // Just update the value for quoted tokens or unchanged tokens
                 free(current->value);
                 current->value = expanded;
             }
         }
-        current = current->next;
+        
+        prev = current;
+        current = next;
     }
+    
+    return (head);
 }
 /**
  * Check if heredoc should expand variables based on delimiter

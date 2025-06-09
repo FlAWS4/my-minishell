@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils2.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:19:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:08:41 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 00:12:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,4 +127,55 @@ char	*ft_itoa(int n)
 int ft_isalpha(int c)
 {
     return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+}
+/**
+ * Find the first occurrence of the substring needle in the string haystack
+ * Return a pointer to the beginning of the located substring,
+ * or NULL if the substring is not found
+ */
+char *ft_strstr(const char *haystack, const char *needle)
+{
+    size_t i;
+    size_t j;
+
+    // If needle is empty, return haystack
+    if (!*needle)
+        return ((char *)haystack);
+    
+    i = 0;
+    while (haystack[i])
+    {
+        j = 0;
+        // Check if substring matches starting at this position
+        while (haystack[i + j] && needle[j] && haystack[i + j] == needle[j])
+            j++;
+        
+        // If we reached the end of needle, we found a match
+        if (!needle[j])
+            return ((char *)&haystack[i]);
+        
+        i++;
+    }
+    
+    // If we get here, no match was found
+    return (NULL);
+}
+/**
+ * Find the first occurrence of character c in the string s
+ * Return a pointer to the located character, or NULL if not found
+ */
+char *ft_strchr(const char *s, int c)
+{
+    while (*s != '\0')
+    {
+        if (*s == (char)c)
+            return ((char *)s);
+        s++;
+    }
+    
+    // Also check the null terminator if c is '\0'
+    if ((char)c == '\0')
+        return ((char *)s);
+    
+    return (NULL);
 }

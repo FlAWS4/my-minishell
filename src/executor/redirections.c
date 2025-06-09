@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/08 22:46:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 00:19:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,12 +19,10 @@ static char *create_heredoc_tempfile(int *fd_out)
 {
     char *temp_file;
     
-    // Create unique temp filename
     temp_file = ft_strdup("/tmp/minishell_heredoc_XXXXXX");
     if (!temp_file)
         return (NULL);
     
-    // Create the file with a unique name
     *fd_out = mkstemp(temp_file);
     if (*fd_out == -1)
     {
@@ -37,50 +35,254 @@ static char *create_heredoc_tempfile(int *fd_out)
 }
 
 /**
- * Collect input for heredoc until delimiter is encountered
- * Handles SIGINT properly to allow cancellation
+ * Execute a command and capture its output
+ * Used for command substitution in heredocs
  */
-int collect_heredoc_input(char *delimiter, int fd)
+static char *execute_subcommand(char *cmd, t_shell *shell)
+{
+    int     pipes[2];
+    pid_t   pid;
+    int     status;
+    char    buffer[4096] = {0};
+    char    *result;
+    int     bytes_read;
+    
+    if (pipe(pipes) == -1)
+        return (ft_strdup(""));
+    
+    pid = fork();
+    if (pid == -1)
+    {
+        close(pipes[0]);
+        close(pipes[1]);
+        return (ft_strdup(""));
+    }
+    
+    if (pid == 0)
+    {
+        close(pipes[0]);
+        dup2(pipes[1], STDOUT_FILENO);
+        close(pipes[1]);
+        
+        // Convert env linked list to array for execve
+        char **env_array = env_to_array(shell->env);
+        if (!env_array)
+            exit(127);
+            
+        char *args[] = {"/bin/sh", "-c", cmd, NULL};
+        execve("/bin/sh", args, env_array);
+        
+        // Free memory if execve fails
+        free_env_array(env_array);
+        exit(127);
+    }
+    
+    close(pipes[1]);
+    bytes_read = read(pipes[0], buffer, 4095);
+    close(pipes[0]);
+    
+    waitpid(pid, &status, 0);
+    
+    if (bytes_read > 0 && buffer[bytes_read - 1] == '\n')
+        buffer[bytes_read - 1] = '\0';
+    
+    result = ft_strdup(buffer);
+    if (!result)
+        return (ft_strdup(""));
+    
+    return (result);
+}
+
+/**
+ * Replace a substring in a string with another string
+ */
+static char *replace_substring(char *str, int start, int end, char *replacement)
+{
+    char *before;
+    char *after;
+    char *temp;
+    char *result;
+    
+    before = ft_substr(str, 0, start);
+    if (!before)
+        return (NULL);
+    
+    after = ft_strdup(str + end);
+    if (!after)
+    {
+        free(before);
+        return (NULL);
+    }
+    
+    temp = ft_strjoin(before, replacement);
+    if (!temp)
+    {
+        free(before);
+        free(after);
+        return (NULL);
+    }
+    
+    result = ft_strjoin(temp, after);
+    
+    free(before);
+    free(after);
+    free(temp);
+    
+    return (result);
+}
+
+/**
+ * Expand command substitution in a string
+ * Handles $(command) syntax
+ */
+char *expand_command_substitution(char *input, t_shell *shell)
+{
+    char *result;
+    char *cmd_start;
+    char *cmd;
+    char *output;
+    char *new_result;
+    int i, j, paren_count;
+    
+    if (!input || !shell)
+    {
+        if (input)
+            return (ft_strdup(input));
+        else
+            return (ft_strdup(""));
+    }
+    
+    result = ft_strdup(input);
+    if (!result)
+        return (NULL);
+    
+    // Rest of the function remains the same
+    
+    i = 0;
+    while (result[i])
+    {
+        if (result[i] == '$' && result[i+1] == '(')
+        {
+            cmd_start = &result[i];
+            paren_count = 1;
+            j = i + 2;
+            
+            // Find closing parenthesis, handling nested ones
+            while (result[j] && paren_count > 0)
+            {
+                if (result[j] == '(')
+                    paren_count++;
+                else if (result[j] == ')')
+                    paren_count--;
+                j++;
+            }
+            
+            if (paren_count == 0)
+            {
+                // Extract command
+                cmd = ft_substr(result, i+2, j-i-3);
+                if (!cmd)
+                    break;
+                
+                // Execute command and get output
+                output = execute_subcommand(cmd, shell);
+                free(cmd);
+                
+                if (!output)
+                    break;
+                
+                // Replace $(cmd) with output
+                new_result = replace_substring(result, i, j, output);
+                free(output);
+                
+                if (!new_result)
+                    break;
+                
+                free(result);
+                result = new_result;
+                
+                // Don't increment i - we need to check the new content
+                // for nested substitutions or new substitutions from the replacement
+            }
+            else
+                i++;
+        }
+        else
+            i++;
+    }
+    
+    return result;
+}
+
+/**
+ * Collect input for heredoc until delimiter is encountered
+ * Performs variable and command substitution for unquoted heredocs
+ */
+int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
 {
     char *line;
+    char *expanded;
     pid_t pid;
     int status;
     
-    // Fork to handle signals properly in heredoc
     pid = fork();
     if (pid == -1)
         return (0);
     
     if (pid == 0) 
     {
-        // Child process
         setup_signals_heredoc();
         gnl_cleanup(STDIN_FILENO);
         
-        // Prompt for input
         ft_putstr_fd("heredoc> ", STDOUT_FILENO);
         
         while (1)
         {
             line = get_next_line(STDIN_FILENO);
             
-            // Check for EOF or error
             if (!line)
                 exit(0);
             
-            // Remove trailing newline if present
+            // Remove trailing newline
             int len = ft_strlen(line);
             if (len > 0 && line[len - 1] == '\n')
                 line[len - 1] = '\0';
             
-            // Check if line equals delimiter
+            // Check for delimiter
             if (ft_strcmp(line, delimiter) == 0)
             {
                 free(line);
                 exit(0);
             }
             
-            // Write line to heredoc file with newline
+            // Perform expansions for unquoted heredocs only
+             // In the child process section:
+            if (!quoted && shell)
+            {
+               //Expand variables
+                if (ft_strchr(line, '$'))
+                {
+                    // Correct argument order
+                    expanded = expand_variables(shell, line);
+                    if (expanded)
+                    {
+                        free(line);
+                        line = expanded;
+                    }
+                }
+        
+                // Expand command substitution
+                if (ft_strstr(line, "$("))
+                {
+                     expanded = expand_command_substitution(line, shell);
+                    if (expanded)
+                    {
+                        free(line);
+                        line = expanded;
+                    }
+                }   
+            }            
+            // Write to file
             ft_putstr_fd(line, fd);
             ft_putstr_fd("\n", fd);
             
@@ -89,7 +291,7 @@ int collect_heredoc_input(char *delimiter, int fd)
         }
     }
     
-    // Parent process - wait with proper signal handling
+    // Parent process waits and handles signals
     signal(SIGINT, SIG_IGN);
     waitpid(pid, &status, 0);
     setup_signals();
@@ -106,7 +308,7 @@ int collect_heredoc_input(char *delimiter, int fd)
 /**
  * Process a heredoc for a command
  */
-int process_heredoc(t_cmd *cmd)
+int process_heredoc(t_cmd *cmd, t_shell *shell)
 {
     int fd;
     char *temp_file;
@@ -116,23 +318,20 @@ int process_heredoc(t_cmd *cmd)
     
     printf("DEBUG: Processing heredoc with delimiter: %s\n", cmd->heredoc_delim);
     
-    // Create temp file
     temp_file = create_heredoc_tempfile(&fd);
     if (!temp_file)
         return (0);
     
-    // Store the filename for later cleanup
     cmd->heredoc_file = temp_file;
     
-    // Collect the content
-    if (!collect_heredoc_input(cmd->heredoc_delim, fd))
+    // Command-level heredocs are always unquoted (quoted=0)
+    if (!collect_heredoc_input(cmd->heredoc_delim, fd, 0, shell))
     {
         close(fd);
         unlink(temp_file);
         return (0);
     }
     
-    // Close write end and reopen for reading
     close(fd);
     fd = open(temp_file, O_RDONLY);
     if (fd == -1)
@@ -142,10 +341,9 @@ int process_heredoc(t_cmd *cmd)
         return (0);
     }
     
-    // Store fd for input redirection and mark file for cleanup
     printf("DEBUG: Heredoc processed, input_fd set to: %d\n", fd);
     cmd->input_fd = fd;
-    unlink(temp_file); // Remove file, fd stays valid
+    unlink(temp_file);
     
     return (1);
 }
@@ -169,7 +367,6 @@ int process_input_redir(t_redirection *redir)
         return (1);
     }
     
-    // Store fd instead of applying immediately
     redir->input_fd = fd;
     return (0);
 }
@@ -199,7 +396,6 @@ int process_output_redir(t_redirection *redir)
         return (1);
     }
     
-    // Store in output_fd
     redir->output_fd = fd;
     return (0);
 }
@@ -207,7 +403,7 @@ int process_output_redir(t_redirection *redir)
 /**
  * Process heredoc redirection in a redirection list
  */
-int process_heredoc_redir(t_redirection *redir)
+int process_heredoc_redir(t_redirection *redir, t_shell *shell)
 {
     int fd;
     char *temp_file;
@@ -215,18 +411,17 @@ int process_heredoc_redir(t_redirection *redir)
     if (!redir || !redir->word)
         return (1);
     
-    printf("DEBUG: Processing heredoc redirection with delimiter: %s\n", redir->word);
+    printf("DEBUG: Processing heredoc redirection with delimiter: %s (quoted: %d)\n", 
+           redir->word, redir->quoted);
     
-    // Create temp file
     temp_file = create_heredoc_tempfile(&fd);
     if (!temp_file)
         return (1);
     
-    // Store temp file name
     redir->temp_file = temp_file;
     
-    // Collect heredoc content
-    if (!collect_heredoc_input(redir->word, fd))
+    // Pass the quoted flag to determine if expansion should happen
+    if (!collect_heredoc_input(redir->word, fd, redir->quoted, shell))
     {
         close(fd);
         unlink(temp_file);
@@ -235,7 +430,6 @@ int process_heredoc_redir(t_redirection *redir)
         return (1);
     }
     
-    // Close write end and reopen for reading
     close(fd);
     fd = open(temp_file, O_RDONLY);
     if (fd == -1)
@@ -247,7 +441,6 @@ int process_heredoc_redir(t_redirection *redir)
         return (1);
     }
     
-    // Store file descriptor and remove the file (fd stays valid)
     redir->input_fd = fd;
     unlink(temp_file);
     
@@ -256,8 +449,9 @@ int process_heredoc_redir(t_redirection *redir)
 
 /**
  * Process a single redirection based on type
+ * For heredoc redirections, pass the shell context
  */
-int process_single_redir(t_redirection *redir)
+int process_single_redir(t_redirection *redir, t_shell *shell)
 {
     if (!redir)
         return (0);
@@ -268,14 +462,15 @@ int process_single_redir(t_redirection *redir)
             redir->type == TOKEN_REDIR_APPEND)
         return (process_output_redir(redir));
     else if (redir->type == TOKEN_HEREDOC)
-        return (process_heredoc_redir(redir));
+        return (process_heredoc_redir(redir, shell));
+    
     return (0);
 }
 
 /**
  * Process all redirections in a command's redirection list
  */
-int process_redirections(t_cmd *cmd)
+int process_redirections(t_cmd *cmd, t_shell *shell)
 {
     t_redirection *current;
     
@@ -293,18 +488,18 @@ int process_redirections(t_cmd *cmd)
             {
                 if (current->type == TOKEN_HEREDOC)
                 {
-                    if (process_heredoc_redir(current) != 0)
+                    if (process_heredoc_redir(current, shell) != 0)
                         return (1);
                 }
                 current = current->next;
             }
         }
         
-        // THEN process command-level heredoc (which is actually the last one)
+        // THEN process command-level heredoc
         if (cmd->heredoc_delim && cmd->input_fd == -1)
         {
             printf("DEBUG: Processing command-level heredoc\n");
-            if (!process_heredoc(cmd))
+            if (!process_heredoc(cmd, shell))
                 return (1);
         }
     }
@@ -313,7 +508,7 @@ int process_redirections(t_cmd *cmd)
         printf("DEBUG: Skipping heredoc processing - already processed\n");
     }
     
-    // Always process other redirections
+    // Process other redirections
     if (cmd->redirections)
     {
         current = cmd->redirections;
@@ -321,7 +516,7 @@ int process_redirections(t_cmd *cmd)
         {
             if (current->type != TOKEN_HEREDOC)
             {
-                if (process_single_redir(current) != 0)
+                if (process_single_redir(current, shell) != 0)
                     return (1);
             }
             current = current->next;
@@ -413,7 +608,6 @@ int apply_redirections(t_cmd *cmd)
     return (0);
 }
 
-
 /**
  * Clean up file descriptors after command execution
  */
@@ -473,12 +667,12 @@ void cleanup_redirections(t_cmd *cmd)
 /**
  * Setup redirections for a command - unified function
  */
-int setup_redirections(t_cmd *cmd)
+int setup_redirections(t_cmd *cmd, t_shell *shell)
 {
     printf("DEBUG: Setting up redirections\n");
     
     // First process all redirections to set up file descriptors
-    if (process_redirections(cmd) != 0)
+    if (process_redirections(cmd, shell) != 0)
         return (1);
     
     // Then apply them to stdin/stdout
@@ -516,7 +710,7 @@ int process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd)
                 {
                     printf("DEBUG: Processing redirection heredoc with delimiter: %s\n", 
                            redir->word);
-                    if (process_heredoc_redir(redir) != 0)
+                    if (process_heredoc_redir(redir, shell) != 0)
                         return (1);
                     
                     // If this is the same as command-level heredoc, clear the command-level one
@@ -536,7 +730,7 @@ int process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd)
         {
             printf("DEBUG: Found command with heredoc delimiter: %s\n", 
                    current->heredoc_delim);
-            if (!process_heredoc(current))
+            if (!process_heredoc(current, shell))
                 return (1);
         }
         

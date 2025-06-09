@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   pipes.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 19:09:01 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 00:46:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,7 +198,22 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
                    current->heredoc_delim, 
                    current->args ? current->args[0] : "NULL");
                    
-            if (!process_heredoc(current))
+            if (!process_heredoc(current, shell))
+            {
+                // If process_heredoc failed, clean up any previous heredoc files
+                t_cmd *cleanup = cmd;
+                while (cleanup != current)
+                {
+                    if (cleanup->heredoc_file)
+                    {
+                        unlink(cleanup->heredoc_file);
+                        free(cleanup->heredoc_file);
+                        cleanup->heredoc_file = NULL;
+                    }
+                    cleanup = cleanup->next;
+                }
+                return (1);
+            }
             {
                 // Cleanup any previous heredoc files
                 t_cmd *cleanup = cmd;

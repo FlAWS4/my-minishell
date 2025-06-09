@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/08 23:02:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 20:41:26 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -202,6 +202,8 @@ int     ft_str_is_numeric(const char *str);
 int     ft_isalpha(int c);
 char	*ft_itoa(int n);
 int	    ft_strncmp(const char *s1, const char *s2, size_t n);
+char	*ft_strchr(const char *s, int c);
+char	*ft_strstr(const char *haystack, const char *needle);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -228,21 +230,21 @@ t_cmd	*create_cmd(void);
 int		init_args(t_cmd *cmd, char *arg);
 void   add_arg(t_cmd *cmd, char *arg);
 
-
 /* Redirection handling */
 int		handle_redir_in(t_token **token, t_cmd *cmd);
 int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
 int		handle_heredoc(t_token **token, t_cmd *cmd);
 int		parse_redirections(t_token **tokens, t_cmd *cmd);
-int		setup_redirections(t_cmd *cmd);
-int		process_redirections(t_cmd *cmd);
+int		setup_redirections(t_cmd *cmd, t_shell *shell);
+int		process_redirections(t_cmd *cmd, t_shell *shell);
 char	*read_heredoc_line(void);
-int		collect_heredoc_input(char *delimiter, int fd);
-int     add_redirection(t_cmd *cmd, int type, char *word);
+int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
+char    *expand_command_substitution(char *input, t_shell *shell);
+int	    add_redirection(t_cmd *cmd, int type, char *word, int quoted);
 int     process_input_redir(t_redirection *redir);
 int     process_output_redir(t_redirection *redir);
-int     process_heredoc_redir(t_redirection *redir);
-int     process_single_redir(t_redirection *redir);
+int     process_heredoc_redir(t_redirection *redir, t_shell *shell);
+int     process_single_redir(t_redirection *redir, t_shell *shell);
 int	    is_redirection_token(t_token *token);
 void    free_redirection_list(t_redirection *redirections);
 int	    collect_and_discard_heredoc(char *delimiter);
@@ -250,8 +252,11 @@ int	    check_heredoc_line(char *line, char *delimiter, int fd);
 int     create_heredoc_file(void);
 int     handle_input_redirection(char *filename);
 int     handle_output_redirection(char *filename, int append_mode);
-int     process_heredoc(t_cmd *cmd);
+int     process_heredoc(t_cmd *cmd, t_shell *shell);
 void    cleanup_redirections(t_cmd *cmd);
+int     apply_redirections(t_cmd *cmd);
+int     has_heredoc_redirection(t_cmd *cmd);
+int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
@@ -274,8 +279,8 @@ int     is_executable(char *path);
 int     wait_for_children(t_shell *shell);
 int     execute(t_shell *shell, t_cmd *cmd);
 int     execute_pipeline(t_shell *shell, t_cmd *cmd);
-int has_heredoc_redirection(t_cmd *cmd);
-int process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
+int     has_heredoc_redirection(t_cmd *cmd);
+int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
 
 /* Built-in command functions */
 int		builtin_echo(t_cmd *cmd);
@@ -304,7 +309,7 @@ void    handle_pending_signals(t_shell *shell);
 char    *expand_variables(t_shell *shell, char *str);
 char	*expand_one_var(t_shell *shell, char *str, int *i);
 void	free_expansion_parts(char *name, char *value, char **parts);
-void	expand_variables_in_tokens(t_token *tokens, t_shell *shell);
+t_token *expand_variables_in_tokens_with_splitting(t_token *tokens, t_shell *shell);
 char	*get_var_name(char *str);
 char	*get_var_value(t_shell *shell, char *name);
 char    *expand_heredoc_content(t_shell *shell, char *content);

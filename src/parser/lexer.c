@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   lexer.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:52:46 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 20:40:02 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -597,8 +597,8 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
     
     printf("DEBUG: Tokenization successful\n");
     
-    // Expand variables in tokens
-    expand_variables_in_tokens(tokens, shell);
+    // Expand variables in tokens with word splitting
+    tokens = expand_variables_in_tokens_with_splitting(tokens, shell);
     
     return (tokens);
 }
