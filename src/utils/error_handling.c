@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   error_handling.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 20:10:24 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 23:14:22 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -301,4 +301,21 @@ int handle_fork_error(t_shell *shell, char *context)
         shell->exit_status = 1;
         
     return (1);
+}
+/**
+ * Display heredoc EOF warning
+ * Shows a warning when a heredoc is terminated with EOF (Ctrl+D)
+ */
+void display_heredoc_eof_warning(char *delimiter)
+{
+    char warning_msg[256];
+    
+    snprintf(warning_msg, sizeof(warning_msg), 
+             "warning: here-document delimited by end-of-file (wanted `%s')", 
+             delimiter);
+             
+    // Use BOLD_YELLOW to match warning style but without an error icon
+    ft_putstr_fd(BOLD_YELLOW "minishell: " RESET, 2);
+    ft_putstr_fd(warning_msg, 2);
+    ft_putstr_fd("\n", 2);
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:57:52 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 23:04:15 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,12 +167,22 @@ t_cmd *parse_input(char *input, t_shell *shell)
     tokens = tokenize_and_expand(input, shell); 
     if (!tokens)
         return (NULL);
+    
+    // Check for syntax errors in tokens
+    if (!validate_syntax(tokens))
+    {
+        // Set exit status to 2 for syntax errors
+        shell->exit_status = 2;
+        free_token_list(tokens);
+        return (NULL);
+    }
         
     // Pass shell to parse_tokens for proper command handling
     cmd = parse_tokens(tokens, shell);
     free_token_list(tokens);
     return (cmd);
 }
+
 
 void execute_parsed_commands(t_shell *shell)
 {

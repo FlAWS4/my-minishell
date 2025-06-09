@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   export.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 20:15:22 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 23:41:30 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,17 +57,18 @@ static void print_escaped_value(char *value)
 
 /**
  * Print a single environment variable in export format
+ * Shows all exported variables, whether they're in env or not
  */
 static void print_env_var(t_env *env)
 {
-    if (!env || !env->key)
+    if (!env || !env->key || !env->exported)
         return;
         
     ft_putstr_fd("declare -x ", 1);
     ft_putstr_fd(env->key, 1);
     
-    // Only print =value part if value exists
-    if (env->value && env->value[0] != '\0')
+    // Only print =value part if it's in environment (has a value with = sign)
+    if (env->in_env)
     {
         ft_putstr_fd("=\"", 1);
         print_escaped_value(env->value);
@@ -122,104 +123,57 @@ void print_sorted_env(t_shell *shell)
 }
 
 /**
- * Check if a variable name is valid for export
- * Variable names must start with a letter or underscore
- * and contain only alphanumeric characters or underscores
- */
-int is_valid_var_name(char *name)
-{
-    int i;
-    
-    if (!name || !name[0])
-        return (0);
-        
-    // First character must be letter or underscore
-    if (!ft_isalpha(name[0]) && name[0] != '_')
-        return (0);
-        
-    // Rest can be alphanumeric or underscore
-    i = 1;
-    while (name[i])
-    {
-        if (!ft_isalnum(name[i]) && name[i] != '_')
-            return (0);
-        i++;
-    }
-    
-    return (1);
-}
-
-/**
- * Update or add environment variable
- * Handles memory for key and value
- */
-static int	update_env_var(t_shell *shell, char *key, char *value)
-{
-    t_env	*env;
-    t_env	*new_node;
-
-    if (!shell || !key)
-        return (0);
-        
-    env = shell->env;
-    while (env)
-    {
-        if (ft_strcmp(env->key, key) == 0)
-        {
-            free(env->value);
-            env->value = value ? ft_strdup(value) : ft_strdup("");
-            free(key);
-            return (1);
-        }
-        env = env->next;
-    }
-    
-    new_node = create_env_node(key, value ? value : "");
-    if (!new_node)
-    {
-        free(key);
-        return (0);
-    }
-    
-    add_env_var(&shell->env, new_node);
-    free(key);
-    return (1);
-}
-
-/**
  * Process a single export argument
  * Handles variable assignment with proper error messages
  */
-static int	process_export_arg(t_shell *shell, char *arg)
+static int process_export_arg(t_shell *shell, char *arg)
 {
-    char	*key;
-    char	*value;
-    int		i;
-
+    char *equals_pos;
+    char *key;
+    int result;
+    
     if (!arg || !*arg)
         return (1);
-        
-    i = 0;
-    while (arg[i] && arg[i] != '=')
-        i++;
-        
-    key = ft_substr(arg, 0, i);
-    if (!key || !is_valid_var_name(key))
-    {
-        if (key)
-            free(key);
-        ft_putstr_fd("minishell: export: `", STDERR_FILENO);
-        ft_putstr_fd(arg, STDERR_FILENO);
-        ft_putstr_fd("': not a valid identifier\n", STDERR_FILENO);
-        return (1);
-    }
     
-    // Value is everything after first equals sign
-    value = (arg[i] == '=') ? &arg[i + 1] : NULL;
-    if (!update_env_var(shell, key, value))
-        return (1);
+    // Find equals sign
+    equals_pos = ft_strchr(arg, '=');
+    
+    if (equals_pos)
+    {
+        // We have an equals sign - split string
+        *equals_pos = '\0';  // Temporarily split the string
+        key = arg;
         
-    return (0);
+        // Check if key is valid
+        if (!is_valid_identifier(key))
+        {
+            ft_putstr_fd("minishell: export: `", 2);
+            ft_putstr_fd(arg, 2);
+            ft_putstr_fd("': not a valid identifier\n", 2);
+            *equals_pos = '=';  // Restore the string
+            return (1);
+        }
+        
+        // Set in environment (this adds to env output)
+        result = set_env_var(&shell->env, key, equals_pos + 1);
+        *equals_pos = '=';  // Restore the string
+        return (!result);
+    }
+    else
+    {
+        // No equals sign - only mark for export if valid
+        if (!is_valid_identifier(arg))
+        {
+            ft_putstr_fd("minishell: export: `", 2);
+            ft_putstr_fd(arg, 2);
+            ft_putstr_fd("': not a valid identifier\n", 2);
+            return (1);
+        }
+        
+        // Mark for export but don't add to environment
+        result = mark_var_for_export(&shell->env, arg);
+        return (!result);
+    }
 }
 
 /**
@@ -227,10 +181,10 @@ static int	process_export_arg(t_shell *shell, char *arg)
  * With no arguments, displays all exported variables
  * With arguments, adds/updates environment variables
  */
-int	builtin_export(t_shell *shell, t_cmd *cmd)
+int builtin_export(t_shell *shell, t_cmd *cmd)
 {
-    int	i;
-    int	status;
+    int i;
+    int status;
 
     if (!shell || !cmd || !cmd->args)
         return (1);

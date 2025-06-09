@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 00:19:58 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 23:15:43 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,95 +215,64 @@ char *expand_command_substitution(char *input, t_shell *shell)
 }
 
 /**
- * Collect input for heredoc until delimiter is encountered
- * Performs variable and command substitution for unquoted heredocs
+ * Collect input for a heredoc until delimiter is found
+ * Returns 1 on success, 0 on failure
  */
 int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
 {
     char *line;
-    char *expanded;
-    pid_t pid;
-    int status;
     
-    pid = fork();
-    if (pid == -1)
-        return (0);
+    // Display the heredoc prompt
+    ft_putstr_fd("heredoc> ", 1);
     
-    if (pid == 0) 
+    // Read lines until delimiter is found
+    while (1)
     {
-        setup_signals_heredoc();
-        gnl_cleanup(STDIN_FILENO);
+        // Read a line
+        line = get_next_line(STDIN_FILENO);
         
-        ft_putstr_fd("heredoc> ", STDOUT_FILENO);
-        
-        while (1)
+        // If EOF (Ctrl+D) is encountered
+        if (!line)
         {
-            line = get_next_line(STDIN_FILENO);
-            
-            if (!line)
-                exit(0);
-            
-            // Remove trailing newline
-            int len = ft_strlen(line);
-            if (len > 0 && line[len - 1] == '\n')
-                line[len - 1] = '\0';
-            
-            // Check for delimiter
-            if (ft_strcmp(line, delimiter) == 0)
+            // Display warning using our error handling system
+            display_heredoc_eof_warning(delimiter);
+            break;
+        }
+        
+        // Remove newline character if present
+        if (ft_strlen(line) > 0 && line[ft_strlen(line) - 1] == '\n')
+            line[ft_strlen(line) - 1] = '\0';
+        
+        // Check if line matches delimiter
+        if (ft_strcmp(line, delimiter) == 0)
+        {
+            free(line);
+            break;
+        }
+        
+        // Process variable expansion if needed
+        if (!quoted && shell)
+        {
+            char *expanded = expand_heredoc_content(shell, line);
+            if (expanded)
             {
                 free(line);
-                exit(0);
+                line = expanded;
             }
-            
-            // Perform expansions for unquoted heredocs only
-             // In the child process section:
-            if (!quoted && shell)
-            {
-               //Expand variables
-                if (ft_strchr(line, '$'))
-                {
-                    // Correct argument order
-                    expanded = expand_variables(shell, line);
-                    if (expanded)
-                    {
-                        free(line);
-                        line = expanded;
-                    }
-                }
-        
-                // Expand command substitution
-                if (ft_strstr(line, "$("))
-                {
-                     expanded = expand_command_substitution(line, shell);
-                    if (expanded)
-                    {
-                        free(line);
-                        line = expanded;
-                    }
-                }   
-            }            
-            // Write to file
-            ft_putstr_fd(line, fd);
-            ft_putstr_fd("\n", fd);
-            
-            free(line);
-            ft_putstr_fd("heredoc> ", STDOUT_FILENO);
         }
+        
+        // Write the line to fd with a newline
+        ft_putstr_fd(line, fd);
+        ft_putstr_fd("\n", fd);
+        free(line);
+        
+        // Display the heredoc prompt for next line
+        ft_putstr_fd("heredoc> ", 1);
     }
     
-    // Parent process waits and handles signals
-    signal(SIGINT, SIG_IGN);
-    waitpid(pid, &status, 0);
-    setup_signals();
-    
-    if (WIFSIGNALED(status))
-    {
-        g_signal = SIGINT;
-        return (0);
-    }
-    
-    return (1);
+    return (1);  // Return success even with EOF warning
 }
+
 
 /**
  * Process a heredoc for a command

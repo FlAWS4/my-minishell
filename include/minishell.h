@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 20:41:26 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 23:46:17 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,10 +136,12 @@ typedef struct s_cmd
 /* Environment structure */
 typedef struct s_env
 {
-    char			*key;
-    char			*value;
-    struct s_env	*next;
-}	t_env;
+    char            *key;
+    char            *value;
+    int             exported;   // 1 if marked for export
+    int             in_env;     // 1 if should appear in env output
+    struct s_env    *next;
+}    t_env;
 
 /* Main shell structure */
 typedef struct s_shell
@@ -173,8 +175,9 @@ int     set_env_var(t_env **env_list, char *key, char *value);
 int     delete_env_var(t_env **env_list, char *key);
 int	    count_env_vars(t_env *env);
 void	free_env_array(char **array);
-int     is_valid_var_name(char *name);
 char	**env_to_array(t_env *env);
+int     mark_var_for_export(t_env **env_list, char *key);
+int     is_valid_identifier(char *name);
 
 /* String utility functions */
 char	*ft_strdup(const char *s);
@@ -197,7 +200,6 @@ int		is_whitespace(char c);
 char	*get_next_line(int fd);
 void	gnl_cleanup(int fd);
 void	ft_putnbr_fd(int n, int fd);
-int     ft_count_char(const char *str, char c);
 int     ft_str_is_numeric(const char *str);
 int     ft_isalpha(int c);
 char	*ft_itoa(int n);
@@ -209,13 +211,11 @@ char	*ft_strstr(const char *haystack, const char *needle);
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
-void    handle_sigint_heredoc(int sig);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
 t_token	*process_tokens(char *input);
 t_token	*tokenize(char *input);
-int		handle_quotes(char *input, int i, char quote, t_token **tokens);
 int     is_special(char c);
 int	    handle_special(char *input, int i, t_token **tokens);
 
@@ -237,7 +237,6 @@ int		handle_heredoc(t_token **token, t_cmd *cmd);
 int		parse_redirections(t_token **tokens, t_cmd *cmd);
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
-char	*read_heredoc_line(void);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
 char    *expand_command_substitution(char *input, t_shell *shell);
 int	    add_redirection(t_cmd *cmd, int type, char *word, int quoted);
@@ -247,11 +246,6 @@ int     process_heredoc_redir(t_redirection *redir, t_shell *shell);
 int     process_single_redir(t_redirection *redir, t_shell *shell);
 int	    is_redirection_token(t_token *token);
 void    free_redirection_list(t_redirection *redirections);
-int	    collect_and_discard_heredoc(char *delimiter);
-int	    check_heredoc_line(char *line, char *delimiter, int fd);
-int     create_heredoc_file(void);
-int     handle_input_redirection(char *filename);
-int     handle_output_redirection(char *filename, int append_mode);
 int     process_heredoc(t_cmd *cmd, t_shell *shell);
 void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
@@ -291,7 +285,6 @@ int		builtin_env(t_shell *shell);
 int		builtin_exit(t_shell *shell, t_cmd *cmd);
 int		is_builtin(char *cmd);
 void	print_sorted_env(t_shell *shell);
-int		builtin_clear(void);
 int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 int     builtin_help(t_shell *shell);
 
@@ -332,12 +325,11 @@ void    handle_memory_error(t_shell *shell, char *location);
 void    print_error_and_exit(t_shell *shell, int error_type, char *cmd, char *message);
 int     handle_pipe_error(t_shell *shell, char *context);
 int     handle_fork_error(t_shell *shell, char *context);
+void    display_heredoc_eof_warning(char *delimiter);
 
 /* Extra functions */
 void	ft_display_welcome(void);
 void	create_prompt(char *prompt, int exit_status);
-void	save_history_to_file(const char *filename);
-void	load_history_from_file(const char *filename);
 
 /* History functions */
 void	init_history(void);

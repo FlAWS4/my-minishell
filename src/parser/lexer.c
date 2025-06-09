@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 20:40:02 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/09 23:07:55 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -592,6 +592,8 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
     tokens = tokenize(input);
     if (!tokens) {
         printf("DEBUG: Tokenization failed\n");
+        // Set exit status to 2 for syntax errors during tokenization
+        shell->exit_status = 2;
         return (NULL);
     }
     
@@ -602,6 +604,7 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
     
     return (tokens);
 }
+
 
 #ifdef DEBUG
 /**

@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   unset.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 01:57:11 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 23:43:30 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
 
 /**
  * Free environment node
@@ -81,7 +80,7 @@ int	builtin_unset(t_shell *shell, t_cmd *cmd)
         
     while (cmd->args[i])
     {
-        if (!is_valid_var_name(cmd->args[i]))
+        if (!is_valid_identifier(cmd->args[i]))
         {
             ft_putstr_fd("minishell: unset: `", STDERR_FILENO);
             ft_putstr_fd(cmd->args[i], STDERR_FILENO);

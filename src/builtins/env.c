@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   env.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:08:01 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/09 23:38:43 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ t_env	*create_env_node(char *key, char *value)
         free(new_node);
         return (NULL);
     }
+    new_node->exported = 0;     // Not exported by default
+    new_node->in_env = 0;       // Not in environment by default
     new_node->next = NULL;
     return (new_node);
 }
@@ -84,6 +86,68 @@ t_env *find_env_var(t_env *env_list, const char *key)
 }
 
 /**
+ * Check if a string is a valid shell variable identifier
+ * Returns 1 if valid, 0 if not
+ */
+int is_valid_identifier(char *name)
+{
+    int i;
+    
+    if (!name || !*name)
+        return (0);
+        
+    // First character must be alpha or underscore
+    if (!ft_isalpha(name[0]) && name[0] != '_')
+        return (0);
+        
+    // Rest must be alnum or underscore
+    i = 1;
+    while (name[i])
+    {
+        if (!ft_isalnum(name[i]) && name[i] != '_')
+            return (0);
+        i++;
+    }
+    
+    return (1);
+}
+
+/**
+ * Mark a variable for export without adding it to environment
+ * Returns 1 for success, 0 for failure
+ */
+int mark_var_for_export(t_env **env_list, char *key)
+{
+    t_env *existing;
+    t_env *new_node;
+    
+    if (!env_list || !key)
+        return (0);
+    
+    existing = find_env_var(*env_list, key);
+    if (existing)
+    {
+        // Variable exists, mark it for export
+        existing->exported = 1;
+        return (1);
+    }
+    else
+    {
+        // Variable doesn't exist, create it
+        new_node = create_env_node(key, NULL);
+        if (!new_node)
+            return (0);
+        
+        // Mark as exported but not in environment
+        new_node->exported = 1;
+        new_node->in_env = 0;
+        
+        add_env_var(env_list, new_node);
+        return (1);
+    }
+}
+
+/**
  * Update or add environment variable
  */
 int set_env_var(t_env **env_list, char *key, char *value)
@@ -103,6 +167,11 @@ int set_env_var(t_env **env_list, char *key, char *value)
             existing->value = ft_strdup(value);
         else
             existing->value = ft_strdup("");
+            
+        // Mark as exported and in environment
+        existing->exported = 1;
+        existing->in_env = 1;
+        
         return (existing->value != NULL);
     }
     else
@@ -111,6 +180,11 @@ int set_env_var(t_env **env_list, char *key, char *value)
         new_node = create_env_node(key, value);
         if (!new_node)
             return (0);
+            
+        // New variables are exported and in environment
+        new_node->exported = 1;
+        new_node->in_env = 1;
+        
         add_env_var(env_list, new_node);
         return (1);
     }
@@ -172,7 +246,12 @@ t_env	*init_env(char **envp)
         {
             new_node = create_env_node(key, value);
             if (new_node)
+            {
+                // All initial variables are exported and in environment
+                new_node->exported = 1;
+                new_node->in_env = 1;
                 add_env_var(&env_list, new_node);
+            }
         }
         if (key)
             free(key);
@@ -239,6 +318,7 @@ int	delete_env_var(t_env **env_list, char *key)
 
 /**
  * Convert environment linked list to string array (for execve)
+ * Only includes variables that should be in environment (in_env=1)
  */
 char **env_to_array(t_env *env_list)
 {
@@ -251,12 +331,13 @@ char **env_to_array(t_env *env_list)
     if (!env_list)
         return (NULL);
     
-    // Count environment variables
+    // Count environment variables that should be in env
     count = 0;
     current = env_list;
     while (current)
     {
-        count++;
+        if (current->in_env)
+            count++;
         current = current->next;
     }
     
@@ -270,30 +351,33 @@ char **env_to_array(t_env *env_list)
     current = env_list;
     while (current)
     {
-        // Create "KEY=VALUE" string
-        temp = ft_strjoin(current->key, "=");
-        if (!temp)
+        // Only include variables that should be in environment
+        if (current->in_env)
         {
-            // Free previously allocated strings
-            while (--i >= 0)
-                free(env_array[i]);
-            free(env_array);
-            return (NULL);
+            // Create "KEY=VALUE" string
+            temp = ft_strjoin(current->key, "=");
+            if (!temp)
+            {
+                // Free previously allocated strings
+                while (--i >= 0)
+                    free(env_array[i]);
+                free(env_array);
+                return (NULL);
+            }
+            
+            env_array[i] = ft_strjoin(temp, current->value);
+            free(temp);
+            
+            if (!env_array[i])
+            {
+                // Free previously allocated strings
+                while (--i >= 0)
+                    free(env_array[i]);
+                free(env_array);
+                return (NULL);
+            }
+            i++;
         }
-        
-        env_array[i] = ft_strjoin(temp, current->value);
-        free(temp);
-        
-        if (!env_array[i])
-        {
-            // Free previously allocated strings
-            while (--i >= 0)
-                free(env_array[i]);
-            free(env_array);
-            return (NULL);
-        }
-        
-        i++;
         current = current->next;
     }
     
@@ -321,6 +405,7 @@ void free_env_array(char **env_array)
     
     free(env_array);
 }
+
 /**
  * Count number of environment variables
  */
@@ -337,6 +422,7 @@ int count_env_vars(t_env *env)
     
     return (count);
 }
+
 /**
  * Built-in env command
  * Displays all environment variables in format KEY=VALUE
@@ -362,7 +448,8 @@ int	builtin_env(t_shell *shell)
         
     while (env)
     {
-        if (env->key)
+        // Only show variables that are marked as in environment
+        if (env->key && env->in_env)
         {
             ft_putstr_fd(env->key, STDOUT_FILENO);
             ft_putchar_fd('=', STDOUT_FILENO);
