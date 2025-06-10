@@ -3,48 +3,97 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: my42 <my42@student.42.fr>                  +#+  +:+       +#+         #
+#    By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/11 02:39:27 by mshariar          #+#    #+#              #
-#    Updated: 2025/06/03 03:02:43 by my42             ###   ########.fr        #
+#    Updated: 2025/06/10 23:11:17 by mshariar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME = minishell
-CC = cc
-CFLAGS = -Wall -Wextra -Werror -g3
+# ---------------------------------- COLORS ---------------------------------- #
+BOLD	=	\033[1m
+ITALIC	=	\033[3m
+UNDERLN	=	\033[4m
+RED		=	\033[31m
+GREEN	=	\033[32m
+YELLOW	=	\033[33m
+BLUE	=	\033[34m
+MAGENTA	=	\033[35m
+CYAN	=	\033[36m
+WHITE	=	\033[37m
+RESET	=	\033[0m
 
-SRCS = src/main.c \
-       src/parser/lexer.c src/parser/parser.c src/parser/tokens.c src/parser/parser_tokens.c src/parser/parser_redirections.c\
-       src/executor/executor.c src/executor/redirections.c src/executor/pipes.c src/executor/commands.c src/parser/lexer_token.c\
-       src/builtins/cd.c src/builtins/echo.c src/builtins/env.c src/parser/lexer_process.c\
-       src/builtins/exit.c src/builtins/export.c src/builtins/pwd.c src/utils/expander_utils.c src/builtins/history.c\
-       src/builtins/unset.c src/utils/export_utils.c src/parser/expander.c src/utils/libft.c \
-       src/utils/env_utils.c src/utils/error_handling.c src/utils/string_utils.c src/utils/string_utils2.c src/utils/string_utils3.c\
-       src/signals/signals.c src/utils/exec_utils.c src/utils/prompt.c src/utils/pipe_utils.c src/utils/init_utils.c\
-       src/utils/gnl.c src/utils/redir_utils.c src/executor/redirection_list.c src/executor/process_redir.c\
+# --------------------------------- COMMANDS --------------------------------- #
+NAME    = minishell
+CC      = cc
+CFLAGS  = -Wall -Wextra -Werror -g3
+RM      = rm -rf
+MKDIR   = mkdir -p
 
+# ---------------------------------- PATHS ----------------------------------- #
+SRC_DIR = src
+OBJ_DIR = obj
+INC_DIR = include
 
-OBJS = $(SRCS:.c=.o)
+# ---------------------------------- FILES ----------------------------------- #
+SRC_FILES	=	main.c \
+				parser/lexer.c parser/parser.c parser/tokens.c parser/parser_tokens.c \
+				parser/parser_redirections.c parser/lexer_token.c parser/lexer_process.c \
+				parser/expander.c \
+				executor/executor.c executor/redirections.c executor/pipes.c \
+				executor/commands.c executor/redirection_list.c executor/process_redir.c \
+				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
+				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
+				utils/expander_utils.c utils/export_utils.c utils/libft.c \
+				utils/env_utils.c utils/error_handling.c utils/string_utils.c \
+				utils/string_utils2.c utils/string_utils3.c utils/exec_utils.c \
+				utils/prompt.c utils/pipe_utils.c utils/init_utils.c utils/gnl.c \
+				utils/redir_utils.c \
+				signals/signals.c
 
-INCS = -I./include
+SRCS =	$(addprefix $(SRC_DIR)/, $(SRC_FILES))
+OBJS =	$(addprefix $(OBJ_DIR)/, $(SRC_FILES:.c=.o))
+INCS =	-I$(INC_DIR)
+LIBS =	-lreadline
 
-LIBS = -lreadline
-
+# --------------------------------- TARGETS ---------------------------------- #
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(NAME) $(LIBS)
+	@echo "$(GREEN)$(BOLD)Linking objects...$(RESET)"
+	@$(CC) $(CFLAGS) $(OBJS) -o $(NAME) $(LIBS)
+	@echo "$(GREEN)$(BOLD)✅ Minishell successfully compiled!$(RESET)"
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ $(INCS)
+$(OBJ_DIR)/%.o:	$(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@if [ ! -f "$(NAME)" ] || [ $< -nt $@ ]; then \
+        if [ ! -f "$(NAME)" ]; then \
+            echo "$(BLUE)$(BOLD)----------------------------------------$(RESET)"; \
+            echo "$(BLUE)$(BOLD)          MINISHELL COMPILATION        $(RESET)"; \
+            echo "$(BLUE)$(BOLD)----------------------------------------$(RESET)"; \
+        fi; \
+        echo "$(CYAN)Compiling $<...$(RESET)"; \
+        $(CC) $(CFLAGS) $(INCS) -c $< -o $@; \
+    fi
 
 clean:
-	rm -f $(OBJS)
+	@echo "$(YELLOW)Cleaning object files...$(RESET)"
+	@$(RM) $(OBJ_DIR)
+	@echo "$(YELLOW)✅ Object files removed!$(RESET)"
 
 fclean: clean
-	rm -f $(NAME)
+	@echo "$(YELLOW)Removing executable...$(RESET)"
+	@$(RM) $(NAME)
+	@echo "$(YELLOW)✅ Executable removed!$(RESET)"
 
 re: fclean all
 
-.PHONY: all clean fclean re
+norm:
+	@echo "$(MAGENTA)Running Norminette...$(RESET)"
+	@norminette $(SRC_DIR) $(INC_DIR)
+
+debug:	CFLAGS += -fsanitize=address
+debug:	re
+	@echo "$(RED)$(BOLD)🔍 Debug build with Address Sanitizer compiled!$(RESET)"
+
+.PHONY:	all clean fclean re norm debug

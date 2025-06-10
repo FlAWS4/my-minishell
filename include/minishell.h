@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 23:46:17 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 01:00:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,12 +59,21 @@
 # define BOLD_MAGENTA "\033[1;35m"
 
 /* Error types */
-# define ERROR_SYNTAX    1
-# define ERROR_COMMAND   2
-# define ERROR_PERMISSION 3
-# define ERROR_MEMORY    4
-# define ERR_EXEC        5   // Execution error
-# define RESET "\033[0m"
+/* Error types */
+# define ERROR_SYNTAX      1
+# define ERROR_COMMAND     2
+# define ERROR_PERMISSION  3
+# define ERROR_MEMORY      4
+# define ERR_EXEC          5
+# define ERROR_NOT_FOUND   100
+# define ERROR_CD          101
+# define ERROR_ECHO        102
+# define ERROR_EXPORT      103
+# define ERROR_UNSET       104
+# define ERROR_ENV         105
+# define ERROR_EXIT        106
+# define ERROR_PWD         107
+# define RESET              "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
 extern int	g_signal;

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 00:56:59 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/10 21:44:06 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,31 @@ static int	is_valid_redir_target(t_token *token)
 }
 
 /**
+ * Initialize a new redirection structure
+ */
+static t_redirection	*init_redirection(int type, char *word, int quoted)
+{
+    t_redirection	*new;
+
+    new = (t_redirection *)malloc(sizeof(t_redirection));
+    if (!new)
+        return (NULL);
+    new->type = type;
+    new->word = ft_strdup(word);
+    if (!new->word)
+    {
+        free(new);
+        return (NULL);
+    }
+    new->input_fd = -1;
+    new->output_fd = -1;
+    new->quoted = quoted;
+    new->temp_file = NULL;
+    new->next = NULL;
+    return (new);
+}
+
+/**
  * Add a redirection to the cmd structure
  * Return 1 for success, 0 for failure
  */
@@ -31,32 +56,11 @@ int	add_redirection(t_cmd *cmd, int type, char *word, int quoted)
     t_redirection	*new;
     t_redirection	*temp;
 
-    printf("DEBUG: Adding redirection type %d, word: %s, quoted: %d\n", 
-           type, word, quoted);
-           
     if (!cmd || !word)
         return (0);
-        
-    new = (t_redirection *)malloc(sizeof(t_redirection));
+    new = init_redirection(type, word, quoted);
     if (!new)
         return (0);
-        
-    new->type = type;
-    new->word = ft_strdup(word);
-    if (!new->word)
-    {
-        free(new);
-        return (0);
-    }
-    
-    // Initialize file descriptors to -1
-    new->input_fd = -1;
-    new->output_fd = -1;
-    new->quoted = quoted;  // Set quoted flag from parameter
-    new->temp_file = NULL;
-    new->next = NULL;
-    
-    // Add to list
     if (!cmd->redirections)
         cmd->redirections = new;
     else
@@ -66,7 +70,6 @@ int	add_redirection(t_cmd *cmd, int type, char *word, int quoted)
             temp = temp->next;
         temp->next = new;
     }
-    
     return (1);
 }
 
@@ -78,20 +81,16 @@ int	handle_redir_in(t_token **token, t_cmd *cmd)
 {
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
-    
-    // Store filename for backward compatibility
     cmd->input_file = ft_strdup((*token)->next->value);
     if (!cmd->input_file)
         return (0);
-    
-    // Add to redirections list - this is the primary mechanism now
     if (!add_redirection(cmd, TOKEN_REDIR_IN, (*token)->next->value, 0))
+    {
+        free(cmd->input_file);
+        cmd->input_file = NULL;
         return (0);
-    
-    // Mark input_fd as not set
+    }
     cmd->input_fd = -1;
-    
-    // Skip target token
     *token = (*token)->next;
     return (1);
 }
@@ -106,24 +105,45 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
-    
-    // Store filename for backward compatibility
     cmd->output_file = ft_strdup((*token)->next->value);
     if (!cmd->output_file)
         return (0);
-    
-    // Set append mode flag
     cmd->append_mode = append;
-    
-    // Determine token type
-    token_type = append ? TOKEN_REDIR_APPEND : TOKEN_REDIR_OUT;
-    
-    // Add to redirections list - this is the primary mechanism now
+    if (append)
+        token_type = TOKEN_REDIR_APPEND;
+    else
+        token_type = TOKEN_REDIR_OUT;
     if (!add_redirection(cmd, token_type, (*token)->next->value, 0))
+    {
+        free(cmd->output_file);
+        cmd->output_file = NULL;
         return (0);
-    
-    // Skip target token
+    }
     *token = (*token)->next;
+    return (1);
+}
+
+/**
+ * Handle heredoc redirection part 1
+ */
+static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
+{
+    if (!(*token)->next || !is_valid_redir_target((*token)->next))
+    {
+        display_error(ERR_SYNTAX, "expected delimiter after <<", NULL);
+        return (0);
+    }
+    if ((*token)->next->type == TOKEN_SINGLE_QUOTE || 
+        (*token)->next->type == TOKEN_DOUBLE_QUOTE)
+        *quoted = 1;
+    else
+        *quoted = 0;
+    cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    if (!cmd->heredoc_delim)
+    {
+        display_error(ERR_MEMORY, NULL, NULL);
+        return (0);
+    }
     return (1);
 }
 
@@ -133,51 +153,20 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
  */
 int	handle_heredoc(t_token **token, t_cmd *cmd)
 {
-    int quoted = 0;
-    
-    if (!(*token)->next || !is_valid_redir_target((*token)->next))
-    {
-        display_error(ERR_SYNTAX, "expected delimiter after <<", NULL);
+    int	quoted;
+
+    quoted = 0;
+    if (!handle_heredoc_setup(token, cmd, &quoted))
         return (1);
-    }
-    
-    // Check if the heredoc delimiter is quoted
-    if ((*token)->next->type == TOKEN_SINGLE_QUOTE || 
-        (*token)->next->type == TOKEN_DOUBLE_QUOTE)
-    {
-        printf("DEBUG: Found quoted heredoc with delimiter: %s\n", 
-               (*token)->next->value);
-        quoted = 1;
-    }
-    else
-    {
-        printf("DEBUG: Found heredoc with delimiter: %s\n", 
-               (*token)->next->value);
-    }
-    
-    // Store the delimiter
-    cmd->heredoc_delim = ft_strdup((*token)->next->value);
-    if (!cmd->heredoc_delim)
-    {
-        display_error(ERR_MEMORY, NULL, NULL);
-        return (1);
-    }
-    
-    // Initialize heredoc file to NULL and input_fd to -1
     cmd->heredoc_file = NULL;
     cmd->input_fd = -1;
-    
-    // Add to redirections list with quoted flag
     if (!add_redirection(cmd, TOKEN_HEREDOC, (*token)->next->value, quoted))
     {
         free(cmd->heredoc_delim);
         cmd->heredoc_delim = NULL;
         return (1);
     }
-    
-    // Skip the delimiter token
     *token = (*token)->next;
-    
     return (0);
 }
 
@@ -188,7 +177,6 @@ int	is_redirection_token(t_token *token)
 {
     if (!token)
         return (0);
-        
     return (token->type == TOKEN_REDIR_IN ||
             token->type == TOKEN_REDIR_OUT ||
             token->type == TOKEN_REDIR_APPEND ||
@@ -199,26 +187,23 @@ int	is_redirection_token(t_token *token)
  * Parse redirection tokens
  * Return 0 for success, 1 for failure
  */
-int parse_redirections(t_token **token, t_cmd *cmd)
+int	parse_redirections(t_token **token, t_cmd *cmd)
 {
-    t_token_type type;
-    int result;
-    
+    t_token_type	type;
+    int				result;
+
     if (!token || !*token || !cmd)
         return (1);
-    
     type = (*token)->type;
-    printf("DEBUG: Parsing redirection token type: %d\n", type);
-    
     if (type == TOKEN_HEREDOC)
         result = handle_heredoc(token, cmd);
     else if (type == TOKEN_REDIR_IN)
-        result = !handle_redir_in(token, cmd);  // Invert return value
-    else if (type == TOKEN_REDIR_OUT || type == TOKEN_REDIR_APPEND)
-        result = !handle_redir_out(token, cmd, type == TOKEN_REDIR_APPEND);  // Invert return value
+        result = !handle_redir_in(token, cmd);
+    else if (type == TOKEN_REDIR_OUT)
+        result = !handle_redir_out(token, cmd, 0);
+    else if (type == TOKEN_REDIR_APPEND)
+        result = !handle_redir_out(token, cmd, 1);
     else
         result = 1;
-    
     return (result);
 }
-
