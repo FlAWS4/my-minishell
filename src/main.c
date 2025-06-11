@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:33:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:25:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,69 +77,23 @@ t_shell	*init_shell(char **envp)
     shell = malloc(sizeof(t_shell));
     if (!shell)
         return (NULL);
+        
     shell->env = init_env(envp);
     if (!shell->env && envp && *envp)
     {
         free(shell);
         return (NULL);
     }
+    
+    // Initialize terminal settings
     if (isatty(STDIN_FILENO))
         tcgetattr(STDIN_FILENO, &shell->orig_termios);
+    
     shell->cmd = NULL;
     shell->exit_status = 0;
     shell->should_exit = 0;
     g_signal = 0;
-    
-    // Set up readline tab completion
-    rl_attempted_completion_function = custom_completion;
-    
     return (shell);
-}
-/**
- * Custom completion function for readline
- */
-char **custom_completion(const char *text, int start, int end)
-{
-    (void)end;
-    
-    // Disable default completion behavior
-    rl_attempted_completion_over = 1;
-    
-    // Only do command completion at the start of line
-    if (start == 0)
-        return rl_completion_matches(text, command_generator);
-    
-    return NULL;
-}
-
-/**
- * Command generator for completion
- */
-char *command_generator(const char *text, int state)
-{
-    static int list_index;
-    static size_t len;
-    static const char *commands[] = {
-        "cd", "echo", "env", "exit", "export", "pwd", "unset", "help", NULL
-    };
-    
-    // On first call, initialize
-    if (!state) {
-        list_index = 0;
-        len = strlen(text);
-    }
-    
-    // Return next match
-    while (commands[list_index]) {
-        const char *name = commands[list_index];
-        list_index++;
-        
-        if (ft_strncmp(name, text, len) == 0)
-            return (ft_strdup(name));
-    }
-    
-    // No more matches
-    return NULL;
 }
 
 /**
@@ -164,9 +118,15 @@ static void	reset_terminal_state(void)
 
     if (isatty(STDIN_FILENO))
     {
+        // Ignore SIGTTOU when changing terminal control
+        signal(SIGTTOU, SIG_IGN);
+        
         tcgetattr(STDIN_FILENO, &term);
         term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
         tcsetattr(STDIN_FILENO, TCSANOW, &term);
+        
+        // Restore default handler
+        signal(SIGTTOU, SIG_DFL);
     }
 }
 
@@ -250,12 +210,35 @@ void process_input(t_shell *shell, char *input)
     shell->cmd = parse_input(input, shell);
     if (!shell->cmd)
         return;
-        
+    
+    // Save terminal state
+    struct termios orig_term;
+    if (isatty(STDIN_FILENO))
+        tcgetattr(STDIN_FILENO, &orig_term);
     setup_terminal();
+    
+    pid_t shell_pgid = tcgetpgrp(STDIN_FILENO);
+    // Ignore SIGTTOU to prevent suspension when changing terminal control
+    signal(SIGTTOU, SIG_IGN);
+    
+    // Check for interrupt BEFORE execution
+    if (g_signal == SIGINT)
+    {
+        g_signal = 0;
+        return;
+    }
+    
     execute_parsed_commands(shell);
     
+    // Restore terminal control with improved handling
     if (isatty(STDIN_FILENO))
-        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    {
+        // Use TCSANOW instead of TCSADRAIN for immediate effect
+        tcsetpgrp(STDIN_FILENO, shell_pgid);
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+        signal(SIGTTOU, SIG_DFL);
+    }
+    
     if (shell->cmd)
     {
         free_cmd_list(shell->cmd);
@@ -270,10 +253,17 @@ void shell_loop(t_shell *shell)
 {
     char *input;
     char prompt[100];
+    
+    // At beginning of function, ensure we have control of terminal
+    if (isatty(STDIN_FILENO))
+    {
+        signal(SIGTTOU, SIG_IGN);
+        tcsetpgrp(STDIN_FILENO, getpid());
+        signal(SIGTTOU, SIG_DFL);
+    }
 
     while (!shell->should_exit)
     {
-        // Setup signals at the beginning
         setup_signals();
         setup_terminal();
         
@@ -282,24 +272,31 @@ void shell_loop(t_shell *shell)
         {
             g_signal = 0;
             shell->exit_status = 130;
-            
-            // Skip to next iteration to get a clean prompt
             continue;
         }
         
-        // Create prompt and get input
+        // Ensure we have terminal control before readline
+        if (isatty(STDIN_FILENO) && tcgetpgrp(STDIN_FILENO) != getpid())
+        {
+            signal(SIGTTOU, SIG_IGN);
+            tcsetpgrp(STDIN_FILENO, getpid());
+            signal(SIGTTOU, SIG_DFL);
+        }
+        
         create_prompt(prompt, shell->exit_status);
         input = readline(prompt);
         
-        // Process input normally
+        // Ctrl+D (EOF) handling
         if (!input)
         {
             ft_putstr_fd("exit\n", 1);
+            shell->should_exit = 1;
             break;
         }
         
         if (input[0] != '\0')
             add_history(input);
+        
         process_input(shell, input);
         free(input);
     }

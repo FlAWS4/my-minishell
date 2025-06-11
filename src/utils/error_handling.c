@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:13:47 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 20:15:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -392,23 +392,27 @@ void	free_str_array(char **array)
 /**
  * Print syntax error for tokens
  */
-void	print_syntax_error(char *token_value, int token_type)
+void print_syntax_error(char *token_value, int token_type)
 {
-    char	error_msg[100];
-
+    char *prefix = "unexpected ";
+    char *suffix;
+    
     if (!token_value)
         token_value = "unexpected token";
+        
     if (token_type == TOKEN_PIPE)
-        snprintf(error_msg, sizeof(error_msg),
-            "unexpected pipe operator '%s'", token_value);
+        suffix = "pipe operator '";
     else if (token_type == TOKEN_REDIR_IN || token_type == TOKEN_REDIR_OUT
         || token_type == TOKEN_REDIR_APPEND || token_type == TOKEN_HEREDOC)
-        snprintf(error_msg, sizeof(error_msg),
-            "unexpected redirection '%s'", token_value);
+        suffix = "redirection '";
     else
-        snprintf(error_msg, sizeof(error_msg),
-            "unexpected token '%s'", token_value);
-    display_error(ERROR_SYNTAX, "syntax error", error_msg);
+        suffix = "token '";
+        
+    display_error(ERROR_SYNTAX, "syntax error", NULL);
+    ft_putstr_fd(prefix, 2);
+    ft_putstr_fd(suffix, 2);
+    ft_putstr_fd(token_value, 2);
+    ft_putstr_fd("'\n", 2);
 }
 
 /**
@@ -441,16 +445,13 @@ static char	*get_errno_message(void)
 /**
  * Handle redirection errors specifically
  */
-int	handle_redirection_error(t_shell *shell, char *filename, char *message)
+int handle_redirection_error(t_shell *shell, char *filename, char *message)
 {
-    char	err_msg[256];
-
     if (!message)
         message = get_errno_message();
     if (filename && message)
     {
-        snprintf(err_msg, sizeof(err_msg), "%s", message);
-        display_error(ERR_REDIR, filename, err_msg);
+        display_error(ERR_REDIR, filename, message);
     }
     if (shell)
         shell->exit_status = 1;
@@ -517,14 +518,10 @@ int	handle_fork_error(t_shell *shell, char *context)
 /**
  * Display heredoc EOF warning
  */
-void	display_heredoc_eof_warning(char *delimiter)
+void display_heredoc_eof_warning(char *delimiter)
 {
-    char	warning_msg[256];
-
-    snprintf(warning_msg, sizeof(warning_msg),
-        "warning: here-document delimited by end-of-file (wanted `%s')",
-        delimiter);
     ft_putstr_fd(BOLD_YELLOW "minishell: " RESET, 2);
-    ft_putstr_fd(warning_msg, 2);
-    ft_putstr_fd("\n", 2);
+    ft_putstr_fd("warning: here-document delimited by end-of-file (wanted `", 2);
+    ft_putstr_fd(delimiter, 2);
+    ft_putstr_fd("')\n", 2);
 }

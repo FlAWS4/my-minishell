@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:40:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:40:32 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -341,7 +341,8 @@ static int	find_word_end(char *input, int i)
     while (input[i] && !is_whitespace(input[i]) && !is_special(input[i])
         && input[i] != '\'' && input[i] != '\"')
     {
-        if (input[i] == '\\' && input[i + 1])
+        // More explicit check to prevent reading past end of string
+        if (input[i] == '\\' && input[i + 1] != '\0')
             i++;
         i++;
     }

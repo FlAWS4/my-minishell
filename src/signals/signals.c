@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:20:26 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:26:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,11 +46,12 @@ void sigint_handler(int signum)
 {
     if (signum == SIGINT)
     {
-        // Set flag but DON'T print newline here
         g_signal = SIGINT;
-        
-        // Tell readline to stop reading
         rl_done = 1;
+        
+        // This is crucial for properly breaking out of readline
+        rl_replace_line("", 0);
+        rl_redisplay();
     }
 }
 
@@ -81,13 +82,16 @@ void	setup_signals(void)
     // Register the event hook for readline
     rl_event_hook = check_for_signals;
     
-    memset(&sa_int, 0, sizeof(sa_int));
-    memset(&sa_quit, 0, sizeof(sa_quit));
+    // Use ft_bzero instead of memset
+    ft_bzero(&sa_int, sizeof(sa_int));
+    ft_bzero(&sa_quit, sizeof(sa_quit));
+    
     sa_int.sa_handler = sigint_handler;
     sigemptyset(&sa_int.sa_mask);
     sigaddset(&sa_int.sa_mask, SIGQUIT);
     sa_int.sa_flags = 0;
     sigaction(SIGINT, &sa_int, NULL);
+    
     sa_quit.sa_handler = SIG_IGN;
     sigemptyset(&sa_quit.sa_mask);
     sigaddset(&sa_quit.sa_mask, SIGINT);
@@ -104,12 +108,15 @@ void	setup_signals_noninteractive(void)
     struct sigaction	sa_int;
     struct sigaction	sa_quit;
 
-    memset(&sa_int, 0, sizeof(sa_int));
-    memset(&sa_quit, 0, sizeof(sa_quit));
+    // Use ft_bzero instead of memset
+    ft_bzero(&sa_int, sizeof(sa_int));
+    ft_bzero(&sa_quit, sizeof(sa_quit));
+    
     sa_int.sa_handler = SIG_DFL;
     sigemptyset(&sa_int.sa_mask);
     sa_int.sa_flags = 0;
     sigaction(SIGINT, &sa_int, NULL);
+    
     sa_quit.sa_handler = SIG_DFL;
     sigemptyset(&sa_quit.sa_mask);
     sa_quit.sa_flags = 0;
@@ -126,12 +133,15 @@ void	setup_signals_heredoc(void)
     struct sigaction	sa_int;
     struct sigaction	sa_quit;
 
-    memset(&sa_int, 0, sizeof(sa_int));
-    memset(&sa_quit, 0, sizeof(sa_quit));
+    // Use ft_bzero instead of memset
+    ft_bzero(&sa_int, sizeof(sa_int));
+    ft_bzero(&sa_quit, sizeof(sa_quit));
+    
     sa_int.sa_handler = sigint_heredoc_handler;
     sigemptyset(&sa_int.sa_mask);
     sa_int.sa_flags = 0;
     sigaction(SIGINT, &sa_int, NULL);
+    
     sa_quit.sa_handler = SIG_IGN;
     sigemptyset(&sa_quit.sa_mask);
     sa_quit.sa_flags = 0;

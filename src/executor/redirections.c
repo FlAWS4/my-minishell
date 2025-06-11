@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:57:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:49:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,14 +15,30 @@
 /**
  * Create a temporary file for heredoc content
  */
-static char	*create_heredoc_tempfile(int *fd_out)
+static char *create_heredoc_tempfile(int *fd_out)
 {
-    char	*temp_file;
-
-    temp_file = ft_strdup("/tmp/minishell_heredoc_XXXXXX");
+    char    *temp_file;
+    char    *pid_str;
+    int     pid;
+    
+    pid = (int)getpid();
+    temp_file = ft_strdup("/tmp/minishell_heredoc_");
     if (!temp_file)
         return (NULL);
-    *fd_out = mkstemp(temp_file);
+    
+    // Convert pid to string correctly
+    pid_str = ft_itoa(pid);
+    if (!pid_str)
+    {
+        free(temp_file);
+        return (NULL);
+    }
+    
+    // Append pid to filename
+    temp_file = ft_strjoin_free(temp_file, pid_str);
+    free(pid_str);
+    
+    *fd_out = open(temp_file, O_CREAT | O_RDWR | O_TRUNC, 0600);
     if (*fd_out == -1)
     {
         free(temp_file);
@@ -64,7 +80,7 @@ static char	*read_command_output(int pipe_fd)
     char	*result;
     int		bytes_read;
 
-    memset(buffer, 0, 4096);
+    ft_memset(buffer, 0, 4096);
     bytes_read = read(pipe_fd, buffer, 4095);
     if (bytes_read > 0 && buffer[bytes_read - 1] == '\n')
         buffer[bytes_read - 1] = '\0';
@@ -275,6 +291,9 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
     pid_t pid;
     int status;
     
+    // Reset global signal flag before forking
+    g_signal = 0;
+    
     pid = fork();
     if (pid == -1)
         return (0);
@@ -282,8 +301,15 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
     if (pid == 0)
         handle_heredoc_child(delimiter, fd, quoted, shell);
     
+    // Wait and check signal status
     waitpid(pid, &status, 0);
-    if (WIFSIGNALED(status) || WEXITSTATUS(status) == 130)
+    if (WIFSIGNALED(status))
+    {
+        g_signal = WTERMSIG(status);
+        shell->exit_status = 128 + g_signal;
+        return (0);
+    }
+    else if (WEXITSTATUS(status) == 130)
     {
         g_signal = SIGINT;
         shell->exit_status = 130;
@@ -293,44 +319,29 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
 }
 
 /**
- * Handle heredoc creation errors
- */
-static int	handle_heredoc_error(int fd, char *temp_file)
-{
-    close(fd);
-    unlink(temp_file);
-    return (0);
-}
-
-/**
  * Process a heredoc for a command
  */
-int	process_heredoc(t_cmd *cmd, t_shell *shell)
+int process_heredoc(t_cmd *cmd, t_shell *shell)
 {
-    int		fd;
-    char	*temp_file;
+    t_redirection *redir;
 
-    if (!cmd || !cmd->heredoc_delim)
-        return (1);
-    temp_file = create_heredoc_tempfile(&fd);
-    if (!temp_file)
-        return (0);
-    cmd->heredoc_file = temp_file;
-    if (!collect_heredoc_input(cmd->heredoc_delim, fd, 0, shell))
-        return (handle_heredoc_error(fd, temp_file));
-    close(fd);
-    fd = open(temp_file, O_RDONLY);
-    if (fd == -1)
+    if (cmd->heredocs_processed || g_signal == SIGINT)
+        return 1;
+    redir = cmd->redirections;
+    while (redir)
     {
-        unlink(temp_file);
-        display_error(ERR_REDIR, "heredoc", strerror(errno));
-        return (0);
+        if (redir->type == TOKEN_HEREDOC)
+        {
+            if (process_heredoc_redir(redir, shell) != 0)
+                return 0;
+        }
+        redir = redir->next;
     }
-    cmd->input_fd = fd;
-    unlink(temp_file);
-    return (1);
+    
+    // Mark heredocs as processed
+    cmd->heredocs_processed = 1;
+    return 1;
 }
-
 
 /**
  * Process input redirection in a redirection list
@@ -423,7 +434,6 @@ int	process_heredoc_redir(t_redirection *redir, t_shell *shell)
     unlink(temp_file);
     return (0);
 }
-
 
 /**
  * Process a single redirection based on type
@@ -607,7 +617,6 @@ int	apply_redirections(t_cmd *cmd)
     return (0);
 }
 
-
 /**
  * Close file descriptors in redirection list
  */
@@ -674,7 +683,12 @@ static int	process_command_heredocs(t_cmd *current, t_shell *shell)
 {
     t_redirection	*redir;
 
+    if (current->heredocs_processed || g_signal == SIGINT)
+        return (1);
+    
+    // Mark as processed only after checking
     current->heredocs_processed = 1;
+    
     if (current->redirections)
     {
         redir = current->redirections;

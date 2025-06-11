@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:31:30 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:08:48 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,6 +215,7 @@ char	*ft_itoa(int n);
 int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 char	*ft_strchr(const char *s, int c);
 char	*ft_strstr(const char *haystack, const char *needle);
+void	*ft_memset(void *s, int c, size_t n);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -242,8 +243,8 @@ void   add_arg(t_cmd *cmd, char *arg);
 /* Redirection handling */
 int		handle_redir_in(t_token **token, t_cmd *cmd);
 int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
-int		handle_heredoc(t_token **token, t_cmd *cmd);
-int		parse_redirections(t_token **tokens, t_cmd *cmd);
+int     handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell);
+int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
@@ -264,7 +265,7 @@ int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
-int		process_token(t_token **token, t_cmd **current);
+int     process_token(t_token **token, t_cmd **current, t_shell *shell);
 t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
 int		validate_syntax(t_token *tokens);
 void    merge_adjacent_quoted_tokens(t_token **tokens);

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:46:19 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:33:32 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ t_cmd	*create_cmd(void)
     cmd->args = NULL;
     cmd->input_file = NULL;
     cmd->output_file = NULL;
+    cmd->heredocs_processed = 0;
     cmd->heredoc_delim = NULL;
     cmd->heredoc_file = NULL;
     cmd->input_fd = -1;
@@ -181,10 +182,11 @@ static void	free_cmd(t_cmd *cmd)
 /**
  * Join consecutive tokens without spaces
  */
-static char	*join_consecutive_tokens(char *word, t_token **current)
+static char *join_consecutive_tokens(char *word, t_token **current)
 {
-    t_token	*next;
-    char	*temp;
+    t_token *next;
+    char    *temp;
+    char    *result;
 
     next = (*current)->next;
     while (next && (next->type == TOKEN_WORD || 
@@ -192,12 +194,15 @@ static char	*join_consecutive_tokens(char *word, t_token **current)
             next->type == TOKEN_DOUBLE_QUOTE))
     {
         if (next->preceded_by_space)
-            break ;
+            break;
         temp = word;
-        word = ft_strjoin(word, next->value);
-        free(temp);
-        if (!word)
+        result = ft_strjoin(word, next->value);
+        if (!result)
+        {
+            free(temp);  // Free the original word if join fails
             return (NULL);
+        }
+        word = result;
         *current = next;
         next = next->next;
     }
@@ -207,22 +212,22 @@ static char	*join_consecutive_tokens(char *word, t_token **current)
 /**
  * Process word tokens and handle token joining when no spaces
  */
-void	join_word_tokens(t_cmd *cmd, t_token **token)
+void join_word_tokens(t_cmd *cmd, t_token **token)
 {
-    char	*word;
-    t_token	*current;
-    int		is_first_arg;
+    char    *word;
+    t_token *current;
+    int     is_first_arg;
 
     is_first_arg = (cmd->args == NULL);
     word = ft_strdup((*token)->value);
     if (!word)
-        return ;
+        return;
     current = *token;
     if (is_first_arg)
     {
         word = join_consecutive_tokens(word, &current);
         if (!word)
-            return ;
+            return;  // Properly handles NULL from join_consecutive_tokens
     }
     add_arg(cmd, word);
     *token = current;

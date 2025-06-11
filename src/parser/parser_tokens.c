@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 22:09:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 20:42:14 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
  * Process a token and update the command structure
  * Returns 0 on success, non-zero on error
  */
-int	process_token(t_token **token, t_cmd **current)
+int process_token(t_token **token, t_cmd **current, t_shell *shell)
 {
     if (!token || !*token || !current || !*current)
         return (1);
@@ -33,7 +33,7 @@ int	process_token(t_token **token, t_cmd **current)
     }
     else if (is_redirection_token(*token))
     {
-        if (parse_redirections(token, *current) != 0)
+        if (parse_redirections(token, *current, shell) != 0)
             return (1);
     }
     return (0);
@@ -68,13 +68,12 @@ t_cmd	*handle_pipe_token(t_cmd *current)
 /**
  * Parse tokens into command structures
  */
-t_cmd	*parse_tokens(t_token *tokens, t_shell *shell)
+t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
 {
-    t_cmd	*cmd;
-    t_cmd	*head;
-    t_token	*current;
+    t_cmd   *cmd;
+    t_cmd   *head;
+    t_token *current;
 
-    (void)shell;
     if (!tokens)
         return (NULL);
     cmd = create_cmd();
@@ -84,7 +83,7 @@ t_cmd	*parse_tokens(t_token *tokens, t_shell *shell)
     current = tokens;
     while (current)
     {
-        if (process_token(&current, &cmd) != 0)
+        if (process_token(&current, &cmd, shell) != 0)
         {
             free_cmd_list(head);
             return (NULL);

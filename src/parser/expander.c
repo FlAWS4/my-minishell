@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:00:56 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:46:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,16 +109,21 @@ static int	prepare_var_parts(char *str, int i, char **parts, char *var_name)
 /**
  * Create expanded result string
  */
-static char	*join_expanded_parts(char **parts, char *var_value)
+static char *join_expanded_parts(char **parts, char *var_value)
 {
-    char	*result;
-    char	*temp;
+    char *result;
+    char *temp;
 
     result = ft_strjoin(parts[0], var_value);
     if (!result)
         return (NULL);
     temp = result;
     result = ft_strjoin(result, parts[1]);
+    if (!result)
+    {
+        free(temp);
+        return (NULL);
+    }
     free(temp);
     return (result);
 }
@@ -211,8 +216,8 @@ static int	handle_special_var(char *content, int start, char **result,
     char	*var_value;
     char	*temp;
 
-    (void)content; // Unused parameter
-    (void)start; // Unused parameter
+    (void)content;
+    (void)start;
     var_name = ft_strdup("?");
     if (!var_name)
         return (0);
@@ -222,6 +227,14 @@ static int	handle_special_var(char *content, int start, char **result,
         *result = ft_strjoin(*result, var_value);
     else
         *result = ft_strjoin(*result, "");
+    if (!*result)
+    {
+        *result = temp;
+        free(var_name);
+        if (var_value)
+            free(var_value);
+        return (0);
+    }
     free(temp);
     free(var_name);
     if (var_value)
@@ -266,6 +279,14 @@ static int	expand_regular_var(char *content, int *i, char **result,
         *result = ft_strjoin(*result, var_value);
     else
         *result = ft_strjoin(*result, "");
+    if (!*result)
+    {
+        *result = temp;
+        free(var_name);
+        if (var_value)
+            free(var_value);
+        return (0);
+    }
     free(temp);
     free(var_name);
     if (var_value)
@@ -406,7 +427,6 @@ static t_token	*handle_word_splitting(t_token *current, char *expanded,
     return (last);
 }
 
-
 /**
  * Process a token for expansion
  */
@@ -437,10 +457,8 @@ t_token	*expand_variables_in_tokens_with_splitting(t_token *tokens,
     t_token	*current;
     t_token	*next;
     t_token	*head;
-    t_token	*prev;
 
     head = tokens;
-    prev = NULL;
     if (!tokens || !shell)
         return (tokens);
     current = tokens;
@@ -449,7 +467,6 @@ t_token	*expand_variables_in_tokens_with_splitting(t_token *tokens,
         next = current->next;
         if (current->type != TOKEN_SINGLE_QUOTE)
             current = process_token_expansion(current, shell, &next);
-        prev = current;
         current = next;
     }
     return (head);

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:44:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 22:02:24 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,10 +151,11 @@ static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
  * Handle heredoc redirection
  * Return 0 for success, 1 for failure (to match other redirections)
  */
-int	handle_heredoc(t_token **token, t_cmd *cmd)
+int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
 {
-    int	quoted;
+    int quoted;
 
+    (void)shell; // shell is not used in this function, but kept for consistency
     quoted = 0;
     if (!handle_heredoc_setup(token, cmd, &quoted))
         return (1);
@@ -166,6 +167,14 @@ int	handle_heredoc(t_token **token, t_cmd *cmd)
         cmd->heredoc_delim = NULL;
         return (1);
     }
+    
+    // REMOVE heredoc processing during parsing
+    // Don't call process_heredoc here - this should only happen during execution
+    // This prevents duplicate processing
+    
+    // Just mark heredocs as not processed so executor handles them
+    cmd->heredocs_processed = 0;
+    
     *token = (*token)->next;
     return (0);
 }
@@ -187,16 +196,16 @@ int	is_redirection_token(t_token *token)
  * Parse redirection tokens
  * Return 0 for success, 1 for failure
  */
-int	parse_redirections(t_token **token, t_cmd *cmd)
+int parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell)
 {
-    t_token_type	type;
-    int				result;
+    t_token_type type;
+    int result;
 
     if (!token || !*token || !cmd)
         return (1);
     type = (*token)->type;
     if (type == TOKEN_HEREDOC)
-        result = handle_heredoc(token, cmd);
+        result = handle_heredoc(token, cmd, shell);
     else if (type == TOKEN_REDIR_IN)
         result = !handle_redir_in(token, cmd);
     else if (type == TOKEN_REDIR_OUT)
