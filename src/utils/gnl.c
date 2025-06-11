@@ -6,59 +6,36 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/27 22:14:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/08 21:02:36 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/10 21:55:27 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-
-// Moved to file scope so gnl_cleanup can access it
 static char	*g_buffers[MAX_FD];
 
 /**
- * Find first occurrence of character in string
+ * Calculate line length for extraction
  */
-static char	*ft_strchr_gnl(char *s, int c)
+static int	get_line_length(char *buffer)
 {
     int	i;
 
     i = 0;
-    if (!s)
-        return (NULL);
-    while (s[i] != '\0')
-    {
-        if (s[i] == (char) c)
-            return ((char *)&s[i]);
-        i++;
-    }
-    return (NULL);
-}
-
-/**
- * Extract a line from the buffer up to newline
- */
-static char	*extract_line(char *buffer)
-{
-    int		i;
-    char	*line;
-
-    i = 0;
-    if (!buffer || !buffer[i])
-        return (NULL);
-        
-    // Find length of line including newline if present
     while (buffer[i] && buffer[i] != '\n')
         i++;
     if (buffer[i] == '\n')
         i++;
-        
-    // Allocate memory for the line
-    line = (char *)malloc(sizeof(char) * (i + 1));
-    if (!line)
-        return (NULL);
-        
-    // Copy characters to new line
+    return (i);
+}
+
+/**
+ * Copy buffer content to line
+ */
+static void	copy_to_line(char *line, char *buffer)
+{
+    int	i;
+
     i = 0;
     while (buffer[i] && buffer[i] != '\n')
     {
@@ -68,8 +45,53 @@ static char	*extract_line(char *buffer)
     if (buffer[i] == '\n')
         line[i++] = '\n';
     line[i] = '\0';
-    
+}
+
+/**
+ * Extract a line from the buffer up to newline
+ */
+static char	*extract_line(char *buffer)
+{
+    int		len;
+    char	*line;
+
+    if (!buffer || !buffer[0])
+        return (NULL);
+    len = get_line_length(buffer);
+    line = (char *)malloc(sizeof(char) * (len + 1));
+    if (!line)
+        return (NULL);
+    copy_to_line(line, buffer);
     return (line);
+}
+
+/**
+ * Find position of newline or end
+ */
+static int	find_newline_pos(char *buffer)
+{
+    int	i;
+
+    i = 0;
+    while (buffer[i] && buffer[i] != '\n')
+        i++;
+    return (i);
+}
+
+/**
+ * Allocate memory for remainder buffer
+ */
+static char	*allocate_remainder(char *buffer, int i)
+{
+    char	*remainder;
+
+    remainder = (char *)malloc(sizeof(char) * (ft_strlen(buffer) - i + 1));
+    if (!remainder)
+    {
+        free(buffer);
+        return (NULL);
+    }
+    return (remainder);
 }
 
 /**
@@ -84,35 +106,77 @@ static char	*save_remainder(char *buffer)
     i = 0;
     if (!buffer)
         return (NULL);
-        
-    // Find the newline
-    while (buffer[i] && buffer[i] != '\n')
-        i++;
-        
-    // If no newline, nothing to save
+    i = find_newline_pos(buffer);
     if (!buffer[i])
     {
         free(buffer);
         return (NULL);
     }
-    
-    // Allocate memory for remainder
-    remainder = (char *)malloc(sizeof(char) * (ft_strlen(buffer) - i + 1));
+    remainder = allocate_remainder(buffer, i);
     if (!remainder)
-    {
-        free(buffer);
         return (NULL);
-    }
-    
-    // Copy remainder after newline
     i++;
     j = 0;
     while (buffer[i])
         remainder[j++] = buffer[i++];
     remainder[j] = '\0';
-    
     free(buffer);
     return (remainder);
+}
+
+/**
+ * Handle read error cleanup
+ */
+static char	*handle_read_error(char *chunk, char *buffer)
+{
+    free(chunk);
+    if (buffer)
+        free(buffer);
+    return (NULL);
+}
+
+/**
+ * Process read bytes and update buffer
+ */
+static char	*process_read(char *buffer, char *chunk, int bytes_read)
+{
+    char	*temp;
+    char	*src;
+
+    chunk[bytes_read] = '\0';
+    temp = buffer;
+    if (buffer)
+        src = buffer;
+    else
+        src = "";
+    buffer = ft_strjoin(src, chunk);
+    if (temp)
+        free(temp);
+    if (!buffer)
+    {
+        free(chunk);
+        return (NULL);
+    }
+    return (buffer);
+}
+
+/**
+ * Check if a string contains a newline character
+ */
+static int	has_newline(char *str)
+{
+    int	i;
+
+    if (!str)
+        return (0);
+    i = 0;
+    while (str[i])
+    {
+        if (str[i] == '\n')
+            return (1);
+        i++;
+    }
+    return (0);
 }
 
 /**
@@ -120,11 +184,9 @@ static char	*save_remainder(char *buffer)
  */
 static char	*read_and_append(int fd, char *buffer)
 {
-    char	*temp;
     char	*chunk;
     int		bytes_read;
 
-    // Allocate read buffer
     chunk = malloc((BUFFER_SIZE + 1) * sizeof(char));
     if (!chunk)
     {
@@ -132,32 +194,16 @@ static char	*read_and_append(int fd, char *buffer)
             free(buffer);
         return (NULL);
     }
-    
-    // Read until newline or EOF
     bytes_read = 1;
-    while (!ft_strchr_gnl(buffer, '\n') && bytes_read > 0)
+    while (!has_newline(buffer) && bytes_read > 0)
     {
         bytes_read = read(fd, chunk, BUFFER_SIZE);
         if (bytes_read < 0)
-        {
-            free(chunk);
-            if (buffer)
-                free(buffer);
-            return (NULL);
-        }
-        
-        chunk[bytes_read] = '\0';
-        temp = buffer;
-        buffer = ft_strjoin(buffer ? buffer : "", chunk);
-        if (temp)
-            free(temp);
+            return (handle_read_error(chunk, buffer));
+        buffer = process_read(buffer, chunk, bytes_read);
         if (!buffer)
-        {
-            free(chunk);
             return (NULL);
-        }
     }
-    
     free(chunk);
     return (buffer);
 }
@@ -169,16 +215,11 @@ char	*get_next_line(int fd)
 {
     char	*line;
 
-    // Validate input
     if (fd < 0 || fd >= MAX_FD || BUFFER_SIZE <= 0)
         return (NULL);
-        
-    // Read from fd and append to buffer
     g_buffers[fd] = read_and_append(fd, g_buffers[fd]);
     if (!g_buffers[fd])
         return (NULL);
-        
-    // Extract line from buffer
     line = extract_line(g_buffers[fd]);
     if (!line)
     {
@@ -186,25 +227,18 @@ char	*get_next_line(int fd)
         g_buffers[fd] = NULL;
         return (NULL);
     }
-    
-    // Save remainder for next call
     g_buffers[fd] = save_remainder(g_buffers[fd]);
-    
     return (line);
 }
 
 /**
  * Clean up any resources used by get_next_line for a specific fd
- * Call this when closing a file descriptor
  */
 void	gnl_cleanup(int fd)
 {
-    if (fd >= 0 && fd < MAX_FD)
+    if (fd >= 0 && fd < MAX_FD && g_buffers[fd])
     {
-        if (g_buffers[fd])
-        {
-            free(g_buffers[fd]);
-            g_buffers[fd] = NULL;
-        }
+        free(g_buffers[fd]);
+        g_buffers[fd] = NULL;
     }
 }

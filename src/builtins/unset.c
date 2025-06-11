@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   unset.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 01:57:11 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/11 00:28:12 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
 
 /**
  * Free environment node
@@ -39,7 +38,7 @@ static void	remove_env_var(t_shell *shell, char *key)
     t_env	*prev;
 
     if (!shell || !key)
-        return;
+        return ;
         
     curr = shell->env;
     prev = NULL;
@@ -53,11 +52,20 @@ static void	remove_env_var(t_shell *shell, char *key)
             else
                 shell->env = curr->next;
             free_env_node(curr);
-            return;
+            return ;
         }
         prev = curr;
         curr = curr->next;
     }
+}
+
+/**
+ * Handle invalid identifier for unset command
+ */
+static int	handle_invalid_id(char *arg)
+{
+    display_error(ERROR_UNSET, arg, "not a valid identifier");
+    return (1);
 }
 
 /**
@@ -75,19 +83,14 @@ int	builtin_unset(t_shell *shell, t_cmd *cmd)
     status = 0;
     i = 1;
     
-    // Handle case of no arguments (success, do nothing)
+    /* Handle case of no arguments (success, do nothing) */
     if (!cmd->args[i])
         return (0);
         
     while (cmd->args[i])
     {
-        if (!is_valid_var_name(cmd->args[i]))
-        {
-            ft_putstr_fd("minishell: unset: `", STDERR_FILENO);
-            ft_putstr_fd(cmd->args[i], STDERR_FILENO);
-            ft_putstr_fd("': not a valid identifier\n", STDERR_FILENO);
-            status = 1;
-        }
+        if (!is_valid_identifier(cmd->args[i]))
+            status = handle_invalid_id(cmd->args[i]);
         else
             remove_env_var(shell, cmd->args[i]);
         i++;

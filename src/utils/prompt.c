@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   prompt.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 04:09:47 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/10 22:00:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,17 +15,16 @@
 /**
  * Get shortened path by replacing home directory with ~
  */
-static void get_shortened_path(char *result, size_t size)
+static void	get_shortened_path(char *result, size_t size)
 {
-    char cwd[PATH_MAX];
-    char *home;
-    
+    char	cwd[PATH_MAX];
+    char	*home;
+
     if (!getcwd(cwd, sizeof(cwd)))
     {
         ft_strlcpy(result, "unknown", size);
-        return;
+        return ;
     }
-    
     home = getenv("HOME");
     if (home && ft_strncmp(cwd, home, ft_strlen(home)) == 0)
     {
@@ -33,97 +32,104 @@ static void get_shortened_path(char *result, size_t size)
         ft_strlcat(result, cwd + ft_strlen(home), size);
     }
     else
-    {
         ft_strlcpy(result, cwd, size);
-    }
 }
 
 /**
- * Create shell prompt string
+ * Create beautiful shell prompt string with colors
  */
-void create_prompt(char *prompt, int exit_status)
+void	create_prompt(char *prompt, int exit_status)
 {
-    char *username;
-    char path[PATH_MAX];
-    
+    char	*username;
+    char	path[PATH_MAX];
+
     if (!prompt)
-        return;
-        
+        return ;
     username = getenv("USER");
     if (!username)
         username = "user";
-        
     get_shortened_path(path, sizeof(path));
-    
     if (exit_status == 0)
-        ft_strlcpy(prompt, BOLD_GREEN, 100);
+        sprintf(prompt, "%s[%s%s%s]%s:%s[%s%s%s]%s$ ", 
+            BOLD_WHITE, BOLD_GREEN, username, BOLD_WHITE, RESET, 
+            BOLD_WHITE, BOLD_BLUE, path, BOLD_WHITE, RESET);
     else
-        ft_strlcpy(prompt, BOLD_RED, 100);
-        
-    ft_strlcat(prompt, username, 100);
-    ft_strlcat(prompt, RESET ":" BOLD_BLUE, 100);
-    ft_strlcat(prompt, path, 100);
-    ft_strlcat(prompt, RESET "$ ", 100);
+        sprintf(prompt, "%s[%s%s%s]%s:%s[%s%s%s]%s$ ", 
+            BOLD_WHITE, BOLD_RED, username, BOLD_WHITE, RESET, 
+            BOLD_WHITE, BOLD_BLUE, path, BOLD_WHITE, RESET);
 }
 
 /**
- * Display commands usage
+ * Display commands usage with nice formatting
  */
-static void display_commands(void)
+static void	display_commands(void)
 {
-    ft_putstr_fd(BOLD_WHITE "cd" RESET " <dir>     ", 1);
-    ft_putstr_fd("Change directory\n", 1);
-    ft_putstr_fd(BOLD_WHITE "pwd" RESET "          ", 1);
-    ft_putstr_fd("Print working directory\n", 1);
-    ft_putstr_fd(BOLD_WHITE "echo" RESET " <text>  ", 1);
-    ft_putstr_fd("Display text\n", 1);
-    ft_putstr_fd(BOLD_WHITE "exit" RESET " [code]  ", 1);
-    ft_putstr_fd("Exit the shell\n", 1);
+    printf("%s┌─ %sBuilt-in Commands%s ─────────────────────┐%s\n", 
+        BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
+    printf("│ %s%-12s%s %-28s│\n", BOLD_GREEN, "cd <dir>", RESET, 
+        "Change current directory");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_GREEN, "pwd", RESET, 
+        "Print working directory");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_GREEN, "echo <text>", RESET, 
+        "Display text");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_GREEN, "exit [code]", RESET, 
+        "Exit the shell");
+    printf("%s└────────────────────────────────────────┘%s\n", 
+        BOLD_WHITE, RESET);
 }
 
 /**
- * Display environment commands
+ * Display environment commands with fancy formatting
  */
-static void display_env_commands(void)
+static void	display_env_commands(void)
 {
-    ft_putstr_fd(BOLD_WHITE "env" RESET "          ", 1);
-    ft_putstr_fd("Display environment variables\n", 1);
-    ft_putstr_fd(BOLD_WHITE "export" RESET " <var>  ", 1);
-    ft_putstr_fd("Set environment variable\n", 1);
-    ft_putstr_fd(BOLD_WHITE "unset" RESET " <var>   ", 1);
-    ft_putstr_fd("Remove environment variable\n", 1);
+    printf("%s┌─ %sEnvironment Commands%s ──────────────────┐%s\n", 
+        BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
+    printf("│ %s%-12s%s %-28s│\n", BOLD_MAGENTA, "env", RESET, 
+        "Display environment variables");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_MAGENTA, "export <var>", RESET, 
+        "Set environment variable");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_MAGENTA, "unset <var>", RESET, 
+        "Remove environment variable");
+    printf("%s└────────────────────────────────────────┘%s\n", 
+        BOLD_WHITE, RESET);
 }
 
 /**
- * Display redirection and pipe usage
+ * Display redirection and pipe usage with beautiful formatting
  */
-static void display_operators(void)
+static void	display_operators(void)
 {
-    ft_putstr_fd(BOLD_CYAN "\nOperators:\n\n" RESET, 1);
-    ft_putstr_fd(BOLD_WHITE "|" RESET "            ", 1);
-    ft_putstr_fd("Pipe output to another command\n", 1);
-    ft_putstr_fd(BOLD_WHITE ">" RESET " <file>     ", 1);
-    ft_putstr_fd("Redirect output to file\n", 1);
-    ft_putstr_fd(BOLD_WHITE ">>" RESET " <file>    ", 1);
-    ft_putstr_fd("Append output to file\n", 1);
-    ft_putstr_fd(BOLD_WHITE "<" RESET " <file>     ", 1);
-    ft_putstr_fd("Read input from file\n", 1);
-    ft_putstr_fd(BOLD_WHITE "<<" RESET " <delim>   ", 1);
-    ft_putstr_fd("Read input until delimiter (heredoc)\n", 1);
+    printf("%s┌─ %sOperators%s ────────────────────────────┐%s\n", 
+        BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
+    printf("│ %s%-12s%s %-28s│\n", BOLD_CYAN, "|", RESET, 
+        "Pipe output to another command");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_CYAN, "> <file>", RESET, 
+        "Redirect output to file");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_CYAN, ">> <file>", RESET, 
+        "Append output to file");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_CYAN, "< <file>", RESET, 
+        "Read input from file");
+    printf("│ %s%-12s%s %-28s│\n", BOLD_CYAN, "<< <delim>", RESET, 
+        "Read input until delimiter");
+    printf("%s└────────────────────────────────────────┘%s\n", 
+        BOLD_WHITE, RESET);
 }
 
 /**
- * Built-in help command
+ * Built-in help command with beautiful formatted output
  */
-int builtin_help(t_shell *shell)
+int	builtin_help(t_shell *shell)
 {
     (void)shell;
-    
-    ft_putstr_fd(BOLD_CYAN "\nMinishell Commands:\n\n" RESET, 1);
+
+    printf("\n%s✨ %sMINISHELL HELP%s ✨%s\n\n", 
+        BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
     display_commands();
+    printf("\n");
     display_env_commands();
+    printf("\n");
     display_operators();
-    ft_putstr_fd("\n", 1);
-    
+    printf("\n");
     return (0);
 }

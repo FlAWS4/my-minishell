@@ -1,2 +1,0 @@
-DEBUG: In echo builtin
-asfa

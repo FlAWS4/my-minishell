@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   libft.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 04:02:21 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/10 21:57:44 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,8 +92,9 @@ void	ft_display_welcome(void)
     printf("|_|  |_|_|_| |_|_|___/_| |_|\\___|_|_|\n");
     printf("%s\n", RESET);
     
-    printf("%sWelcome to Minishell! Type %s'help'%s to see available commands.%s\n\n", 
-           YELLOW, BOLD_WHITE, YELLOW, RESET);
+    printf("%sWelcome to Minishell! ", YELLOW);
+    printf("Type %s'help'%s to see available commands.%s\n\n", 
+        BOLD_WHITE, YELLOW, RESET);
 }
 
 /**

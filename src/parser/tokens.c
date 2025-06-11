@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokens.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 20:40:59 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/10 21:46:19 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,20 +16,18 @@
 /**
  * Forward declaration to fix implicit declaration error
  */
-static void free_cmd(t_cmd *cmd);
+static void	free_cmd(t_cmd *cmd);
 
 /**
  * Create a new command structure
  */
-t_cmd *create_cmd(void)
+t_cmd	*create_cmd(void)
 {
-    t_cmd *cmd;
-    
+    t_cmd	*cmd;
+
     cmd = (t_cmd *)malloc(sizeof(t_cmd));
     if (!cmd)
         return (NULL);
-    
-    // Initialize all fields to default values
     cmd->args = NULL;
     cmd->input_file = NULL;
     cmd->output_file = NULL;
@@ -40,76 +38,74 @@ t_cmd *create_cmd(void)
     cmd->append_mode = 0;
     cmd->redirections = NULL;
     cmd->next = NULL;
-    
     return (cmd);
 }
 
 /**
  * Initialize arguments array with the first argument
  */
-int init_args(t_cmd *cmd, char *arg)
+int	init_args(t_cmd *cmd, char *arg)
 {
     if (!cmd || !arg)
         return (0);
-    
-    // Allocate for 2 args (arg + NULL terminator)
     cmd->args = (char **)malloc(sizeof(char *) * 2);
     if (!cmd->args)
     {
         free(arg);
         return (0);
     }
-    
     cmd->args[0] = arg;
     cmd->args[1] = NULL;
-    
     return (1);
 }
 
 /**
- * Add an argument to the command's args array
+ * Copy existing arguments to a new array
  */
-void add_arg(t_cmd *cmd, char *arg)
+static char	**copy_args(t_cmd *cmd, int count)
 {
-    int i;
-    char **new_args;
-    
-    if (!cmd || !arg)
-        return;
-    
-    // If args is NULL, initialize it with this arg
-    if (!cmd->args)
-    {
-        init_args(cmd, arg);
-        return;
-    }
-    
-    // Count existing args
-    i = 0;
-    while (cmd->args[i])
-        i++;
-    
-    // Allocate new array with space for one more arg + NULL terminator
-    new_args = (char **)malloc(sizeof(char *) * (i + 2));
+    char	**new_args;
+    int		i;
+
+    new_args = (char **)malloc(sizeof(char *) * (count + 2));
     if (!new_args)
-    {
-        free(arg);
-        return;
-    }
-    
-    // Copy existing args
+        return (NULL);
     i = 0;
     while (cmd->args[i])
     {
         new_args[i] = cmd->args[i];
         i++;
     }
-    
-    // Add new arg and NULL terminator
+    return (new_args);
+}
+
+/**
+ * Add an argument to the command's args array
+ */
+void	add_arg(t_cmd *cmd, char *arg)
+{
+    int		i;
+    char	**new_args;
+
+    if (!cmd || !arg)
+        return ;
+    if (!cmd->args)
+    {
+        if (!init_args(cmd, arg))
+            free(arg);
+        return ;
+    }
+    i = 0;
+    while (cmd->args[i])
+        i++;
+    new_args = copy_args(cmd, i);
+    if (!new_args)
+    {
+        free(arg);
+        return ;
+    }
     new_args[i] = arg;
     new_args[i + 1] = NULL;
-    
-    // Free old array and update cmd
     free(cmd->args);
     cmd->args = new_args;
 }
@@ -117,11 +113,11 @@ void add_arg(t_cmd *cmd, char *arg)
 /**
  * Free a command list
  */
-void free_cmd_list(t_cmd *cmd)
+void	free_cmd_list(t_cmd *cmd)
 {
-    t_cmd *current;
-    t_cmd *next;
-    
+    t_cmd	*current;
+    t_cmd	*next;
+
     current = cmd;
     while (current)
     {
@@ -132,16 +128,33 @@ void free_cmd_list(t_cmd *cmd)
 }
 
 /**
+ * Free redirections in a command
+ */
+static void	free_redirections(t_redirection *redir)
+{
+    t_redirection	*next_redir;
+
+    while (redir)
+    {
+        next_redir = redir->next;
+        if (redir->word)
+            free(redir->word);
+        if (redir->temp_file)
+            free(redir->temp_file);
+        free(redir);
+        redir = next_redir;
+    }
+}
+
+/**
  * Free a single command and its resources
  */
-static void free_cmd(t_cmd *cmd)
+static void	free_cmd(t_cmd *cmd)
 {
-    int i;
-    t_redirection *redir;
-    t_redirection *next_redir;
+    int	i;
 
     if (!cmd)
-        return;
+        return ;
     if (cmd->args)
     {
         i = 0;
@@ -157,36 +170,21 @@ static void free_cmd(t_cmd *cmd)
         free(cmd->heredoc_delim);
     if (cmd->heredoc_file)
         free(cmd->heredoc_file);
-        
-    // Free redirections list
-    redir = cmd->redirections;
-    while (redir)
-    {
-        next_redir = redir->next;
-        if (redir->word)
-            free(redir->word);
-        if (redir->temp_file)
-            free(redir->temp_file);
-        free(redir);
-        redir = next_redir;
-    }
-    
-    // Close any open file descriptors
+    free_redirections(cmd->redirections);
     if (cmd->input_fd >= 0)
         close(cmd->input_fd);
     if (cmd->output_fd >= 0)
         close(cmd->output_fd);
-        
     free(cmd);
 }
 
 /**
  * Join consecutive tokens without spaces
  */
-static char *join_consecutive_tokens(char *word, t_token **current)
+static char	*join_consecutive_tokens(char *word, t_token **current)
 {
-    t_token *next;
-    char *temp;
+    t_token	*next;
+    char	*temp;
 
     next = (*current)->next;
     while (next && (next->type == TOKEN_WORD || 
@@ -194,7 +192,7 @@ static char *join_consecutive_tokens(char *word, t_token **current)
             next->type == TOKEN_DOUBLE_QUOTE))
     {
         if (next->preceded_by_space)
-            break;
+            break ;
         temp = word;
         word = ft_strjoin(word, next->value);
         free(temp);
@@ -209,25 +207,23 @@ static char *join_consecutive_tokens(char *word, t_token **current)
 /**
  * Process word tokens and handle token joining when no spaces
  */
-void join_word_tokens(t_cmd *cmd, t_token **token)
+void	join_word_tokens(t_cmd *cmd, t_token **token)
 {
-    char *word;
-    t_token *current;
-    int is_first_arg;
+    char	*word;
+    t_token	*current;
+    int		is_first_arg;
 
     is_first_arg = (cmd->args == NULL);
     word = ft_strdup((*token)->value);
     if (!word)
-        return;
+        return ;
     current = *token;
-    
     if (is_first_arg)
     {
         word = join_consecutive_tokens(word, &current);
         if (!word)
-            return;
+            return ;
     }
-    
     add_arg(cmd, word);
     *token = current;
 }
@@ -235,9 +231,11 @@ void join_word_tokens(t_cmd *cmd, t_token **token)
 /**
  * Check if a token is a valid argument token
  */
-int is_arg_token(t_token *token)
+int	is_arg_token(t_token *token)
 {
-    return (token && (token->type == TOKEN_WORD ||
+    if (!token)
+        return (0);
+    return (token->type == TOKEN_WORD ||
             token->type == TOKEN_SINGLE_QUOTE ||
-            token->type == TOKEN_DOUBLE_QUOTE));
+            token->type == TOKEN_DOUBLE_QUOTE);
 }

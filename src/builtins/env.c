@@ -3,14 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   env.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/03 21:08:01 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/11 00:16:25 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+/**
+ * Setup node after initial creation
+ */
+static void	setup_env_node(t_env *node, int exported, int in_env)
+{
+    node->exported = exported;
+    node->in_env = in_env;
+    node->next = NULL;
+}
 
 /**
  * Create a new environment variable node
@@ -40,7 +50,7 @@ t_env	*create_env_node(char *key, char *value)
         free(new_node);
         return (NULL);
     }
-    new_node->next = NULL;
+    setup_env_node(new_node, 0, 0);
     return (new_node);
 }
 
@@ -52,11 +62,11 @@ void	add_env_var(t_env **env_list, t_env *new_node)
     t_env	*current;
 
     if (!env_list || !new_node)
-        return;
+        return ;
     if (!*env_list)
     {
         *env_list = new_node;
-        return;
+        return ;
     }
     current = *env_list;
     while (current->next)
@@ -67,10 +77,10 @@ void	add_env_var(t_env **env_list, t_env *new_node)
 /**
  * Find environment variable by key
  */
-t_env *find_env_var(t_env *env_list, const char *key)
+t_env	*find_env_var(t_env *env_list, const char *key)
 {
-    t_env *current;
-    
+    t_env	*current;
+
     if (!env_list || !key)
         return (NULL);
     current = env_list;
@@ -84,36 +94,112 @@ t_env *find_env_var(t_env *env_list, const char *key)
 }
 
 /**
- * Update or add environment variable
+ * Check if a string is a valid shell variable identifier
  */
-int set_env_var(t_env **env_list, char *key, char *value)
+int	is_valid_identifier(char *name)
 {
-    t_env *existing;
-    t_env *new_node;
-    
+    int	i;
+
+    if (!name || !*name)
+        return (0);
+    if (!ft_isalpha(name[0]) && name[0] != '_')
+        return (0);
+    i = 1;
+    while (name[i])
+    {
+        if (!ft_isalnum(name[i]) && name[i] != '_')
+            return (0);
+        i++;
+    }
+    return (1);
+}
+
+/**
+ * Create new export node when variable doesn't exist
+ */
+static int	create_export_node(t_env **env_list, char *key)
+{
+    t_env	*new_node;
+
+    new_node = create_env_node(key, NULL);
+    if (!new_node)
+    {
+        display_error(ERROR_EXPORT, key, "Memory allocation failed");
+        return (0);
+    }
+    new_node->exported = 1;
+    new_node->in_env = 0;
+    add_env_var(env_list, new_node);
+    return (1);
+}
+
+/**
+ * Mark a variable for export without adding it to environment
+ */
+int	mark_var_for_export(t_env **env_list, char *key)
+{
+    t_env	*existing;
+
     if (!env_list || !key)
         return (0);
-    
     existing = find_env_var(*env_list, key);
     if (existing)
     {
-        // Update existing variable
-        free(existing->value);
-        if (value)
-            existing->value = ft_strdup(value);
-        else
-            existing->value = ft_strdup("");
-        return (existing->value != NULL);
-    }
-    else
-    {
-        // Add new variable
-        new_node = create_env_node(key, value);
-        if (!new_node)
-            return (0);
-        add_env_var(env_list, new_node);
+        existing->exported = 1;
         return (1);
     }
+    else
+        return (create_export_node(env_list, key));
+}
+
+/**
+ * Update existing environment variable
+ */
+static int	update_env_var(t_env *existing, char *value)
+{
+    free(existing->value);
+    if (value)
+        existing->value = ft_strdup(value);
+    else
+        existing->value = ft_strdup("");
+    existing->exported = 1;
+    existing->in_env = 1;
+    return (existing->value != NULL);
+}
+
+/**
+ * Create a new environment variable
+ */
+static int	create_new_env_var(t_env **env_list, char *key, char *value)
+{
+    t_env	*new_node;
+
+    new_node = create_env_node(key, value);
+    if (!new_node)
+    {
+        display_error(ERROR_ENV, key, "Memory allocation failed");
+        return (0);
+    }
+    new_node->exported = 1;
+    new_node->in_env = 1;
+    add_env_var(env_list, new_node);
+    return (1);
+}
+
+/**
+ * Update or add environment variable
+ */
+int	set_env_var(t_env **env_list, char *key, char *value)
+{
+    t_env	*existing;
+
+    if (!env_list || !key)
+        return (0);
+    existing = find_env_var(*env_list, key);
+    if (existing)
+        return (update_env_var(existing, value));
+    else
+        return (create_new_env_var(env_list, key, value));
 }
 
 /**
@@ -126,22 +212,17 @@ void	split_env_string(char *str, char **key, char **value)
     i = 0;
     *key = NULL;
     *value = NULL;
-    
     if (!str)
-        return;
-        
+        return ;
     while (str[i] && str[i] != '=')
         i++;
-        
     *key = ft_substr(str, 0, i);
     if (!*key)
-        return;
-        
+        return ;
     if (str[i] == '=')
         *value = ft_strdup(&str[i + 1]);
     else
         *value = ft_strdup("");
-        
     if (!*value)
     {
         free(*key);
@@ -150,34 +231,46 @@ void	split_env_string(char *str, char **key, char **value)
 }
 
 /**
+ * Process a single environment string
+ */
+static void	process_env_string(char *env_str, t_env **env_list)
+{
+    char	*key;
+    char	*value;
+    t_env	*new_node;
+
+    split_env_string(env_str, &key, &value);
+    if (key && value)
+    {
+        new_node = create_env_node(key, value);
+        if (new_node)
+        {
+            new_node->exported = 1;
+            new_node->in_env = 1;
+            add_env_var(env_list, new_node);
+        }
+    }
+    if (key)
+        free(key);
+    if (value)
+        free(value);
+}
+
+/**
  * Initialize environment variables from envp
  */
 t_env	*init_env(char **envp)
 {
     t_env	*env_list;
-    t_env	*new_node;
-    char	*key;
-    char	*value;
     int		i;
 
     env_list = NULL;
     if (!envp)
         return (NULL);
-        
     i = 0;
     while (envp[i])
     {
-        split_env_string(envp[i], &key, &value);
-        if (key && value)
-        {
-            new_node = create_env_node(key, value);
-            if (new_node)
-                add_env_var(&env_list, new_node);
-        }
-        if (key)
-            free(key);
-        if (value)
-            free(value);
+        process_env_string(envp[i], &env_list);
         i++;
     }
     return (env_list);
@@ -192,7 +285,6 @@ char	*get_env_value(t_env *env_list, const char *key)
 
     if (!env_list || !key)
         return (NULL);
-        
     current = env_list;
     while (current)
     {
@@ -208,15 +300,13 @@ char	*get_env_value(t_env *env_list, const char *key)
  */
 int	delete_env_var(t_env **env_list, char *key)
 {
-    t_env *current;
-    t_env *prev;
-    
+    t_env	*current;
+    t_env	*prev;
+
     if (!env_list || !*env_list || !key)
         return (0);
-        
     current = *env_list;
     prev = NULL;
-    
     while (current)
     {
         if (ft_strcmp(current->key, key) == 0)
@@ -225,7 +315,6 @@ int	delete_env_var(t_env **env_list, char *key)
                 prev->next = current->next;
             else
                 *env_list = current->next;
-                
             free(current->key);
             free(current->value);
             free(current);
@@ -238,142 +327,159 @@ int	delete_env_var(t_env **env_list, char *key)
 }
 
 /**
- * Convert environment linked list to string array (for execve)
+ * Count environment variables for array creation
  */
-char **env_to_array(t_env *env_list)
+static int	count_env_for_array(t_env *env_list)
 {
-    t_env *current;
-    char **env_array;
-    char *temp;
-    int count;
-    int i;
-    
-    if (!env_list)
-        return (NULL);
-    
-    // Count environment variables
+    int		count;
+    t_env	*current;
+
     count = 0;
     current = env_list;
     while (current)
     {
-        count++;
+        if (current->in_env)
+            count++;
         current = current->next;
     }
-    
-    // Allocate array for strings plus NULL terminator
-    env_array = (char **)malloc(sizeof(char *) * (count + 1));
-    if (!env_array)
+    return (count);
+}
+
+/**
+ * Create single environment string (KEY=VALUE)
+ */
+static char	*create_env_string(t_env *env)
+{
+    char	*temp;
+    char	*result;
+
+    temp = ft_strjoin(env->key, "=");
+    if (!temp)
         return (NULL);
-    
-    // Fill array with environment strings
+    result = ft_strjoin(temp, env->value);
+    free(temp);
+    return (result);
+}
+
+/**
+ * Handle error in env array creation
+ */
+static char	**handle_env_array_error(char **env_array, int i)
+{
+    while (--i >= 0)
+        free(env_array[i]);
+    free(env_array);
+    return (NULL);
+}
+
+/**
+ * Fill environment array with string values
+ */
+static char	**fill_env_array(t_env *env_list, char **env_array, int count)
+{
+    t_env	*current;
+    int		i;
+
     i = 0;
     current = env_list;
-    while (current)
+    while (current && i < count)
     {
-        // Create "KEY=VALUE" string
-        temp = ft_strjoin(current->key, "=");
-        if (!temp)
+        if (current->in_env)
         {
-            // Free previously allocated strings
-            while (--i >= 0)
-                free(env_array[i]);
-            free(env_array);
-            return (NULL);
+            env_array[i] = create_env_string(current);
+            if (!env_array[i])
+                return (handle_env_array_error(env_array, i));
+            i++;
         }
-        
-        env_array[i] = ft_strjoin(temp, current->value);
-        free(temp);
-        
-        if (!env_array[i])
-        {
-            // Free previously allocated strings
-            while (--i >= 0)
-                free(env_array[i]);
-            free(env_array);
-            return (NULL);
-        }
-        
-        i++;
         current = current->next;
     }
-    
-    // NULL terminate the array
     env_array[i] = NULL;
     return (env_array);
 }
 
 /**
+ * Convert environment linked list to string array (for execve)
+ */
+char	**env_to_array(t_env *env_list)
+{
+    char	**env_array;
+    int		count;
+
+    if (!env_list)
+        return (NULL);
+    count = count_env_for_array(env_list);
+    env_array = (char **)malloc(sizeof(char *) * (count + 1));
+    if (!env_array)
+        return (NULL);
+    return (fill_env_array(env_list, env_array, count));
+}
+
+/**
  * Free the environment array created by env_to_array
  */
-void free_env_array(char **env_array)
+void	free_env_array(char **env_array)
 {
-    int i;
-    
+    int	i;
+
     if (!env_array)
-        return;
-    
+        return ;
     i = 0;
     while (env_array[i])
     {
         free(env_array[i]);
         i++;
     }
-    
     free(env_array);
 }
+
 /**
  * Count number of environment variables
  */
-int count_env_vars(t_env *env)
+int	count_env_vars(t_env *env)
 {
-    int count;
-    
+    int	count;
+
     count = 0;
     while (env)
     {
         count++;
         env = env->next;
     }
-    
     return (count);
 }
-/**
- * Built-in env command
- * Displays all environment variables in format KEY=VALUE
- * Does not accept arguments (will print error if any are provided)
- */
-int	builtin_env(t_shell *shell)
-{
-    t_env	*env;
 
-    if (!shell)
-        return (1);
-        
-    // Check for arguments (env doesn't accept any)
-    if (shell->cmd && shell->cmd->args && shell->cmd->args[1])
-    {
-        print_error("env", "too many arguments");
-        return (1);
-    }
-    
-    env = shell->env;
-    if (!env)
-        return (0);  // Empty environment is valid
-        
+/**
+ * Display environment variables
+ */
+static void	display_env_vars(t_env *env)
+{
     while (env)
     {
-        if (env->key)
+        if (env->key && env->in_env)
         {
             ft_putstr_fd(env->key, STDOUT_FILENO);
             ft_putchar_fd('=', STDOUT_FILENO);
-            
-            // Handle potentially NULL values
             if (env->value)
                 ft_putstr_fd(env->value, STDOUT_FILENO);
-                
             ft_putchar_fd('\n', STDOUT_FILENO);
         }
         env = env->next;
     }
+}
+
+/**
+ * Built-in env command
+ */
+int	builtin_env(t_shell *shell)
+{
+    if (!shell)
+        return (1);
+    if (shell->cmd && shell->cmd->args && shell->cmd->args[1])
+    {
+        display_error(ERROR_ENV, shell->cmd->args[1], "too many arguments");
+        return (1);
+    }
+    if (shell->env)
+        display_env_vars(shell->env);
     return (0);
 }
