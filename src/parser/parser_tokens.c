@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 22:09:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:18:59 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,10 +23,12 @@ int	process_token(t_token **token, t_cmd **current)
     if ((*token)->type == TOKEN_WORD || (*token)->type == TOKEN_SINGLE_QUOTE
         || (*token)->type == TOKEN_DOUBLE_QUOTE)
     {
+        // Handle word or quoted tokens as arguments
         handle_word_token(*current, token);
     }
     else if ((*token)->type == TOKEN_PIPE)
     {
+        // Handle pipe token by creating a new command
         *current = handle_pipe_token(*current);
         if (!*current)
             return (1);

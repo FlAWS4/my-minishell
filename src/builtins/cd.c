@@ -6,9 +6,10 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:33:17 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 23:58:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:09:44 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "minishell.h"
 
@@ -56,6 +57,7 @@ static void	update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
 
 /**
  * Update PWD and OLDPWD environment variables
+ * Creates them if they don't exist
  */
 static void	update_pwd_vars(t_shell *shell, char *old_pwd)
 {
@@ -141,6 +143,13 @@ static int	cd_to_home(t_shell *shell)
         display_error(ERROR_CD, home_dir, strerror(errno));
         return (1);
     }
+    
+    if (chdir(home_dir) != 0)
+    {
+        display_error(ERR_NOT_FOUND, "cd", home_dir);
+        return (1);
+    }
+    
     update_pwd_vars(shell, old_pwd);
     return (0);
 }
@@ -174,7 +183,6 @@ static char	*expand_tilde_home(char *path, char *home)
 static char	*expand_tilde(t_shell *shell, char *path)
 {
     char	*home;
-
     if (!path || path[0] != '~')
         return (ft_strdup(path));
     home = get_env_value(shell->env, "HOME");
@@ -228,6 +236,7 @@ static int	cd_to_dir(t_shell *shell, char *dir)
         free(expanded_path);
         return (1);
     }
+    
     update_pwd_vars(shell, old_pwd);
     free(expanded_path);
     return (0);
@@ -247,5 +256,6 @@ int	builtin_cd(t_shell *shell, t_cmd *cmd)
         display_error(ERROR_CD, "cd", "too many arguments");
         return (1);
     }
+    
     return (cd_to_dir(shell, cmd->args[1]));
 }

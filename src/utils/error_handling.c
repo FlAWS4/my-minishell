@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:13:47 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:29:25 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,7 @@ static void display_cd_error(char *path, char *message)
     }   
     ft_putstr_fd("\n", 2);
 }
+
 
 /**
  * Display command not found error

@@ -6,11 +6,94 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:40:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:18:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+
+/**
+ * Checks if a character is a special token character
+ */
+int	is_special(char c)
+{
+    return (c == '|' || c == '<' || c == '>');
+}
+
+/**
+ * Create a new token
+ */
+t_token	*create_token(t_token_type type, char *value, int preceded_by_space)
+{
+    t_token	*new_token;
+
+    new_token = (t_token *)malloc(sizeof(t_token));
+    if (!new_token)
+    {
+        free(value);
+        return (NULL);
+    }
+    new_token->type = type;
+    new_token->value = value;
+    new_token->preceded_by_space = preceded_by_space;
+    new_token->next = NULL;
+    return (new_token);
+}
+
+/**
+ * Add a token to the token list
+ */
+void	add_token(t_token **list, t_token *new)
+{
+    t_token	*temp;
+
+    if (!new)
+        return ;
+    if (!*list)
+    {
+        *list = new;
+        return ;
+    }
+    temp = *list;
+    while (temp->next)
+        temp = temp->next;
+    temp->next = new;
+}
+
+/**
+ * Get the last token in a list
+ * Returns NULL if the list is empty
+ */
+t_token	*get_last_token(t_token *tokens)
+{
+    t_token	*last;
+
+    if (!tokens)
+        return (NULL);
+    
+    last = tokens;
+    while (last->next)
+        last = last->next;
+    
+    return (last);
+}
+
+/**
+ * Free the entire token list
+ */
+void	free_token_list(t_token *tokens)
+{
+    t_token	*temp;
+    
+    while (tokens)
+    {
+        temp = tokens;
+        tokens = tokens->next;
+        free(temp->value);
+        free(temp);
+    }
+}
 
 /**
  * Checks if a character is a special token character
@@ -493,6 +576,7 @@ int	validate_syntax(t_token *tokens)
         }
         current = next;
     }
+    
     return (1);
 }
 
@@ -594,6 +678,7 @@ void	merge_adjacent_quoted_tokens(t_token **tokens)
     while (current && current->next)
     {
         next = current->next;
+<<<<<<< HEAD
         if (should_merge_tokens(current, next))
         {
             if (!merge_tokens(current, next))
@@ -603,6 +688,39 @@ void	merge_adjacent_quoted_tokens(t_token **tokens)
         }
         else
             current = current->next;
+=======
+        
+        // Check if we need to merge these tokens
+        // They should be adjacent with no whitespace between them
+        if (!next->preceded_by_space && 
+            ((current->type == TOKEN_WORD || 
+              current->type == TOKEN_SINGLE_QUOTE || 
+              current->type == TOKEN_DOUBLE_QUOTE) && 
+             (next->type == TOKEN_WORD ||
+              next->type == TOKEN_SINGLE_QUOTE ||
+              next->type == TOKEN_DOUBLE_QUOTE)))
+        {
+            // Merge the values
+            merged_value = ft_strjoin(current->value, next->value);
+            if (!merged_value)
+                return ;  // Memory allocation error
+            
+            // Update current token
+            free(current->value);
+            current->value = merged_value;
+            current->type = TOKEN_WORD;  // Merged tokens become words
+            
+            // Remove next token from list
+            temp = next;
+            current->next = next->next;
+            free(temp->value);
+            free(temp);
+        }
+        else
+        {
+            current = current->next;
+        }
+>>>>>>> main
     }
 }
 

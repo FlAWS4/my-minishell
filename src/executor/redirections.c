@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:57:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:14:23 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -722,14 +722,26 @@ int	process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd)
             result = execute_pipeline(shell, cmd);
         else
             result = execute_command(shell, cmd);
+<<<<<<< HEAD
         return (result);
     }
     return (0);
+=======
+            
+        return (result);
+    }
+    else
+    {
+        printf("DEBUG: No command to execute after heredoc\n");
+        return (0);
+    }
+>>>>>>> main
 }
 
 /**
  * Check if command has any heredoc redirection
  */
+<<<<<<< HEAD
 int	has_heredoc_redirection(t_cmd *cmd)
 {
     t_redirection	*redir;
@@ -738,6 +750,20 @@ int	has_heredoc_redirection(t_cmd *cmd)
         return (0);
     if (cmd->heredoc_delim)
         return (1);
+=======
+int has_heredoc_redirection(t_cmd *cmd)
+{
+    t_redirection *redir;
+    
+    if (!cmd)
+        return (0);
+    
+    // Check if there's a direct heredoc on the command
+    if (cmd->heredoc_delim)
+        return (1);
+    
+    // Check redirection list for heredocs
+>>>>>>> main
     redir = cmd->redirections;
     while (redir)
     {
@@ -745,5 +771,9 @@ int	has_heredoc_redirection(t_cmd *cmd)
             return (1);
         redir = redir->next;
     }
+<<<<<<< HEAD
+=======
+    
+>>>>>>> main
     return (0);
 }

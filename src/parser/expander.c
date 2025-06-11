@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:00:56 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:14:35 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@ char	*ft_strjoin_free(char *s1, char *s2)
     free(s1);
     return (result);
 }
-
 /**
  * Free all memory allocated during expansion
  */
@@ -198,7 +197,21 @@ char	*expand_variables(t_shell *shell, char *token)
         else
             i++;
     }
-    return (result);
+    
+    return (1);
+}
+
+/**
+ * Process heredoc content for variable expansion
+ */
+char *process_heredoc_content(t_shell *shell, char *content, char *delimiter)
+{
+    // If delimiter is quoted, don't expand variables
+    if (!should_expand_heredoc(delimiter))
+        return (ft_strdup(content));
+        
+    // Otherwise expand variables
+    return (expand_heredoc_content(shell, content));
 }
 
 /**

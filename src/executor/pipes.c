@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 20:08:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:13:59 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
  */
 static void	setup_child_input(int prev_pipe, t_cmd *current)
 {
+    // CRITICAL CHANGE: Only use the pipe for input if there's no heredoc input
     if (prev_pipe != -1)
     {
         if (current->input_fd == -1)
@@ -52,6 +53,7 @@ static void	setup_child_output(int *pipe_fds, t_cmd *current)
         close(pipe_fds[1]);
     }
 }
+
 
 /**
  * Set up pipes for a child process
@@ -287,14 +289,70 @@ static void	cleanup_after_execution(t_cmd *cmd)
  */
 static int	run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 {
-    int		pipe_fds[2];
-    t_cmd	*current;
-    int		prev_pipe;
+    int     pipe_fds[2];
+    t_cmd   *current;
+    int     prev_pipe;
 
+    // PRE-PROCESS ALL HEREDOCS BEFORE EXECUTING THE PIPELINE
+    current = cmd;
+    while (current)
+    {
+        if (current->heredoc_delim)
+        {
+            printf("DEBUG: Processing heredoc with delimiter '%s' for command: %s\n", 
+                   current->heredoc_delim, 
+                   current->args ? current->args[0] : "NULL");
+                   
+            if (!process_heredoc(current, shell))
+            {
+                // If process_heredoc failed, clean up any previous heredoc files
+                t_cmd *cleanup = cmd;
+                while (cleanup != current)
+                {
+                    if (cleanup->heredoc_file)
+                    {
+                        unlink(cleanup->heredoc_file);
+                        free(cleanup->heredoc_file);
+                        cleanup->heredoc_file = NULL;
+                    }
+                    cleanup = cleanup->next;
+                }
+                return (1);
+            }
+            {
+                // Cleanup any previous heredoc files
+                t_cmd *cleanup = cmd;
+                while (cleanup != current)
+                {
+                    if (cleanup->heredoc_file)
+                    {
+                        unlink(cleanup->heredoc_file);
+                        free(cleanup->heredoc_file);
+                        cleanup->heredoc_file = NULL;
+                    }
+                    cleanup = cleanup->next;
+                }
+                return (1);
+            }
+            
+            // Verify that process_heredoc set up the input_fd correctly
+            printf("DEBUG: Heredoc processed, input_fd=%d, file=%s\n", 
+                   current->input_fd, 
+                   current->heredoc_file ? current->heredoc_file : "NULL");
+        }
+        current = current->next;
+    }
+
+    // NOW EXECUTE THE PIPELINE AS BEFORE
     prev_pipe = -1;
     current = cmd;
     while (current)
     {
+        // Debug the command before execution
+        printf("DEBUG: Executing piped command: %s (input_fd=%d)\n", 
+               current->args ? current->args[0] : "NULL", 
+               current->input_fd);
+               
         if (execute_piped_command(shell, current, prev_pipe, pipe_fds))
             return (1);
         prev_pipe = manage_parent_pipes(prev_pipe, pipe_fds, current);

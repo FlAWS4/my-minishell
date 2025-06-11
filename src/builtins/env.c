@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:16:25 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:10:27 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -469,6 +469,8 @@ static void	display_env_vars(t_env *env)
 
 /**
  * Built-in env command
+ * Displays all environment variables in format KEY=VALUE
+ * Does not accept arguments (will print error if any are provided)
  */
 int	builtin_env(t_shell *shell)
 {

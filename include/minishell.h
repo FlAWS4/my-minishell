@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 01:00:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:07:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,6 +220,7 @@ char	*ft_strstr(const char *haystack, const char *needle);
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
+void    handle_sigint_heredoc(int sig);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);

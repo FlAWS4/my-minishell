@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 22:00:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:30:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ static void	get_shortened_path(char *result, size_t size)
 /**
  * Create beautiful shell prompt string with colors
  */
-void	create_prompt(char *prompt, int exit_status)
+void create_prompt(char *prompt, int exit_status)
 {
     char	*username;
     char	path[PATH_MAX];
@@ -62,7 +62,7 @@ void	create_prompt(char *prompt, int exit_status)
 /**
  * Display commands usage with nice formatting
  */
-static void	display_commands(void)
+static void display_commands(void)
 {
     printf("%s┌─ %sBuilt-in Commands%s ─────────────────────┐%s\n", 
         BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
@@ -81,7 +81,7 @@ static void	display_commands(void)
 /**
  * Display environment commands with fancy formatting
  */
-static void	display_env_commands(void)
+static void display_env_commands(void)
 {
     printf("%s┌─ %sEnvironment Commands%s ──────────────────┐%s\n", 
         BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
@@ -119,7 +119,7 @@ static void	display_operators(void)
 /**
  * Built-in help command with beautiful formatted output
  */
-int	builtin_help(t_shell *shell)
+int builtin_help(t_shell *shell)
 {
     (void)shell;
 

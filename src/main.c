@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 01:22:26 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:30:28 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,9 @@ static void	free_env_vars(t_shell *shell)
         free(env);
         env = next_env;
     }
+    
+    // Free shell structure
+    free(shell);
 }
 
 /**

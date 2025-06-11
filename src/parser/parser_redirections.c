@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:44:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 03:18:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,8 @@ int	handle_redir_in(t_token **token, t_cmd *cmd)
 {
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
+    
+    // Store filename for backward compatibility
     cmd->input_file = ft_strdup((*token)->next->value);
     if (!cmd->input_file)
         return (0);
@@ -105,9 +107,13 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
+    
+    // Store filename for backward compatibility
     cmd->output_file = ft_strdup((*token)->next->value);
     if (!cmd->output_file)
         return (0);
+    
+    // Set append mode flag
     cmd->append_mode = append;
     if (append)
         token_type = TOKEN_REDIR_APPEND;
@@ -207,3 +213,4 @@ int	parse_redirections(t_token **token, t_cmd *cmd)
         result = 1;
     return (result);
 }
+
