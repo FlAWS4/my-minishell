@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:12:44 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 22:01:49 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -163,12 +163,7 @@ static int	run_builtin_command(t_shell *shell, t_cmd *cmd, char *cmd_name)
     if (ft_strcmp(cmd_name, "echo") == 0)
         return (builtin_echo(cmd));
     else if (ft_strcmp(cmd_name, "cd") == 0)
-    {
-        printf("DEBUG: Calling builtin_cd function\n");
-        int result = builtin_cd(shell, cmd);
-        printf("DEBUG: builtin_cd returned %d\n", result);
-        return result;
-    }
+        return (builtin_cd(shell, cmd));
     else if (ft_strcmp(cmd_name, "pwd") == 0)
         return (builtin_pwd(shell, cmd));
     else if (ft_strcmp(cmd_name, "export") == 0)
@@ -181,9 +176,7 @@ static int	run_builtin_command(t_shell *shell, t_cmd *cmd, char *cmd_name)
         return (builtin_exit(shell, cmd));
     else if (ft_strcmp(cmd_name, "help") == 0)
         return (builtin_help(shell));
-    printf("DEBUG: No matching builtin found for %s\n", cmd_name);
     return (1);    
-    
 }
 
 /**
@@ -195,20 +188,13 @@ int execute_builtin(t_shell *shell, t_cmd *cmd)
     int saved_stdin;
     int saved_stdout;
     int result;
-
-    printf("DEBUG: Starting to execute builtin: %s\n", cmd->args[0]);
     
     if (!cmd->args || !cmd->args[0])
         return (1);
     if (setup_builtin_redirections(cmd, &saved_stdin, &saved_stdout, shell) != 0)
-    {
-        printf("DEBUG: Failed to set up redirections\n");
         return (1);
-    }
     cmd_name = cmd->args[0];
-    printf("DEBUG: About to run builtin command: %s\n", cmd_name);
     result = run_builtin_command(shell, cmd, cmd_name);
-    printf("DEBUG: Builtin result: %d\n", result);
     restore_redirections(saved_stdin, saved_stdout);
     cleanup_redirections(cmd);
     return (result);
@@ -277,11 +263,18 @@ void	execute_child(t_shell *shell, t_cmd *cmd)
 /**
  * Handle fork creation for external command
  */
-
-static int	handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
+static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
 {
-    pid_t	pid;
-    int		status;
+    pid_t pid;
+    int status;
+    pid_t shell_pgid = getpid();
+    struct sigaction sa_ttou;
+    
+    // Ignore SIGTTOU to prevent suspension when taking back terminal control
+    sa_ttou.sa_handler = SIG_IGN;
+    sigemptyset(&sa_ttou.sa_mask);
+    sa_ttou.sa_flags = 0;
+    sigaction(SIGTTOU, &sa_ttou, NULL);
 
     pid = fork();
     if (pid == -1)
@@ -292,6 +285,10 @@ static int	handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
     }
     if (pid == 0)
     {
+        setpgid(0, 0);
+        if (isatty(STDIN_FILENO))
+            tcsetpgrp(STDIN_FILENO, getpid());
+        setup_signals_noninteractive();
         setup_redirections(cmd, shell);
         execve(path, cmd->args, env_to_array(shell->env));
         display_error(ERR_EXEC, cmd->args[0], strerror(errno));
@@ -299,6 +296,15 @@ static int	handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
     }
     free(path);
     waitpid(pid, &status, 0);
+    
+    // Restore terminal control to shell with proper handling
+    if (isatty(STDIN_FILENO))
+    {
+        tcsetpgrp(STDIN_FILENO, shell_pgid);
+        // Also restore terminal attributes
+        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    }
+    
     process_cmd_status(shell, status);
     return (shell->exit_status);
 }
@@ -325,7 +331,6 @@ int execute_command(t_shell *shell, t_cmd *cmd)
     path = find_command(shell, cmd->args[0]);
     if (!path)
     {
-        // REPLACE THIS SECTION:
         display_error(ERR_NOT_FOUND, cmd->args[0], "command not found");
         shell->exit_status = 127;
         return (127);
@@ -333,6 +338,7 @@ int execute_command(t_shell *shell, t_cmd *cmd)
     
     return (handle_command_fork(shell, cmd, path));
 }
+
 /**
  * Execute a command or pipeline with proper handling
  */

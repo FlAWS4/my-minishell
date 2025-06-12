@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:07:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/12 01:49:37 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,7 +113,7 @@ typedef struct s_redirection
     struct s_redirection    *next;
     int                     input_fd;  // File descriptor for input redirection
     int                     output_fd; // File descriptor for output redirection
-    char                    *temp_file; // Temporary file for heredoc
+    char                    *temp_file;
 } t_redirection;
 
 /* Token structure */
@@ -215,12 +215,12 @@ char	*ft_itoa(int n);
 int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 char	*ft_strchr(const char *s, int c);
 char	*ft_strstr(const char *haystack, const char *needle);
+void	*ft_memset(void *s, int c, size_t n);
 
 /* Signal handling */
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
-void    handle_sigint_heredoc(int sig);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -243,8 +243,8 @@ void   add_arg(t_cmd *cmd, char *arg);
 /* Redirection handling */
 int		handle_redir_in(t_token **token, t_cmd *cmd);
 int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
-int		handle_heredoc(t_token **token, t_cmd *cmd);
-int		parse_redirections(t_token **tokens, t_cmd *cmd);
+int     handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell);
+int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
@@ -261,11 +261,13 @@ void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
 int     has_heredoc_redirection(t_cmd *cmd);
 int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
+void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted);
+int process_heredoc_line(char *line, char *delimiter, int fd, t_shell *shell);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
-int		process_token(t_token **token, t_cmd **current);
+int     process_token(t_token **token, t_cmd **current, t_shell *shell);
 t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
 int		validate_syntax(t_token *tokens);
 void    merge_adjacent_quoted_tokens(t_token **tokens);
@@ -307,6 +309,8 @@ t_cmd	*parse_input(char *input, t_shell *shell);
 void	execute_parsed_commands(t_shell *shell);
 void    free_shell(t_shell *shell);
 void    handle_pending_signals(t_shell *shell);
+char **custom_completion(const char *text, int start, int end);
+char *command_generator(const char *text, int state);
 
 /* Expander functions */
 char    *expand_variables(t_shell *shell, char *str);
@@ -346,7 +350,5 @@ void	init_history(void);
 void	save_history(void);
 void	add_to_history(char *cmd);
 
-/* Debugging functions */
-void	print_tokens(t_token *tokens);
 
 #endif

@@ -3,14 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   export.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-<<<<<<< HEAD
-/*   Updated: 2025/06/11 00:25:07 by mshariar         ###   ########.fr       */
-=======
-/*   Updated: 2025/06/03 20:15:22 by my42             ###   ########.fr       */
->>>>>>> main
+/*   Updated: 2025/06/12 02:35:47 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +16,6 @@
  * Compare two environment variables by key name
  * Used for sorting environment variables alphabetically
  */
-<<<<<<< HEAD
 static int	env_var_compare(const void *a, const void *b)
 {
     t_env	*env_a;
@@ -45,47 +40,15 @@ static void	sort_env_array(t_env **env_array, int count)
  * Print value with proper escaping of quotes
  */
 static void	print_escaped_value(char *value)
-=======
-static int env_var_compare(const void *a, const void *b)
->>>>>>> main
 {
-    t_env *env_a = *(t_env **)a;
-    t_env *env_b = *(t_env **)b;
-    
-    return ft_strcmp(env_a->key, env_b->key);
-}
+    int	i;
 
-<<<<<<< HEAD
     if (!value)
         return ;
-=======
-/**
- * Sort environment variables using qsort for better performance
- */
-static void sort_env_array(t_env **env_array, int count)
-{
-    if (!env_array || count <= 0)
-        return;
-        
-    qsort(env_array, count, sizeof(t_env *), env_var_compare);
-}
-
-/**
- * Print value with proper escaping of quotes
- */
-static void print_escaped_value(char *value)
-{
-    int i;
-    
-    if (!value)
-        return;
-        
->>>>>>> main
     i = 0;
     while (value[i])
     {
         if (value[i] == '\"' || value[i] == '\\' || value[i] == '$')
-<<<<<<< HEAD
             ft_putchar_fd('\\', STDOUT_FILENO);
         ft_putchar_fd(value[i], STDOUT_FILENO);
         i++;
@@ -114,11 +77,11 @@ static void	print_env_var(t_env *env)
 /**
  * Allocate array for sorting environment variables
  */
-static t_env	**alloc_env_array(t_shell *shell, int count)
+static t_env	**alloc_env_array(t_env *env, int count)
 {
     t_env	**env_array;
 
-    (void)shell; // Unused parameter, but needed for function signature
+    (void)env;  // Avoid unused parameter warning
     env_array = malloc(sizeof(t_env *) * count);
     if (!env_array)
     {
@@ -131,13 +94,13 @@ static t_env	**alloc_env_array(t_shell *shell, int count)
 /**
  * Copy environment variables to array for sorting
  */
-static void	copy_env_to_array(t_shell *shell, t_env **env_array)
+static void	copy_env_to_array(t_env *env, t_env **env_array)
 {
     t_env	*curr;
     int		i;
 
     i = 0;
-    curr = shell->env;
+    curr = env;
     while (curr)
     {
         env_array[i++] = curr;
@@ -146,155 +109,68 @@ static void	copy_env_to_array(t_shell *shell, t_env **env_array)
 }
 
 /**
- * Print environment variables in sorted order
+ * Display exported variables in sorted order
  */
-void	print_sorted_env(t_shell *shell)
+static void	display_exported_vars(t_env *env)
 {
     t_env	**env_array;
     int		count;
     int		i;
 
-    if (!shell || !shell->env)
+    if (!env)
         return ;
-    count = count_env_vars(shell->env);
+    count = count_env_vars(env);
     if (count <= 0)
         return ;
-    env_array = alloc_env_array(shell, count);
+    env_array = alloc_env_array(env, count);
     if (!env_array)
         return ;
-    copy_env_to_array(shell, env_array);
+    copy_env_to_array(env, env_array);
     sort_env_array(env_array, count);
     i = 0;
     while (i < count)
         print_env_var(env_array[i++]);
     free(env_array);
 }
+
 /**
  * Handle invalid identifier error
  */
 static int	handle_invalid_id(char *arg)
 {
     display_error(ERROR_EXPORT, arg, "not a valid identifier");
-=======
-            ft_putchar_fd('\\', 1);
-        ft_putchar_fd(value[i], 1);
-        i++;
-    }
-}
-
-/**
- * Print a single environment variable in export format
- */
-static void print_env_var(t_env *env)
-{
-    if (!env || !env->key)
-        return;
-        
-    ft_putstr_fd("declare -x ", 1);
-    ft_putstr_fd(env->key, 1);
-    
-    // Only print =value part if value exists
-    if (env->value && env->value[0] != '\0')
-    {
-        ft_putstr_fd("=\"", 1);
-        print_escaped_value(env->value);
-        ft_putstr_fd("\"", 1);
-    }
-    ft_putstr_fd("\n", 1);
-}
-
-/**
- * Print environment variables in sorted order
- */
-void print_sorted_env(t_shell *shell)
-{
-    t_env **env_array;
-    t_env *curr;
-    int count;
-    int i;
-
-    if (!shell || !shell->env)
-        return;
-        
-    // Count environment variables
-    count = count_env_vars(shell->env);
-    if (count <= 0)
-        return;
-        
-    // Allocate array for sorting
-    env_array = malloc(sizeof(t_env *) * count);
-    if (!env_array)
-    {
-        print_error("export", "Memory allocation failed");
-        return;
-    }
-    
-    // Copy pointers to array
-    i = 0;
-    curr = shell->env;
-    while (curr && i < count)
-    {
-        env_array[i++] = curr;
-        curr = curr->next;
-    }
-    
-    // Sort and print
-    sort_env_array(env_array, count);
-    i = 0;
-    while (i < count)
-        print_env_var(env_array[i++]);
-        
-    // Cleanup
-    free(env_array);
-}
-
-/**
- * Check if a variable name is valid for export
- * Variable names must start with a letter or underscore
- * and contain only alphanumeric characters or underscores
- */
-int is_valid_var_name(char *name)
-{
-    int i;
-    
-    if (!name || !name[0])
-        return (0);
-        
-    // First character must be letter or underscore
-    if (!ft_isalpha(name[0]) && name[0] != '_')
-        return (0);
-        
-    // Rest can be alphanumeric or underscore
-    i = 1;
-    while (name[i])
-    {
-        if (!ft_isalnum(name[i]) && name[i] != '_')
-            return (0);
-        i++;
-    }
-    
->>>>>>> main
     return (1);
 }
 
 /**
-<<<<<<< HEAD
+ * Find the append operator (+=) in a string
+ */
+static char	*find_append_op(char *str)
+{
+    int	i;
+
+    if (!str)
+        return (NULL);
+    i = 0;
+    while (str[i])
+    {
+        if (str[i] == '+' && str[i + 1] == '=')
+            return (&str[i]);
+        i++;
+    }
+    return (NULL);
+}
+
+/**
  * Process value append for export (used by process_append_op)
  */
 static int	append_value(t_shell *shell, char *key, char *value)
-=======
- * Update or add environment variable
- * Handles memory for key and value
- */
-static int	update_env_var(t_shell *shell, char *key, char *value)
->>>>>>> main
 {
     t_env	*existing;
     char	*old_value;
     char	*new_value;
     int		result;
 
-<<<<<<< HEAD
     existing = find_env_var(shell->env, key);
     if (existing && existing->value)
     {
@@ -328,135 +204,108 @@ static int	process_append_op(t_shell *shell, char *arg, char *append_pos)
     return (!result);
 }
 
-
 /**
- * Process regular assignment (=) for export
+ * Process assignment (=) for export
  */
 static int	process_assignment(t_shell *shell, char *arg, char *equals_pos)
 {
     char	*key;
+    char	*value;
     int		result;
 
     *equals_pos = '\0';
     key = arg;
+    value = equals_pos + 1;
     if (!is_valid_identifier(key))
     {
         *equals_pos = '=';
         return (handle_invalid_id(arg));
     }
-    result = set_env_var(&shell->env, key, equals_pos + 1);
+    result = set_env_var(&shell->env, key, value);
     *equals_pos = '=';
     return (!result);
-=======
-    if (!shell || !key)
-        return (0);
-        
-    env = shell->env;
-    while (env)
+}
+
+/**
+ * Process export arguments without assignment
+ */
+static int	process_no_assignment(t_shell *shell, char *arg)
+{
+    // Check if the identifier is valid first
+    if (!is_valid_identifier(arg))
     {
-        if (ft_strcmp(env->key, key) == 0)
-        {
-            free(env->value);
-            env->value = value ? ft_strdup(value) : ft_strdup("");
-            free(key);
-            return (1);
-        }
-        env = env->next;
+        display_error(ERROR_EXPORT, arg, "not a valid identifier");
+        return (1);
     }
     
-    new_node = create_env_node(key, value ? value : "");
-    if (!new_node)
-    {
-        free(key);
-        return (0);
-    }
-    
-    add_env_var(&shell->env, new_node);
-    free(key);
-    return (1);
->>>>>>> main
+    // Only mark for export if identifier is valid
+    return (!mark_var_for_export(&shell->env, arg));
 }
 
 /**
  * Process a single export argument
- * Handles variable assignment with proper error messages
  */
 static int	process_export_arg(t_shell *shell, char *arg)
 {
-    char	*equals_pos;
-    char	*append_pos;
-
-    if (!arg || !*arg)
-<<<<<<< HEAD
-        return (1);
-    append_pos = ft_strstr(arg, "+=");
-    if (append_pos)
-        return (process_append_op(shell, arg, append_pos));
-    equals_pos = ft_strchr(arg, '=');
-    if (equals_pos)
-        return (process_assignment(shell, arg, equals_pos));
-    if (!is_valid_identifier(arg))
-        return (handle_invalid_id(arg));
-    return (!mark_var_for_export(&shell->env, arg));
-=======
-        return (1);
-        
-    i = 0;
-    while (arg[i] && arg[i] != '=')
-        i++;
-        
-    key = ft_substr(arg, 0, i);
-    if (!key || !is_valid_var_name(key))
+    char *equals_pos;
+    char *append_pos;
+    
+    if (!arg || !*arg)  // Handle empty arguments explicitly
     {
-        if (key)
-            free(key);
-        ft_putstr_fd("minishell: export: `", STDERR_FILENO);
-        ft_putstr_fd(arg, STDERR_FILENO);
-        ft_putstr_fd("': not a valid identifier\n", STDERR_FILENO);
+        display_error(ERROR_EXPORT, "", "not a valid identifier");
         return (1);
     }
     
-    // Value is everything after first equals sign
-    value = (arg[i] == '=') ? &arg[i + 1] : NULL;
-    if (!update_env_var(shell, key, value))
-        return (1);
-        
-    return (0);
->>>>>>> main
+    // Check for append operation (+=)
+    append_pos = find_append_op(arg);
+    if (append_pos)
+        return (process_append_op(shell, arg, append_pos));
+    
+    // Check for regular assignment (=)
+    equals_pos = ft_strchr(arg, '=');
+    if (equals_pos)
+        return (process_assignment(shell, arg, equals_pos));
+    
+    // No assignment, just mark for export
+    return (process_no_assignment(shell, arg));
 }
 
 /**
  * Built-in export command
- * With no arguments, displays all exported variables
- * With arguments, adds/updates environment variables
  */
 int	builtin_export(t_shell *shell, t_cmd *cmd)
 {
     int	i;
-    int	status;
-
-    if (!shell || !cmd || !cmd->args)
+    int	result;
+    
+    if (!shell || !cmd)
         return (1);
-<<<<<<< HEAD
-=======
-        
-    // With no arguments, display current environment
->>>>>>> main
+    
+    // With no arguments, just display exported variables
     if (!cmd->args[1])
     {
-        print_sorted_env(shell);
+        display_exported_vars(shell->env);
         return (0);
     }
     
     // Process each argument
-    status = 0;
+    result = 0;
     i = 1;
     while (cmd->args[i])
     {
-        if (process_export_arg(shell, cmd->args[i]) != 0)
-            status = 1;  // Remember errors but continue processing
+        // Empty strings should be reported as invalid
+        if (cmd->args[i][0] == '\0')
+        {
+            display_error(ERROR_EXPORT, "", "not a valid identifier");
+            result = 1;
+        }
+        else
+        {
+            // Process non-empty arguments
+            result |= process_export_arg(shell, cmd->args[i]);
+        }
         i++;
     }
     
-    return (status);
+    return (result);
 }

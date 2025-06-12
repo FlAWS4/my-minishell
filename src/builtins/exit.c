@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:10:39 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 00:18:40 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,9 +81,6 @@ static long	process_digits(const char *str, int i, int sign)
     long	result;
     int		overflow;
 
-    if (!str)
-        return (0);
-        
     result = 0;
     while (str[i] >= '0' && str[i] <= '9')
     {

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:19:10 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:33:32 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ t_cmd	*create_cmd(void)
     cmd->args = NULL;
     cmd->input_file = NULL;
     cmd->output_file = NULL;
+    cmd->heredocs_processed = 0;
     cmd->heredoc_delim = NULL;
     cmd->heredoc_file = NULL;
     cmd->input_fd = -1;
@@ -60,7 +61,6 @@ int	init_args(t_cmd *cmd, char *arg)
 }
 
 /**
-<<<<<<< HEAD
  * Copy existing arguments to a new array
  */
 static char	**copy_args(t_cmd *cmd, int count)
@@ -71,46 +71,12 @@ static char	**copy_args(t_cmd *cmd, int count)
     new_args = (char **)malloc(sizeof(char *) * (count + 2));
     if (!new_args)
         return (NULL);
-=======
- * Add an argument to the command's args array
- */
-void add_arg(t_cmd *cmd, char *arg)
-{
-    int i;
-    char **new_args;
-    
-    if (!cmd || !arg)
-        return;
-    
-    // If args is NULL, initialize it with this arg
-    if (!cmd->args)
-    {
-        init_args(cmd, arg);
-        return;
-    }
-    
-    // Count existing args
-    i = 0;
-    while (cmd->args[i])
-        i++;
-    
-    // Allocate new array with space for one more arg + NULL terminator
-    new_args = (char **)malloc(sizeof(char *) * (i + 2));
-    if (!new_args)
-    {
-        free(arg);
-        return;
-    }
-    
-    // Copy existing args
->>>>>>> main
     i = 0;
     while (cmd->args[i])
     {
         new_args[i] = cmd->args[i];
         i++;
     }
-<<<<<<< HEAD
     return (new_args);
 }
 
@@ -141,14 +107,6 @@ void	add_arg(t_cmd *cmd, char *arg)
     }
     new_args[i] = arg;
     new_args[i + 1] = NULL;
-=======
-    
-    // Add new arg and NULL terminator
-    new_args[i] = arg;
-    new_args[i + 1] = NULL;
-    
-    // Free old array and update cmd
->>>>>>> main
     free(cmd->args);
     cmd->args = new_args;
 }
@@ -156,19 +114,11 @@ void	add_arg(t_cmd *cmd, char *arg)
 /**
  * Free a command list
  */
-<<<<<<< HEAD
 void	free_cmd_list(t_cmd *cmd)
 {
     t_cmd	*current;
     t_cmd	*next;
 
-=======
-void free_cmd_list(t_cmd *cmd)
-{
-    t_cmd *current;
-    t_cmd *next;
-    
->>>>>>> main
     current = cmd;
     while (current)
     {
@@ -179,7 +129,6 @@ void free_cmd_list(t_cmd *cmd)
 }
 
 /**
-<<<<<<< HEAD
  * Free redirections in a command
  */
 static void	free_redirections(t_redirection *redir)
@@ -214,25 +163,6 @@ static void	free_cmd(t_cmd *cmd)
             free(cmd->args[i++]);
         free(cmd->args);
     }
-=======
- * Free a single command and its resources
- */
-static void free_cmd(t_cmd *cmd)
-{
-    int i;
-    t_redirection *redir;
-    t_redirection *next_redir;
-
-    if (!cmd)
-        return;
-    if (cmd->args)
-    {
-        i = 0;
-        while (cmd->args[i])
-            free(cmd->args[i++]);
-        free(cmd->args);
-    }
->>>>>>> main
     if (cmd->input_file)
         free(cmd->input_file);
     if (cmd->output_file)
@@ -241,33 +171,11 @@ static void free_cmd(t_cmd *cmd)
         free(cmd->heredoc_delim);
     if (cmd->heredoc_file)
         free(cmd->heredoc_file);
-<<<<<<< HEAD
     free_redirections(cmd->redirections);
-=======
-        
-    // Free redirections list
-    redir = cmd->redirections;
-    while (redir)
-    {
-        next_redir = redir->next;
-        if (redir->word)
-            free(redir->word);
-        if (redir->temp_file)
-            free(redir->temp_file);
-        free(redir);
-        redir = next_redir;
-    }
-    
-    // Close any open file descriptors
->>>>>>> main
     if (cmd->input_fd >= 0)
         close(cmd->input_fd);
     if (cmd->output_fd >= 0)
         close(cmd->output_fd);
-<<<<<<< HEAD
-=======
-        
->>>>>>> main
     free(cmd);
 }
 
@@ -277,7 +185,8 @@ static void free_cmd(t_cmd *cmd)
 static char *join_consecutive_tokens(char *word, t_token **current)
 {
     t_token *next;
-    char *temp;
+    char    *temp;
+    char    *result;
 
     next = (*current)->next;
     while (next && (next->type == TOKEN_WORD || 
@@ -285,12 +194,15 @@ static char *join_consecutive_tokens(char *word, t_token **current)
             next->type == TOKEN_DOUBLE_QUOTE))
     {
         if (next->preceded_by_space)
-            break ;
+            break;
         temp = word;
-        word = ft_strjoin(word, next->value);
-        free(temp);
-        if (!word)
+        result = ft_strjoin(word, next->value);
+        if (!result)
+        {
+            free(temp);  // Free the original word if join fails
             return (NULL);
+        }
+        word = result;
         *current = next;
         next = next->next;
     }
@@ -302,20 +214,20 @@ static char *join_consecutive_tokens(char *word, t_token **current)
  */
 void join_word_tokens(t_cmd *cmd, t_token **token)
 {
-    char *word;
+    char    *word;
     t_token *current;
-    int is_first_arg;
+    int     is_first_arg;
 
     is_first_arg = (cmd->args == NULL);
     word = ft_strdup((*token)->value);
     if (!word)
-        return ;
+        return;
     current = *token;
     if (is_first_arg)
     {
         word = join_consecutive_tokens(word, &current);
         if (!word)
-            return ;
+            return;  // Properly handles NULL from join_consecutive_tokens
     }
     add_arg(cmd, word);
     *token = current;
@@ -324,7 +236,6 @@ void join_word_tokens(t_cmd *cmd, t_token **token)
 /**
  * Check if a token is a valid argument token
  */
-<<<<<<< HEAD
 int	is_arg_token(t_token *token)
 {
     if (!token)
@@ -333,11 +244,3 @@ int	is_arg_token(t_token *token)
             token->type == TOKEN_SINGLE_QUOTE ||
             token->type == TOKEN_DOUBLE_QUOTE);
 }
-=======
-int is_arg_token(t_token *token)
-{
-    return (token && (token->type == TOKEN_WORD ||
-            token->type == TOKEN_SINGLE_QUOTE ||
-            token->type == TOKEN_DOUBLE_QUOTE));
-}
->>>>>>> main

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:12:16 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 00:28:12 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ static void	remove_env_var(t_shell *shell, char *key)
             else
                 shell->env = curr->next;
             free_env_node(curr);
-            return;
+            return ;
         }
         prev = curr;
         curr = curr->next;

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 03:18:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/12 02:00:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,8 +81,6 @@ int	handle_redir_in(t_token **token, t_cmd *cmd)
 {
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
-    
-    // Store filename for backward compatibility
     cmd->input_file = ft_strdup((*token)->next->value);
     if (!cmd->input_file)
         return (0);
@@ -107,13 +105,9 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
         return (0);
-    
-    // Store filename for backward compatibility
     cmd->output_file = ft_strdup((*token)->next->value);
     if (!cmd->output_file)
         return (0);
-    
-    // Set append mode flag
     cmd->append_mode = append;
     if (append)
         token_type = TOKEN_REDIR_APPEND;
@@ -132,19 +126,40 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 /**
  * Handle heredoc redirection part 1
  */
-static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
+static int handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted, t_shell *shell)
 {
+    char *expanded_delim;
+    
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
     {
         display_error(ERR_SYNTAX, "expected delimiter after <<", NULL);
         return (0);
     }
+    
+    // Handle quoted delimiters - no expansion in either case
     if ((*token)->next->type == TOKEN_SINGLE_QUOTE || 
         (*token)->next->type == TOKEN_DOUBLE_QUOTE)
+    {
         *quoted = 1;
+        cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    }
+    // Handle unquoted delimiters
     else
-        *quoted = 0;
-    cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    {
+        // If delimiter contains $, expand it first
+        if ((*token)->next->value && ft_strchr((*token)->next->value, '$'))
+        {
+            // Save original delimiter too
+            expanded_delim = expand_variables(shell, (*token)->next->value);
+            cmd->heredoc_delim = expanded_delim;
+        }
+        else
+        {
+            cmd->heredoc_delim = ft_strdup((*token)->next->value);
+        }
+        *quoted = 0; // Content should be expanded for unquoted delimiters
+    }
+    
     if (!cmd->heredoc_delim)
     {
         display_error(ERR_MEMORY, NULL, NULL);
@@ -153,16 +168,17 @@ static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
     return (1);
 }
 
+
 /**
  * Handle heredoc redirection
  * Return 0 for success, 1 for failure (to match other redirections)
  */
-int	handle_heredoc(t_token **token, t_cmd *cmd)
+int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
 {
-    int	quoted;
+    int quoted;
 
     quoted = 0;
-    if (!handle_heredoc_setup(token, cmd, &quoted))
+    if (!handle_heredoc_setup(token, cmd, &quoted, shell))
         return (1);
     cmd->heredoc_file = NULL;
     cmd->input_fd = -1;
@@ -172,6 +188,14 @@ int	handle_heredoc(t_token **token, t_cmd *cmd)
         cmd->heredoc_delim = NULL;
         return (1);
     }
+    
+    // REMOVE heredoc processing during parsing
+    // Don't call process_heredoc here - this should only happen during execution
+    // This prevents duplicate processing
+    
+    // Just mark heredocs as not processed so executor handles them
+    cmd->heredocs_processed = 0;
+    
     *token = (*token)->next;
     return (0);
 }
@@ -193,16 +217,16 @@ int	is_redirection_token(t_token *token)
  * Parse redirection tokens
  * Return 0 for success, 1 for failure
  */
-int	parse_redirections(t_token **token, t_cmd *cmd)
+int parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell)
 {
-    t_token_type	type;
-    int				result;
+    t_token_type type;
+    int result;
 
     if (!token || !*token || !cmd)
         return (1);
     type = (*token)->type;
     if (type == TOKEN_HEREDOC)
-        result = handle_heredoc(token, cmd);
+        result = handle_heredoc(token, cmd, shell);
     else if (type == TOKEN_REDIR_IN)
         result = !handle_redir_in(token, cmd);
     else if (type == TOKEN_REDIR_OUT)

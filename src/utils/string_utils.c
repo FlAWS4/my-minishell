@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/05/26 23:28:00 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/11 21:06:26 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,4 +114,18 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
         i++;
     }
     return (str);
+}
+
+void	*ft_memset(void *s, int c, size_t n)
+{
+	unsigned char	*dst;
+
+	dst = (unsigned char *) s;
+	while (n > 0)
+	{
+		*dst = (unsigned char)c;
+		dst++;
+		n--;
+	}
+	return (s);
 }
