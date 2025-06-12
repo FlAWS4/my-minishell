@@ -6,20 +6,20 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:25:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/12 23:05:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-int	g_signal;
+int g_signal;
 
 /**
  * Free redirection list
  */
-void	free_redirection_list(t_redirection *redirections)
+void free_redirection_list(t_redirection *redirections)
 {
-    t_redirection	*tmp;
+    t_redirection *tmp;
 
     while (redirections)
     {
@@ -36,10 +36,10 @@ void	free_redirection_list(t_redirection *redirections)
 /**
  * Free environment variables
  */
-static void	free_env_vars(t_shell *shell)
+static void free_env_vars(t_shell *shell)
 {
-    t_env	*env;
-    t_env	*next_env;
+    t_env *env;
+    t_env *next_env;
 
     env = shell->env;
     while (env)
@@ -57,10 +57,10 @@ static void	free_env_vars(t_shell *shell)
 /**
  * Free all shell resources
  */
-void	free_shell(t_shell *shell)
+void free_shell(t_shell *shell)
 {
     if (!shell)
-        return ;
+        return;
     if (shell->cmd)
         free_cmd_list(shell->cmd);
     free_env_vars(shell);
@@ -70,14 +70,14 @@ void	free_shell(t_shell *shell)
 /**
  * Initialize the shell
  */
-t_shell	*init_shell(char **envp)
+t_shell *init_shell(char **envp)
 {
-    t_shell	*shell;
+    t_shell *shell;
 
     shell = malloc(sizeof(t_shell));
     if (!shell)
         return (NULL);
-        
+    
     shell->env = init_env(envp);
     if (!shell->env && envp && *envp)
     {
@@ -85,7 +85,6 @@ t_shell	*init_shell(char **envp)
         return (NULL);
     }
     
-    // Initialize terminal settings
     if (isatty(STDIN_FILENO))
         tcgetattr(STDIN_FILENO, &shell->orig_termios);
     
@@ -97,46 +96,43 @@ t_shell	*init_shell(char **envp)
 }
 
 /**
- * Set up the terminal attributes
+ * Set up terminal for shell operation
  */
-void setup_terminal(void)
+void setup_terminal(t_shell *shell)
 {
     struct termios term;
 
-    if (tcgetattr(STDIN_FILENO, &term) == -1)
+    if (!isatty(STDIN_FILENO) || tcgetattr(STDIN_FILENO, &term) == -1)
         return;
-    term.c_lflag &= ~ECHOCTL;  // This line disables displaying "^C"
+    
+    if (shell && !shell->orig_termios.c_lflag)
+        shell->orig_termios = term;
+    
+    term.c_lflag |= ECHOCTL;  // Show ^C for proper visual feedback
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
 /**
- * Reset terminal state after command execution
+ * Restore terminal to shell mode after command execution
  */
-static void	reset_terminal_state(void)
+void restore_terminal_settings(t_shell *shell)
 {
-    struct termios	term;
-
-    if (isatty(STDIN_FILENO))
-    {
-        // Ignore SIGTTOU when changing terminal control
-        signal(SIGTTOU, SIG_IGN);
-        
-        tcgetattr(STDIN_FILENO, &term);
-        term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
-        tcsetattr(STDIN_FILENO, TCSANOW, &term);
-        
-        // Restore default handler
-        signal(SIGTTOU, SIG_DFL);
-    }
+    if (!isatty(STDIN_FILENO) || !shell)
+        return;
+    
+    signal(SIGTTOU, SIG_IGN);
+    tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    signal(SIGTTOU, SIG_DFL);
 }
 
 /**
  * Process command exit status
  */
-void	process_cmd_status(t_shell *shell, int status)
+void process_cmd_status(t_shell *shell, int status)
 {
     if (!shell)
-        return ;
+        return;
+    
     if (WIFEXITED(status))
         shell->exit_status = WEXITSTATUS(status);
     else if (WIFSIGNALED(status))
@@ -145,13 +141,24 @@ void	process_cmd_status(t_shell *shell, int status)
             ft_putstr_fd("\n", STDOUT_FILENO);
         shell->exit_status = 128 + WTERMSIG(status);
     }
-    reset_terminal_state();
+    
+    // Reset terminal state for interactive use
+    if (isatty(STDIN_FILENO))
+    {
+        struct termios term;
+        
+        signal(SIGTTOU, SIG_IGN);
+        tcgetattr(STDIN_FILENO, &term);
+        term.c_lflag |= (ECHO | ECHOE | ICANON | ISIG);
+        tcsetattr(STDIN_FILENO, TCSANOW, &term);
+        signal(SIGTTOU, SIG_DFL);
+    }
 }
 
 /**
  * Handle pending signals
  */
-void	handle_pending_signals(t_shell *shell)
+void handle_pending_signals(t_shell *shell)
 {
     if (g_signal)
     {
@@ -166,22 +173,25 @@ void	handle_pending_signals(t_shell *shell)
 /**
  * Parse input into commands
  */
-t_cmd	*parse_input(char *input, t_shell *shell)
+t_cmd *parse_input(char *input, t_shell *shell)
 {
-    t_token	*tokens;
-    t_cmd	*cmd;
+    t_token *tokens;
+    t_cmd *cmd;
 
     if (!input || !*input)
         return (NULL);
+    
     tokens = tokenize_and_expand(input, shell);
     if (!tokens)
         return (NULL);
+    
     if (!validate_syntax(tokens))
     {
         shell->exit_status = 2;
         free_token_list(tokens);
         return (NULL);
     }
+    
     cmd = parse_tokens(tokens, shell);
     free_token_list(tokens);
     return (cmd);
@@ -190,10 +200,10 @@ t_cmd	*parse_input(char *input, t_shell *shell)
 /**
  * Execute parsed commands
  */
-void	execute_parsed_commands(t_shell *shell)
+void execute_parsed_commands(t_shell *shell)
 {
     if (!shell || !shell->cmd)
-        return ;
+        return;
     execute(shell, shell->cmd);
 }
 
@@ -202,43 +212,25 @@ void	execute_parsed_commands(t_shell *shell)
  */
 void process_input(t_shell *shell, char *input)
 {
+    // Clean up any previous command
     if (shell->cmd)
     {
         free_cmd_list(shell->cmd);
         shell->cmd = NULL;
     }
+    
+    // Parse input
     shell->cmd = parse_input(input, shell);
     if (!shell->cmd)
         return;
     
-    // Save terminal state
-    struct termios orig_term;
-    if (isatty(STDIN_FILENO))
-        tcgetattr(STDIN_FILENO, &orig_term);
-    setup_terminal();
-    
-    pid_t shell_pgid = tcgetpgrp(STDIN_FILENO);
-    // Ignore SIGTTOU to prevent suspension when changing terminal control
-    signal(SIGTTOU, SIG_IGN);
-    
-    // Check for interrupt BEFORE execution
-    if (g_signal == SIGINT)
-    {
+    // Execute command if not interrupted
+    if (g_signal != SIGINT)
+        execute_parsed_commands(shell);
+    else
         g_signal = 0;
-        return;
-    }
     
-    execute_parsed_commands(shell);
-    
-    // Restore terminal control with improved handling
-    if (isatty(STDIN_FILENO))
-    {
-        // Use TCSANOW instead of TCSADRAIN for immediate effect
-        tcsetpgrp(STDIN_FILENO, shell_pgid);
-        tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
-        signal(SIGTTOU, SIG_DFL);
-    }
-    
+    // Clean up command
     if (shell->cmd)
     {
         free_cmd_list(shell->cmd);
@@ -254,7 +246,10 @@ void shell_loop(t_shell *shell)
     char *input;
     char prompt[100];
     
-    // At beginning of function, ensure we have control of terminal
+    // Initial terminal setup
+    setup_terminal(shell);
+    
+    // Ensure shell has terminal control (once)
     if (isatty(STDIN_FILENO))
     {
         signal(SIGTTOU, SIG_IGN);
@@ -264,10 +259,10 @@ void shell_loop(t_shell *shell)
 
     while (!shell->should_exit)
     {
+        // Setup signals for interactive use
         setup_signals();
-        setup_terminal();
         
-        // Handle signal with proper exit status tracking
+        // Handle interrupt signal
         if (g_signal == SIGINT)
         {
             g_signal = 0;
@@ -275,18 +270,11 @@ void shell_loop(t_shell *shell)
             continue;
         }
         
-        // Ensure we have terminal control before readline
-        if (isatty(STDIN_FILENO) && tcgetpgrp(STDIN_FILENO) != getpid())
-        {
-            signal(SIGTTOU, SIG_IGN);
-            tcsetpgrp(STDIN_FILENO, getpid());
-            signal(SIGTTOU, SIG_DFL);
-        }
-        
+        // Display prompt and get input
         create_prompt(prompt, shell->exit_status);
         input = readline(prompt);
         
-        // Ctrl+D (EOF) handling
+        // Handle EOF (Ctrl+D)
         if (!input)
         {
             ft_putstr_fd("exit\n", 1);
@@ -294,6 +282,7 @@ void shell_loop(t_shell *shell)
             break;
         }
         
+        // Process non-empty input
         if (input[0] != '\0')
             add_history(input);
         
@@ -303,22 +292,28 @@ void shell_loop(t_shell *shell)
 }
 
 /**
- * Main function
+ * Program entry point
  */
-int	main(int argc, char **argv, char **envp)
+int main(int argc, char **argv, char **envp)
 {
-    t_shell	*shell;
+    t_shell *shell;
 
     (void)argc;
     (void)argv;
     g_signal = 0;
+    
     shell = init_shell(envp);
     if (!shell)
         return (1);
+    
     setup_signals();
-    setup_terminal();
+    setup_terminal(shell);  // Pass shell to setup_terminal
     ft_display_welcome();
     shell_loop(shell);
+    
+    // Restore terminal and free resources
+    restore_terminal_settings(shell);
     free_shell(shell);
+    
     return (shell->exit_status);
 }

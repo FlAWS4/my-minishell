@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/12 01:49:37 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/12 22:56:50 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -301,7 +301,7 @@ int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 int     builtin_help(t_shell *shell);
 
 /* Main.c functions */
-void	setup_terminal(void);
+void setup_terminal(t_shell *shell);
 void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
 t_shell	*init_shell(char **envp);

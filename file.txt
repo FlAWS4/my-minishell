@@ -1,3 +1,0 @@
-DEBUG: About to run builtin command: echo
-hello
-DEBUG: Builtin result: 0

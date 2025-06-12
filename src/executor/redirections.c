@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/12 02:00:25 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/12 23:49:23 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,7 +237,7 @@ void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted)
     char *line;
     char *expanded;
     char *expanded_for_comparison;
-    
+
     setup_signals_heredoc();
     ft_putstr_fd("heredoc> ", 1);
     while (1)
