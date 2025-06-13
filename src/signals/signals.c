@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   signals.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 20:46:46 by hchowdhu         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:57:28 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ int check_for_signals(void)
         rl_on_new_line();
         rl_replace_line("", 0);
         rl_redisplay();
+        g_signal = 0;  // Reset signal flag after handling
         return (1);
     }
     return (0);
@@ -45,8 +46,8 @@ void sigint_handler(int signum)
     {
         g_signal = SIGINT;
         rl_done = 1;
-        rl_replace_line("", 0);
-        rl_redisplay();
+        // Don't call rl_replace_line/rl_redisplay here - can cause issues
+        // if readline is in the middle of reading input
     }
 }
 
@@ -73,19 +74,18 @@ static void setup_signal_action(struct sigaction *sa, void (*handler)(int))
     ft_bzero(sa, sizeof(struct sigaction));
     sa->sa_handler = handler;
     sigemptyset(&sa->sa_mask);
-    sa->sa_flags = 0;
+    sa->sa_flags = SA_RESTART;  // Add SA_RESTART flag for better stability
 }
 
 /**
  * Setup signals for interactive mode (main shell)
- * - SIGINT (^C): Custom handler to show new prompt
- * - SIGQUIT (^\): Ignored
  */
-void	setup_signals(void)
+void setup_signals(void)
 {
-    struct sigaction	sa_int;
-    struct sigaction	sa_quit;
+    struct sigaction sa_int;
+    struct sigaction sa_quit;
 
+    // Reset readline event hook (in case it was cleared)
     rl_event_hook = check_for_signals;
     
     setup_signal_action(&sa_int, sigint_handler);
@@ -99,12 +99,14 @@ void	setup_signals(void)
 
 /**
  * Setup signals for child processes (commands)
- * Restores default handling for both signals
  */
-void	setup_signals_noninteractive(void)
+void setup_signals_noninteractive(void)
 {
     struct sigaction sa_int;
     struct sigaction sa_quit;
+    
+    // Also disable the readline event hook in non-interactive mode
+    rl_event_hook = NULL;
     
     setup_signal_action(&sa_int, SIG_DFL);
     sigaction(SIGINT, &sa_int, NULL);
@@ -117,17 +119,37 @@ void	setup_signals_noninteractive(void)
 
 /**
  * Setup signals for heredoc input
- * - SIGINT: Custom handler that exits the process
- * - SIGQUIT: Ignored
  */
 void setup_signals_heredoc(void)
 {
     struct sigaction sa_int;
     struct sigaction sa_quit;
     
+    // Disable readline event hook during heredoc
+    rl_event_hook = NULL;
+    
     setup_signal_action(&sa_int, sigint_heredoc_handler);
     sigaction(SIGINT, &sa_int, NULL);
     
     setup_signal_action(&sa_quit, SIG_IGN);
     sigaction(SIGQUIT, &sa_quit, NULL);
+}
+
+/**
+ * Reset all signals to default behavior
+ * Useful when terminal is restarted
+ */
+void reset_signals(void)
+{
+    struct sigaction sa;
+    
+    setup_signal_action(&sa, SIG_DFL);
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
+    
+    // Clear readline event hook
+    rl_event_hook = NULL;
+    
+    // Reset global signal state
+    g_signal = 0;
 }

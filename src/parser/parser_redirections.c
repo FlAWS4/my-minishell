@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 20:47:46 by hchowdhu         ###   ########.fr       */
+/*   Updated: 2025/06/12 02:00:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -177,7 +177,6 @@ int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
 {
     int quoted;
 
-    (void)shell; // shell is not used in this function, but kept for consistency
     quoted = 0;
     if (!handle_heredoc_setup(token, cmd, &quoted, shell))
         return (1);
@@ -238,3 +237,4 @@ int parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell)
         result = 1;
     return (result);
 }
+

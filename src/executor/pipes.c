@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:54:12 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 21:33:30 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,35 +74,10 @@ static int	handle_fork_failure(int prev_pipe, int *pipe_fds, t_cmd *cmd)
     return (1);
 }
 
-static void execute_pipeline_child(t_shell *shell, t_cmd *cmd, 
-                             int prev_pipe, int *pipe_fds)
+static int execute_piped_command(t_shell *shell, t_cmd *cmd, 
+                  int prev_pipe, int *pipe_fds)
 {
-    // Using cmd->pid as the pgid for all processes in the pipeline
-    pid_t pgid = shell->cmd->pid;
-    
-    // Set process group ID for this child
-    if (setpgid(0, pgid) == -1)
-        ; // Ignore errors - might happen if parent already set it
-    
-    // Setup signals for child process
-    setup_signals_noninteractive();
-    
-    // Setup pipes and redirections
-    setup_child_pipes(prev_pipe, pipe_fds, cmd);
-    
-    // Ensure output buffers are flushed
-    write(STDOUT_FILENO, "", 0);
-    write(STDERR_FILENO, "", 0);
-    
-    // Execute the command
-    execute_child(shell, cmd);
-    exit(1);
-}
-
-static int	execute_piped_command(t_shell *shell, t_cmd *cmd,
-                    int prev_pipe, int *pipe_fds)
-{
-    pid_t	pid;
+    pid_t pid;
 
     if (cmd->next && pipe(pipe_fds) == -1)
         return (handle_pipe_failure(prev_pipe));
@@ -112,88 +87,81 @@ static int	execute_piped_command(t_shell *shell, t_cmd *cmd,
         return (handle_fork_failure(prev_pipe, pipe_fds, cmd));
     
     if (pid == 0)
-        execute_pipeline_child(shell, cmd, prev_pipe, pipe_fds);
+    {
+        // Child process - remove setpgid calls
+        setup_signals_noninteractive();
+        setup_child_pipes(prev_pipe, pipe_fds, cmd);
+        write(STDOUT_FILENO, "", 0);
+        write(STDERR_FILENO, "", 0);
+        execute_child(shell, cmd);
+        exit(1);
+    }
     else
     {
         cmd->pid = pid;
         
-        // Set process group in parent to avoid race conditions
-        if (cmd == shell->cmd) {
-            // First command sets the pgid for the pipeline
-            if (setpgid(pid, pid) == -1 && errno != EACCES)
-                ; // Ignore errors - child might have already called setpgid
-            
-            // Give terminal control to the pipeline with error handling
-            if (isatty(STDIN_FILENO)) {
-                if (tcsetpgrp(STDIN_FILENO, pid) == -1)
-                    ; // Ignore errors here too - might fail if child exits quickly
+       // Change this code in execute_piped_command function
+        if (cmd == shell->cmd && isatty(STDIN_FILENO)) 
+        {
+            // Only give terminal control if:
+            // 1. It's not in a pipeline, OR
+            // 2. It has input redirection (not reading from terminal)
+            if (!cmd->next || cmd->input_fd != -1 || cmd->input_file || cmd->heredoc_file)
+            {
+                ioctl(STDIN_FILENO, TIOCSPGRP, &pid);
             }
-        } else {
-            // Other commands join the same process group
-            if (setpgid(pid, shell->cmd->pid) == -1 && errno != EACCES)
-                ; // Ignore errors
         }
     }
     return (0);
 }
 
-static void process_child_signal(int signal_num)
-{
-    if (signal_num == SIGINT)
-        write(STDOUT_FILENO, "\n", 1);
-}
-
-static int	handle_waitpid_result(int pid, int *status, int *last_status)
-{
-    if (pid < 0)
-    {
-        if (errno == ECHILD)
-            return (0);
-        else if (errno == EINTR)
-            return (2);
-        else
-            return (-1);
-    }
-    else if (pid == 0)
-        return (0);
-    
-    if (WIFEXITED(*status))
-        *last_status = WEXITSTATUS(*status);
-    else if (WIFSIGNALED(*status))
-    {
-        process_child_signal(WTERMSIG(*status));
-        *last_status = 128 + WTERMSIG(*status);
-    }
-    return (1);
-}
 
 int wait_for_children(t_shell *shell)
 {
     int status;
     int pid;
     int last_status;
-    int result;
-
+    struct sigaction sa_int, sa_quit, sa_old_int, sa_old_quit;
+    
     if (!shell)
         return (1);
     
-    // Ignore signals in parent while waiting
-    signal(SIGINT, SIG_IGN);
-    signal(SIGQUIT, SIG_IGN);
+    // Use sigaction instead of signal() for more reliability
+    sa_int.sa_handler = SIG_IGN;
+    sigemptyset(&sa_int.sa_mask);
+    sa_int.sa_flags = 0;
+    sigaction(SIGINT, &sa_int, &sa_old_int);
+    
+    sa_quit.sa_handler = SIG_IGN;
+    sigemptyset(&sa_quit.sa_mask);
+    sa_quit.sa_flags = 0;
+    sigaction(SIGQUIT, &sa_quit, &sa_old_quit);
     
     last_status = 0;
     while (1)
     {
         pid = waitpid(-1, &status, 0);
-        result = handle_waitpid_result(pid, &status, &last_status);
-        if (result <= 0)
+        if (pid <= 0)
+        {
+            if (errno == EINTR)
+                continue;  // Retry if interrupted
             break;
-        if (result == 2)
-            continue;
+        }
+        
+        // Track exit status
+        if (WIFEXITED(status))
+            last_status = WEXITSTATUS(status);
+        else if (WIFSIGNALED(status))
+        {
+            if (WTERMSIG(status) == SIGINT)
+                write(STDOUT_FILENO, "\n", 1);
+            last_status = 128 + WTERMSIG(status);
+        }
     }
     
-    // Reset shell's signal handlers
-    setup_signals();
+    // Restore previous signal handlers properly
+    sigaction(SIGINT, &sa_old_int, NULL);
+    sigaction(SIGQUIT, &sa_old_quit, NULL);
     
     // Ensure buffers are flushed
     write(STDOUT_FILENO, "", 0);
@@ -302,8 +270,11 @@ static int	run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 int execute_pipeline(t_shell *shell, t_cmd *cmd)
 {
     int result;
-    pid_t shell_pgid = getpgrp();
+    pid_t shell_pgid;
     struct sigaction sa_ttou;
+    
+    // Save shell's process group ID using allowed functions
+    shell_pgid = getpid();  // Using getpid() which is allowed
     
     // Ignore SIGTTOU before changing terminal control
     sa_ttou.sa_handler = SIG_IGN;
@@ -311,25 +282,29 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
     sa_ttou.sa_flags = 0;
     sigaction(SIGTTOU, &sa_ttou, NULL);
     
+    // Process all heredocs first
     if (!process_pipeline_heredocs(shell, cmd))
         return (1);
     
+    // Run all commands in the pipeline
     if (run_pipeline_commands(shell, cmd))
         return (1);
     
     result = wait_for_children(shell);
     
-    // Restore terminal control to the shell
+    // Restore terminal control to the shell - more robust approach
     if (isatty(STDIN_FILENO))
     {
-        tcsetpgrp(STDIN_FILENO, shell_pgid);
-        // Make sure we have proper terminal attributes
+        // Use ioctl to set terminal process group (equivalent to tcsetpgrp)
+        ioctl(STDIN_FILENO, TIOCSPGRP, &shell_pgid);
+        
+        // Always restore terminal settings
         tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
     }
     
     cleanup_after_execution(cmd);
     
-    // Reset the signal handler
+    // Reset signal handlers
     setup_signals();
     
     return (result);

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   redirections.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 20:47:36 by hchowdhu         ###   ########.fr       */
+/*   Updated: 2025/06/14 00:52:57 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -232,35 +232,38 @@ char	*expand_command_substitution(char *input, t_shell *shell)
 /**
  * Handle heredoc child process
  */
+/**
+ * Handle heredoc child process using readline
+ */
 void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted)
 {
     char *line;
     char *expanded;
     char *expanded_for_comparison;
-
+    
+    // Set up signal handling for heredoc mode
     setup_signals_heredoc();
-    ft_putstr_fd("heredoc> ", 1);
+    
     while (1)
     {
-        line = get_next_line(STDIN_FILENO);
+        // Use readline instead of get_next_line
+        line = readline("heredoc> ");
+        
+        // Handle EOF (Ctrl+D)
         if (!line)
         {
             display_heredoc_eof_warning(delimiter);
             break;
         }
         
-        // Remove newline
-        if (ft_strlen(line) > 0 && line[ft_strlen(line) - 1] == '\n')
-            line[ft_strlen(line) - 1] = '\0';
-        
-        // Check literal match first
+        // Check for delimiter match
         if (ft_strcmp(line, delimiter) == 0)
         {
             free(line);
             break;
         }
         
-        // Then check for expanded match when the line contains $
+        // Check for expanded delimiter match (same logic as before)
         if (ft_strchr(line, '$'))
         {
             expanded_for_comparison = expand_variables(shell, line);
@@ -276,7 +279,7 @@ void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted)
             }
         }
         
-        // Expand variables in content if not quoted
+        // Expand variables in content if not quoted (same logic as before)
         if (!quoted && shell)
         {
             expanded = expand_heredoc_content(shell, line);
@@ -287,11 +290,19 @@ void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted)
             }
         }
         
+        // Write to heredoc file with newline
         ft_putstr_fd(line, fd);
         ft_putstr_fd("\n", fd);
+        
+        // Add to history if non-empty
+        if (line && *line)
+            add_history(line);
+            
         free(line);
-        ft_putstr_fd("heredoc> ", 1);
     }
+    
+    // Clean up readline history
+    rl_clear_history();
     exit(0);
 }
 
@@ -302,6 +313,11 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
 {
     pid_t pid;
     int status;
+    struct termios term;
+    
+    // Save terminal settings before starting
+    if (isatty(STDIN_FILENO))
+        tcgetattr(STDIN_FILENO, &term);
     
     // Reset global signal flag before forking
     g_signal = 0;
@@ -310,12 +326,32 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
     if (pid == -1)
         return (0);
     if (pid == 0)
-        handle_heredoc_child(delimiter, fd, shell, quoted); // Pass quoted flag
+        handle_heredoc_child(delimiter, fd, shell, quoted);
+        
     waitpid(pid, &status, 0);
+    
+    // Important: Reset signal handlers after heredoc finishes
+    setup_signals();
+    
+    // Ensure terminal is reset to a usable state
+    // This is critical for Ctrl+C handling
+    if (isatty(STDIN_FILENO))
+    {
+        // Reset terminal to canonical mode with echo enabled
+        term.c_lflag |= (ICANON | ECHO);
+        term.c_lflag &= ~(ECHOCTL);  // Don't show control chars as ^X
+        tcsetattr(STDIN_FILENO, TCSANOW, &term);
+    }
+    
     if (WIFSIGNALED(status))
     {
         g_signal = WTERMSIG(status);
         shell->exit_status = 128 + g_signal;
+        
+        // If terminated by SIGINT (Ctrl+C), print newline
+        if (g_signal == SIGINT)
+            write(STDOUT_FILENO, "\n", 1);
+            
         return (0);
     }
     else if (WEXITSTATUS(status) == 130)

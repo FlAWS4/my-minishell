@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 20:47:00 by hchowdhu         ###   ########.fr       */
+/*   Updated: 2025/06/13 21:08:32 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,8 @@
 # include <sys/stat.h>
 # include <termios.h>
 # include <limits.h>
+#include <sys/ioctl.h>  /* For ioctl and TIOCSPGRP */
+#include <termios.h> 
 
 # ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 128
@@ -261,9 +263,7 @@ void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
 int     has_heredoc_redirection(t_cmd *cmd);
 int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
-void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted);
-int process_heredoc_line(char *line, char *delimiter, int fd, t_shell *shell);
-
+void    handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted);
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 22:01:49 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 23:25:39 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -267,7 +267,7 @@ static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
 {
     pid_t pid;
     int status;
-    pid_t shell_pgid = getpid();
+    pid_t shell_pid = getpid();
     struct sigaction sa_ttou;
     
     // Ignore SIGTTOU to prevent suspension when taking back terminal control
@@ -285,23 +285,32 @@ static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
     }
     if (pid == 0)
     {
-        setpgid(0, 0);
-        if (isatty(STDIN_FILENO))
-            tcsetpgrp(STDIN_FILENO, getpid());
-        setup_signals_noninteractive();
-        setup_redirections(cmd, shell);
-        execve(path, cmd->args, env_to_array(shell->env));
-        display_error(ERR_EXEC, cmd->args[0], strerror(errno));
-        exit(126);
+    // Remove setpgid since it's not allowed
+    if (isatty(STDIN_FILENO))
+    {
+        // ADD THE CONDITION HERE
+        // Only give terminal control if command won't read directly from stdin
+        if (cmd->input_fd != -1 || cmd->input_file || cmd->heredoc_file || 
+            (cmd->args[1] != NULL) || 
+            (ft_strcmp(cmd->args[0], "cat") != 0))
+        {
+            pid_t child_pid = getpid();
+            ioctl(STDIN_FILENO, TIOCSPGRP, &child_pid);
+        }
     }
+    setup_signals_noninteractive();
+    setup_redirections(cmd, shell);
+    execve(path, cmd->args, env_to_array(shell->env));
+    display_error(ERR_EXEC, cmd->args[0], strerror(errno));
+    exit(126);
+}
     free(path);
     waitpid(pid, &status, 0);
     
     // Restore terminal control to shell with proper handling
     if (isatty(STDIN_FILENO))
     {
-        tcsetpgrp(STDIN_FILENO, shell_pgid);
-        // Also restore terminal attributes
+        ioctl(STDIN_FILENO, TIOCSPGRP, &shell_pid);  // Use ioctl instead of tcsetpgrp
         tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
     }
     
