@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   env.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:16:25 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:47:17 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,18 +96,22 @@ t_env	*find_env_var(t_env *env_list, const char *key)
 /**
  * Check if a string is a valid shell variable identifier
  */
-int	is_valid_identifier(char *name)
+int is_valid_identifier(char *id)
 {
-    int	i;
-
-    if (!name || !*name)
+    int i;
+    
+    if (!id || !*id) // Check if the string is NULL or empty
         return (0);
-    if (!ft_isalpha(name[0]) && name[0] != '_')
+    
+    // First character must be letter or underscore
+    if (!ft_isalpha(id[0]) && id[0] != '_')
         return (0);
+    
+    // Rest can be letters, numbers, or underscores
     i = 1;
-    while (name[i])
+    while (id[i])
     {
-        if (!ft_isalnum(name[i]) && name[i] != '_')
+        if (!ft_isalnum(id[i]) && id[i] != '_')
             return (0);
         i++;
     }

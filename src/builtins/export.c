@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   export.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:25:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:47:29 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,11 +77,11 @@ static void	print_env_var(t_env *env)
 /**
  * Allocate array for sorting environment variables
  */
-static t_env	**alloc_env_array(t_shell *shell, int count)
+static t_env	**alloc_env_array(t_env *env, int count)
 {
     t_env	**env_array;
 
-    (void)shell; // Unused parameter, but needed for function signature
+    (void)env;  // Avoid unused parameter warning
     env_array = malloc(sizeof(t_env *) * count);
     if (!env_array)
     {
@@ -94,13 +94,13 @@ static t_env	**alloc_env_array(t_shell *shell, int count)
 /**
  * Copy environment variables to array for sorting
  */
-static void	copy_env_to_array(t_shell *shell, t_env **env_array)
+static void	copy_env_to_array(t_env *env, t_env **env_array)
 {
     t_env	*curr;
     int		i;
 
     i = 0;
-    curr = shell->env;
+    curr = env;
     while (curr)
     {
         env_array[i++] = curr;
@@ -109,29 +109,30 @@ static void	copy_env_to_array(t_shell *shell, t_env **env_array)
 }
 
 /**
- * Print environment variables in sorted order
+ * Display exported variables in sorted order
  */
-void	print_sorted_env(t_shell *shell)
+static void	display_exported_vars(t_env *env)
 {
     t_env	**env_array;
     int		count;
     int		i;
 
-    if (!shell || !shell->env)
+    if (!env)
         return ;
-    count = count_env_vars(shell->env);
+    count = count_env_vars(env);
     if (count <= 0)
         return ;
-    env_array = alloc_env_array(shell, count);
+    env_array = alloc_env_array(env, count);
     if (!env_array)
         return ;
-    copy_env_to_array(shell, env_array);
+    copy_env_to_array(env, env_array);
     sort_env_array(env_array, count);
     i = 0;
     while (i < count)
         print_env_var(env_array[i++]);
     free(env_array);
 }
+
 /**
  * Handle invalid identifier error
  */
@@ -139,6 +140,25 @@ static int	handle_invalid_id(char *arg)
 {
     display_error(ERROR_EXPORT, arg, "not a valid identifier");
     return (1);
+}
+
+/**
+ * Find the append operator (+=) in a string
+ */
+static char	*find_append_op(char *str)
+{
+    int	i;
+
+    if (!str)
+        return (NULL);
+    i = 0;
+    while (str[i])
+    {
+        if (str[i] == '+' && str[i + 1] == '=')
+            return (&str[i]);
+        i++;
+    }
+    return (NULL);
 }
 
 /**
@@ -184,73 +204,108 @@ static int	process_append_op(t_shell *shell, char *arg, char *append_pos)
     return (!result);
 }
 
-
 /**
- * Process regular assignment (=) for export
+ * Process assignment (=) for export
  */
 static int	process_assignment(t_shell *shell, char *arg, char *equals_pos)
 {
     char	*key;
+    char	*value;
     int		result;
 
     *equals_pos = '\0';
     key = arg;
+    value = equals_pos + 1;
     if (!is_valid_identifier(key))
     {
         *equals_pos = '=';
         return (handle_invalid_id(arg));
     }
-    result = set_env_var(&shell->env, key, equals_pos + 1);
+    result = set_env_var(&shell->env, key, value);
     *equals_pos = '=';
     return (!result);
 }
 
 /**
- * Process a single export argument
- * Handles variable assignment with proper error messages
+ * Process export arguments without assignment
  */
-static int	process_export_arg(t_shell *shell, char *arg)
+static int	process_no_assignment(t_shell *shell, char *arg)
 {
-    char	*equals_pos;
-    char	*append_pos;
-
-    if (!arg || !*arg)
-        return (1);
-    append_pos = ft_strstr(arg, "+=");
-    if (append_pos)
-        return (process_append_op(shell, arg, append_pos));
-    equals_pos = ft_strchr(arg, '=');
-    if (equals_pos)
-        return (process_assignment(shell, arg, equals_pos));
+    // Check if the identifier is valid first
     if (!is_valid_identifier(arg))
-        return (handle_invalid_id(arg));
+    {
+        display_error(ERROR_EXPORT, arg, "not a valid identifier");
+        return (1);
+    }
+    
+    // Only mark for export if identifier is valid
     return (!mark_var_for_export(&shell->env, arg));
 }
 
 /**
+ * Process a single export argument
+ */
+static int	process_export_arg(t_shell *shell, char *arg)
+{
+    char *equals_pos;
+    char *append_pos;
+    
+    if (!arg || !*arg)  // Handle empty arguments explicitly
+    {
+        display_error(ERROR_EXPORT, "", "not a valid identifier");
+        return (1);
+    }
+    
+    // Check for append operation (+=)
+    append_pos = find_append_op(arg);
+    if (append_pos)
+        return (process_append_op(shell, arg, append_pos));
+    
+    // Check for regular assignment (=)
+    equals_pos = ft_strchr(arg, '=');
+    if (equals_pos)
+        return (process_assignment(shell, arg, equals_pos));
+    
+    // No assignment, just mark for export
+    return (process_no_assignment(shell, arg));
+}
+
+/**
  * Built-in export command
- * With no arguments, displays all exported variables
- * With arguments, adds/updates environment variables
  */
 int	builtin_export(t_shell *shell, t_cmd *cmd)
 {
     int	i;
-    int	status;
-
-    if (!shell || !cmd || !cmd->args)
+    int	result;
+    
+    if (!shell || !cmd)
         return (1);
+    
+    // With no arguments, just display exported variables
     if (!cmd->args[1])
     {
-        print_sorted_env(shell);
+        display_exported_vars(shell->env);
         return (0);
     }
-    status = 0;
+    
+    // Process each argument
+    result = 0;
     i = 1;
     while (cmd->args[i])
     {
-        if (process_export_arg(shell, cmd->args[i]) != 0)
-            status = 1;
+        // Empty strings should be reported as invalid
+        if (cmd->args[i][0] == '\0')
+        {
+            display_error(ERROR_EXPORT, "", "not a valid identifier");
+            result = 1;
+        }
+        else
+        {
+            // Process non-empty arguments
+            result |= process_export_arg(shell, cmd->args[i]);
+        }
         i++;
     }
-    return (status);
+    
+    return (result);
 }

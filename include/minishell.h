@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:08:48 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:47:00 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,7 +113,7 @@ typedef struct s_redirection
     struct s_redirection    *next;
     int                     input_fd;  // File descriptor for input redirection
     int                     output_fd; // File descriptor for output redirection
-    char                    *temp_file; // Temporary file for heredoc
+    char                    *temp_file;
 } t_redirection;
 
 /* Token structure */
@@ -261,6 +261,8 @@ void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
 int     has_heredoc_redirection(t_cmd *cmd);
 int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
+void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted);
+int process_heredoc_line(char *line, char *delimiter, int fd, t_shell *shell);
 
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
@@ -299,7 +301,7 @@ int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 int     builtin_help(t_shell *shell);
 
 /* Main.c functions */
-void	setup_terminal(void);
+void setup_terminal(t_shell *shell);
 void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
 t_shell	*init_shell(char **envp);

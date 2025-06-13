@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   redirections.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:49:58 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:47:36 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,41 +230,13 @@ char	*expand_command_substitution(char *input, t_shell *shell)
 }
 
 /**
- * Process a single line of heredoc input
- */
-static int	process_heredoc_line(char *line, char *delimiter, int fd,
-        int quoted, t_shell *shell)
-{
-    char	*expanded;
-
-    if (ft_strlen(line) > 0 && line[ft_strlen(line) - 1] == '\n')
-        line[ft_strlen(line) - 1] = '\0';
-    if (ft_strcmp(line, delimiter) == 0)
-    {
-        free(line);
-        return (0);
-    }
-    if (!quoted && shell)
-    {
-        expanded = expand_heredoc_content(shell, line);
-        if (expanded)
-        {
-            free(line);
-            line = expanded;
-        }
-    }
-    ft_putstr_fd(line, fd);
-    ft_putstr_fd("\n", fd);
-    free(line);
-    return (1);
-}
-
-/**
  * Handle heredoc child process
  */
-static void handle_heredoc_child(char *delimiter, int fd, int quoted, t_shell *shell)
+void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted)
 {
     char *line;
+    char *expanded;
+    char *expanded_for_comparison;
 
     setup_signals_heredoc();
     ft_putstr_fd("heredoc> ", 1);
@@ -276,8 +248,48 @@ static void handle_heredoc_child(char *delimiter, int fd, int quoted, t_shell *s
             display_heredoc_eof_warning(delimiter);
             break;
         }
-        if (!process_heredoc_line(line, delimiter, fd, quoted, shell))
+        
+        // Remove newline
+        if (ft_strlen(line) > 0 && line[ft_strlen(line) - 1] == '\n')
+            line[ft_strlen(line) - 1] = '\0';
+        
+        // Check literal match first
+        if (ft_strcmp(line, delimiter) == 0)
+        {
+            free(line);
             break;
+        }
+        
+        // Then check for expanded match when the line contains $
+        if (ft_strchr(line, '$'))
+        {
+            expanded_for_comparison = expand_variables(shell, line);
+            if (expanded_for_comparison)
+            {
+                if (ft_strcmp(expanded_for_comparison, delimiter) == 0)
+                {
+                    free(expanded_for_comparison);
+                    free(line);
+                    break;
+                }
+                free(expanded_for_comparison);
+            }
+        }
+        
+        // Expand variables in content if not quoted
+        if (!quoted && shell)
+        {
+            expanded = expand_heredoc_content(shell, line);
+            if (expanded)
+            {
+                free(line);
+                line = expanded;
+            }
+        }
+        
+        ft_putstr_fd(line, fd);
+        ft_putstr_fd("\n", fd);
+        free(line);
         ft_putstr_fd("heredoc> ", 1);
     }
     exit(0);
@@ -297,11 +309,8 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
     pid = fork();
     if (pid == -1)
         return (0);
-        
     if (pid == 0)
-        handle_heredoc_child(delimiter, fd, quoted, shell);
-    
-    // Wait and check signal status
+        handle_heredoc_child(delimiter, fd, shell, quoted); // Pass quoted flag
     waitpid(pid, &status, 0);
     if (WIFSIGNALED(status))
     {
@@ -413,23 +422,47 @@ static int	handle_open_error(char *file, t_redirection *redir)
 /**
  * Process heredoc redirection in a redirection list
  */
-int	process_heredoc_redir(t_redirection *redir, t_shell *shell)
+int process_heredoc_redir(t_redirection *redir, t_shell *shell)
 {
-    int		fd;
-    char	*temp_file;
+    int     fd;
+    char    *temp_file;
+    char    *expanded_delimiter = NULL;
 
     if (!redir || !redir->word)
         return (1);
+        
+    // Expand variables in delimiter if not quoted
+    if (!redir->quoted && ft_strchr(redir->word, '$'))
+    {
+        expanded_delimiter = expand_variables(shell, redir->word);
+        if (!expanded_delimiter)
+            expanded_delimiter = ft_strdup(redir->word);
+    }
+    else
+        expanded_delimiter = ft_strdup(redir->word);
+        
     temp_file = create_heredoc_tempfile(&fd);
     if (!temp_file)
+    {
+        free(expanded_delimiter);
         return (1);
+    }
+    
     redir->temp_file = temp_file;
-    if (!collect_heredoc_input(redir->word, fd, redir->quoted, shell))
+    
+    // Pass the expanded delimiter to collect_heredoc_input
+    if (!collect_heredoc_input(expanded_delimiter, fd, redir->quoted, shell))
+    {
+        free(expanded_delimiter);
         return (handle_heredoc_redir_error(fd, temp_file, redir));
+    }
+    
+    free(expanded_delimiter);
     close(fd);
     fd = open(temp_file, O_RDONLY);
     if (fd == -1)
         return (handle_open_error(temp_file, redir));
+        
     redir->input_fd = fd;
     unlink(temp_file);
     return (0);

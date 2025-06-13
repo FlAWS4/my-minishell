@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 22:02:24 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/13 20:47:46 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,19 +126,40 @@ int	handle_redir_out(t_token **token, t_cmd *cmd, int append)
 /**
  * Handle heredoc redirection part 1
  */
-static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
+static int handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted, t_shell *shell)
 {
+    char *expanded_delim;
+    
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
     {
         display_error(ERR_SYNTAX, "expected delimiter after <<", NULL);
         return (0);
     }
+    
+    // Handle quoted delimiters - no expansion in either case
     if ((*token)->next->type == TOKEN_SINGLE_QUOTE || 
         (*token)->next->type == TOKEN_DOUBLE_QUOTE)
+    {
         *quoted = 1;
+        cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    }
+    // Handle unquoted delimiters
     else
-        *quoted = 0;
-    cmd->heredoc_delim = ft_strdup((*token)->next->value);
+    {
+        // If delimiter contains $, expand it first
+        if ((*token)->next->value && ft_strchr((*token)->next->value, '$'))
+        {
+            // Save original delimiter too
+            expanded_delim = expand_variables(shell, (*token)->next->value);
+            cmd->heredoc_delim = expanded_delim;
+        }
+        else
+        {
+            cmd->heredoc_delim = ft_strdup((*token)->next->value);
+        }
+        *quoted = 0; // Content should be expanded for unquoted delimiters
+    }
+    
     if (!cmd->heredoc_delim)
     {
         display_error(ERR_MEMORY, NULL, NULL);
@@ -146,6 +167,7 @@ static int	handle_heredoc_setup(t_token **token, t_cmd *cmd, int *quoted)
     }
     return (1);
 }
+
 
 /**
  * Handle heredoc redirection
@@ -157,7 +179,7 @@ int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
 
     (void)shell; // shell is not used in this function, but kept for consistency
     quoted = 0;
-    if (!handle_heredoc_setup(token, cmd, &quoted))
+    if (!handle_heredoc_setup(token, cmd, &quoted, shell))
         return (1);
     cmd->heredoc_file = NULL;
     cmd->input_fd = -1;
