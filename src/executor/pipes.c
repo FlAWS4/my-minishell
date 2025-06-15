@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 21:33:30 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 06:44:06 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,56 +88,29 @@ static int execute_piped_command(t_shell *shell, t_cmd *cmd,
     
     if (pid == 0)
     {
-        // Child process - remove setpgid calls
+        // Child process
         setup_signals_noninteractive();
         setup_child_pipes(prev_pipe, pipe_fds, cmd);
-        write(STDOUT_FILENO, "", 0);
-        write(STDERR_FILENO, "", 0);
         execute_child(shell, cmd);
         exit(1);
     }
     else
     {
         cmd->pid = pid;
-        
-       // Change this code in execute_piped_command function
-        if (cmd == shell->cmd && isatty(STDIN_FILENO)) 
-        {
-            // Only give terminal control if:
-            // 1. It's not in a pipeline, OR
-            // 2. It has input redirection (not reading from terminal)
-            if (!cmd->next || cmd->input_fd != -1 || cmd->input_file || cmd->heredoc_file)
-            {
-                ioctl(STDIN_FILENO, TIOCSPGRP, &pid);
-            }
-        }
     }
     return (0);
 }
-
 
 int wait_for_children(t_shell *shell)
 {
     int status;
     int pid;
-    int last_status;
-    struct sigaction sa_int, sa_quit, sa_old_int, sa_old_quit;
+    int last_status = 0;
     
     if (!shell)
         return (1);
     
-    // Use sigaction instead of signal() for more reliability
-    sa_int.sa_handler = SIG_IGN;
-    sigemptyset(&sa_int.sa_mask);
-    sa_int.sa_flags = 0;
-    sigaction(SIGINT, &sa_int, &sa_old_int);
-    
-    sa_quit.sa_handler = SIG_IGN;
-    sigemptyset(&sa_quit.sa_mask);
-    sa_quit.sa_flags = 0;
-    sigaction(SIGQUIT, &sa_quit, &sa_old_quit);
-    
-    last_status = 0;
+    // Wait for all child processes
     while (1)
     {
         pid = waitpid(-1, &status, 0);
@@ -158,14 +131,6 @@ int wait_for_children(t_shell *shell)
             last_status = 128 + WTERMSIG(status);
         }
     }
-    
-    // Restore previous signal handlers properly
-    sigaction(SIGINT, &sa_old_int, NULL);
-    sigaction(SIGQUIT, &sa_old_quit, NULL);
-    
-    // Ensure buffers are flushed
-    write(STDOUT_FILENO, "", 0);
-    write(STDERR_FILENO, "", 0);
     
     shell->exit_status = last_status;
     return (last_status);
@@ -270,17 +235,6 @@ static int	run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 int execute_pipeline(t_shell *shell, t_cmd *cmd)
 {
     int result;
-    pid_t shell_pgid;
-    struct sigaction sa_ttou;
-    
-    // Save shell's process group ID using allowed functions
-    shell_pgid = getpid();  // Using getpid() which is allowed
-    
-    // Ignore SIGTTOU before changing terminal control
-    sa_ttou.sa_handler = SIG_IGN;
-    sigemptyset(&sa_ttou.sa_mask);
-    sa_ttou.sa_flags = 0;
-    sigaction(SIGTTOU, &sa_ttou, NULL);
     
     // Process all heredocs first
     if (!process_pipeline_heredocs(shell, cmd))
@@ -291,16 +245,6 @@ int execute_pipeline(t_shell *shell, t_cmd *cmd)
         return (1);
     
     result = wait_for_children(shell);
-    
-    // Restore terminal control to the shell - more robust approach
-    if (isatty(STDIN_FILENO))
-    {
-        // Use ioctl to set terminal process group (equivalent to tcsetpgrp)
-        ioctl(STDIN_FILENO, TIOCSPGRP, &shell_pgid);
-        
-        // Always restore terminal settings
-        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-    }
     
     cleanup_after_execution(cmd);
     

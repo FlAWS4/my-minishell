@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 21:08:32 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 04:52:43 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,7 @@
 # define ERROR_ENV         105
 # define ERROR_EXIT        106
 # define ERROR_PWD         107
+# define PROMPT_SIZE       256
 # define RESET              "\033[0m"
 
 /* Global variable for signal handling (as allowed by subject) */
@@ -223,6 +224,8 @@ void	*ft_memset(void *s, int c, size_t n);
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
+void    ignore_tty_signals(void);
+void restore_terminal_settings(t_shell *shell);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -241,11 +244,9 @@ t_token	*get_last_token(t_token *tokens);
 t_cmd	*create_cmd(void);
 int		init_args(t_cmd *cmd, char *arg);
 void   add_arg(t_cmd *cmd, char *arg);
+void    expand_command_args(t_cmd *cmd_list, t_shell *shell);
 
 /* Redirection handling */
-int		handle_redir_in(t_token **token, t_cmd *cmd);
-int		handle_redir_out(t_token **token, t_cmd *cmd, int append);
-int     handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell);
 int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
@@ -263,7 +264,7 @@ void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
 int     has_heredoc_redirection(t_cmd *cmd);
 int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
-void    handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int quoted);
+
 /* Token parsing */
 void    handle_word_token(t_cmd *cmd, t_token **token);
 t_cmd	*handle_pipe_token(t_cmd *current);
@@ -327,6 +328,7 @@ char    *process_heredoc_content(t_shell *shell, char *content, char *delimiter)
 void	free_token_list(t_token *tokens);
 void	free_cmd_list(t_cmd *cmd);
 void	free_str_array(char **array);
+void	free_cmd(t_cmd *cmd);
 
 /* Error functions */
 void	print_error(char *cmd, char *msg);
@@ -343,7 +345,7 @@ void    display_heredoc_eof_warning(char *delimiter);
 
 /* Extra functions */
 void	ft_display_welcome(void);
-void	create_prompt(char *prompt, int exit_status);
+void create_prompt(char *prompt, int exit_status, t_shell *shell);
 
 /* History functions */
 void	init_history(void);

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 23:25:39 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 06:41:00 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,6 +126,97 @@ char	*find_command(t_shell *shell, char *cmd)
 }
 
 /**
+ * Remove colon prefix from command if present
+ * Returns 1 if modified, 0 if not
+ */
+static int	remove_colon_prefix(char **cmd)
+{
+    char	*new_cmd;
+
+    if (!cmd || !*cmd || (*cmd)[0] != ':')
+        return (0);
+    
+    new_cmd = ft_strdup(*cmd + 1);
+    if (!new_cmd)
+        return (0);
+        
+    free(*cmd);
+    *cmd = new_cmd;
+    return (1);
+}
+
+/**
+ * Copy split arguments to new array
+ */
+static char	**copy_split_args(char **split_args, int count)
+{
+    char	**new_args;
+    int		i;
+
+    new_args = malloc(sizeof(char *) * (count + 1));
+    if (!new_args)
+        return (NULL);
+    i = 0;
+    while (i < count)
+    {
+        new_args[i] = ft_strdup(split_args[i]);
+        if (!new_args[i])
+        {
+            while (--i >= 0)
+                free(new_args[i]);
+            free(new_args);
+            return (NULL);
+        }
+        i++;
+    }
+    new_args[i] = NULL;
+    return (new_args);
+}
+
+/**
+ * Try to split a quoted variable into command and arguments
+ * Returns 1 if successfully split, 0 otherwise
+ */
+static int	try_split_quoted_var(t_shell *shell, t_cmd *cmd)
+{
+    char	**split_args;
+    char	*potential_cmd;
+    int		count;
+    char	**new_args;
+
+    if (!cmd->args[0] || cmd->args[0][0] != ':')
+        return (0);
+    remove_colon_prefix(&cmd->args[0]);
+    if (!ft_strchr(cmd->args[0], ' '))
+        return (0);
+    split_args = ft_split(cmd->args[0], ' ');
+    if (!split_args || !split_args[0])
+    {
+        free_str_array(split_args);
+        return (0);
+    }
+    potential_cmd = find_command(shell, split_args[0]);
+    if (potential_cmd || is_builtin(split_args[0]))
+    {
+        free(potential_cmd);
+        count = 0;
+        while (split_args[count])
+            count++;
+        new_args = copy_split_args(split_args, count);
+        if (new_args)
+        {
+            free_str_array(cmd->args);
+            cmd->args = new_args;
+            free_str_array(split_args);
+            return (1);
+        }
+    }
+    free(potential_cmd);
+    free_str_array(split_args);
+    return (0);
+}
+
+/**
  * Set up redirections for builtin command
  */
 static int	setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
@@ -176,18 +267,18 @@ static int	run_builtin_command(t_shell *shell, t_cmd *cmd, char *cmd_name)
         return (builtin_exit(shell, cmd));
     else if (ft_strcmp(cmd_name, "help") == 0)
         return (builtin_help(shell));
-    return (1);    
+    return (1);
 }
 
 /**
  * Execute builtin command with redirection handling
  */
-int execute_builtin(t_shell *shell, t_cmd *cmd)
+int	execute_builtin(t_shell *shell, t_cmd *cmd)
 {
-    char *cmd_name;
-    int saved_stdin;
-    int saved_stdout;
-    int result;
+    char	*cmd_name;
+    int		saved_stdin;
+    int		saved_stdout;
+    int		result;
     
     if (!cmd->args || !cmd->args[0])
         return (1);
@@ -222,13 +313,21 @@ int	is_builtin(char *cmd)
 /**
  * Set up environment for child process
  */
-static void	prepare_child_exec(t_shell *shell, t_cmd *cmd, 
-                            char **cmd_path, char ***env_array)
+static void prepare_child_exec(t_shell *shell, t_cmd *cmd, 
+                           char **cmd_path, char ***env_array)
 {
-    if (setup_redirections(cmd, shell) != 0)
-        exit(1);
+    if (cmd->redirections || cmd->input_file || cmd->input_fd != -1)
+    {
+        if (setup_redirections(cmd, shell) != 0)
+            exit(1);
+    }
+    if (cmd->args[0] && cmd->args[0][0] == ':')
+    {
+        if (!try_split_quoted_var(shell, cmd))
+            remove_colon_prefix(&cmd->args[0]);
+    }
     if (is_builtin(cmd->args[0]))
-        exit(run_builtin_command(shell, cmd, cmd->args[0]));
+        exit(run_builtin_command(shell, cmd, cmd->args[0]));   
     *cmd_path = find_command(shell, cmd->args[0]);
     if (!*cmd_path)
     {
@@ -267,14 +366,6 @@ static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
 {
     pid_t pid;
     int status;
-    pid_t shell_pid = getpid();
-    struct sigaction sa_ttou;
-    
-    // Ignore SIGTTOU to prevent suspension when taking back terminal control
-    sa_ttou.sa_handler = SIG_IGN;
-    sigemptyset(&sa_ttou.sa_mask);
-    sa_ttou.sa_flags = 0;
-    sigaction(SIGTTOU, &sa_ttou, NULL);
 
     pid = fork();
     if (pid == -1)
@@ -285,35 +376,14 @@ static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
     }
     if (pid == 0)
     {
-    // Remove setpgid since it's not allowed
-    if (isatty(STDIN_FILENO))
-    {
-        // ADD THE CONDITION HERE
-        // Only give terminal control if command won't read directly from stdin
-        if (cmd->input_fd != -1 || cmd->input_file || cmd->heredoc_file || 
-            (cmd->args[1] != NULL) || 
-            (ft_strcmp(cmd->args[0], "cat") != 0))
-        {
-            pid_t child_pid = getpid();
-            ioctl(STDIN_FILENO, TIOCSPGRP, &child_pid);
-        }
+        setup_signals_noninteractive();
+        execute_child(shell, cmd);
+        exit(126);
     }
-    setup_signals_noninteractive();
-    setup_redirections(cmd, shell);
-    execve(path, cmd->args, env_to_array(shell->env));
-    display_error(ERR_EXEC, cmd->args[0], strerror(errno));
-    exit(126);
-}
+    
+    // Parent process
     free(path);
     waitpid(pid, &status, 0);
-    
-    // Restore terminal control to shell with proper handling
-    if (isatty(STDIN_FILENO))
-    {
-        ioctl(STDIN_FILENO, TIOCSPGRP, &shell_pid);  // Use ioctl instead of tcsetpgrp
-        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-    }
-    
     process_cmd_status(shell, status);
     return (shell->exit_status);
 }
@@ -321,22 +391,28 @@ static int handle_command_fork(t_shell *shell, t_cmd *cmd, char *path)
 /**
  * Execute a command with proper error handling
  */
-int execute_command(t_shell *shell, t_cmd *cmd)
+int	execute_command(t_shell *shell, t_cmd *cmd)
 {
-    char *path;
-    int result;
+    char	*path;
+    int		result;
 
     if (!cmd || !cmd->args || !cmd->args[0])
         return (0);
-        
+    
+    // Try to handle quoted variables intelligently
+    if (cmd->args[0][0] == ':')
+    {
+        if (!try_split_quoted_var(shell, cmd))
+            remove_colon_prefix(&cmd->args[0]);
+    }
+    
     if (is_builtin(cmd->args[0]))
     {
         result = execute_builtin(shell, cmd);
         shell->exit_status = result;
-        return (result);  
+        return (result);
     }
     
-    // Only for external commands
     path = find_command(shell, cmd->args[0]);
     if (!path)
     {
@@ -353,10 +429,28 @@ int execute_command(t_shell *shell, t_cmd *cmd)
  */
 int	execute(t_shell *shell, t_cmd *cmd)
 {
+    t_cmd	*current;
+    
     if (!shell || !cmd)
         return (1);
-    if (cmd->heredoc_delim || has_heredoc_redirection(cmd))
-        return (process_and_execute_heredoc_command(shell, cmd));
+    
+    // Process heredocs first (for all commands in pipeline)
+    if (cmd->heredoc_delim || cmd->redirections)
+    {
+        current = cmd;
+        while (current && !g_signal)
+        {
+            if (!current->heredocs_processed)
+                if (!process_heredoc(current, shell))
+                    return (1);
+            current = current->next;
+        }
+        
+        if (g_signal)
+            return (1);
+    }
+    
+    // Then execute command(s)
     if (cmd->next)
         return (execute_pipeline(shell, cmd));
     else

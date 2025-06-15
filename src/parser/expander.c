@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:46:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 08:36:01 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,10 +109,10 @@ static int	prepare_var_parts(char *str, int i, char **parts, char *var_name)
 /**
  * Create expanded result string
  */
-static char *join_expanded_parts(char **parts, char *var_value)
+static char	*join_expanded_parts(char **parts, char *var_value)
 {
-    char *result;
-    char *temp;
+    char	*result;
+    char	*temp;
 
     result = ft_strjoin(parts[0], var_value);
     if (!result)
@@ -137,16 +137,6 @@ static int	is_valid_var_char(char c)
 }
 
 /**
- * Handle error in variable expansion
- */
-static char	*handle_var_error(char *str, char *var_name, char *var_value,
-        char **parts)
-{
-    free_expansion_parts(var_name, var_value, parts);
-    return (str);
-}
-
-/**
  * Expand a single variable
  */
 char	*expand_one_var(t_shell *shell, char *str, int *i)
@@ -168,14 +158,15 @@ char	*expand_one_var(t_shell *shell, char *str, int *i)
     if (!var_value)
         var_value = ft_strdup("");
     if (!prepare_var_parts(str, *i, parts, var_name))
-        return (handle_var_error(str, var_name, var_value, parts));
+    {
+        free_expansion_parts(var_name, var_value, parts);
+        return (str);
+    }
     result = join_expanded_parts(parts, var_value);
-    if (!result)
-        return (handle_var_error(str, var_name, var_value, parts));
     *i = ft_strlen(parts[0]) + ft_strlen(var_value) - 1;
     free_expansion_parts(var_name, var_value, parts);
     free(str);
-    return (result);
+    return (result ? result : str);
 }
 
 /**
@@ -207,59 +198,9 @@ char	*expand_variables(t_shell *shell, char *token)
 }
 
 /**
- * Handle the special case of $?
+ * Extract and expand a variable in heredoc
  */
-static int	handle_special_var(char *content, int start, char **result,
-        t_shell *shell)
-{
-    char	*var_name;
-    char	*var_value;
-    char	*temp;
-
-    (void)content;
-    (void)start;
-    var_name = ft_strdup("?");
-    if (!var_name)
-        return (0);
-    var_value = get_var_value(shell, var_name);
-    temp = *result;
-    if (var_value)
-        *result = ft_strjoin(*result, var_value);
-    else
-        *result = ft_strjoin(*result, "");
-    if (!*result)
-    {
-        *result = temp;
-        free(var_name);
-        if (var_value)
-            free(var_value);
-        return (0);
-    }
-    free(temp);
-    free(var_name);
-    if (var_value)
-        free(var_value);
-    return (1);
-}
-
-/**
- * Get variable name length
- */
-static int	get_var_name_length(char *content, int start)
-{
-    int	len;
-
-    len = 0;
-    while (content[start + len] && (ft_isalnum(content[start + len])
-            || content[start + len] == '_'))
-        len++;
-    return (len);
-}
-
-/**
- * Extract and expand a regular variable
- */
-static int	expand_regular_var(char *content, int *i, char **result,
+static int	extract_and_expand_var(char *content, int *i, char **result,
         t_shell *shell)
 {
     int		start;
@@ -269,49 +210,24 @@ static int	expand_regular_var(char *content, int *i, char **result,
     char	*temp;
 
     start = *i + 1;
-    len = get_var_name_length(content, start);
-    var_name = ft_substr(content, start, len);
-    if (!var_name)
-        return (0);
-    var_value = get_var_value(shell, var_name);
-    temp = *result;
-    if (var_value)
-        *result = ft_strjoin(*result, var_value);
-    else
-        *result = ft_strjoin(*result, "");
-    if (!*result)
-    {
-        *result = temp;
-        free(var_name);
-        if (var_value)
-            free(var_value);
-        return (0);
-    }
-    free(temp);
-    free(var_name);
-    if (var_value)
-        free(var_value);
-    *i += len + 1;
-    return (1);
-}
-
-/**
- * Extract and expand a variable in heredoc
- */
-static int	extract_and_expand_var(char *content, int *i, char **result,
-        t_shell *shell)
-{
-    int	start;
-
-    start = *i + 1;
     if (content[start] == '?')
     {
-        if (!handle_special_var(content, start, result, shell))
-            return (0);
+        var_name = ft_strdup("?");
         *i += 2;
-        return (1);
     }
-    return (expand_regular_var(content, i, result, shell));
+    else
+    {
+        len = 0;
+        while (content[start + len] && (ft_isalnum(content[start + len])
+                || content[start + len] == '_'))
+            len++;
+        var_name = ft_substr(content, start, len);
+        *i += len + 1;
+    }
+    var_value = get_var_value(shell, var_name);
+    temp = *result;
+    *result = var_value ? ft_strjoin(*result, var_value) : ft_strjoin(*result, "");
+    return (free(temp), free(var_name), free(var_value), *result != NULL);
 }
 
 /**
@@ -327,24 +243,7 @@ static int	append_char_to_result(char c, char **result)
     temp = *result;
     *result = ft_strjoin(*result, c_str);
     free(temp);
-    if (!*result)
-        return (0);
-    return (1);
-}
-
-/**
- * Process variable expansion in heredoc
- */
-static int	process_heredoc_var(char *content, int *i, char **result,
-        t_shell *shell)
-{
-    if (!extract_and_expand_var(content, i, result, shell))
-    {
-        free(*result);
-        *result = NULL;
-        return (0);
-    }
-    return (1);
+    return (*result != NULL);
 }
 
 /**
@@ -364,8 +263,11 @@ char	*expand_heredoc_content(t_shell *shell, char *content)
         if (content[i] == '$' && content[i + 1] && (ft_isalnum(content[i + 1])
                 || content[i + 1] == '?' || content[i + 1] == '_'))
         {
-            if (!process_heredoc_var(content, &i, &result, shell))
+            if (!extract_and_expand_var(content, &i, &result, shell))
+            {
+                free(result);
                 return (NULL);
+            }
         }
         else
         {
@@ -378,107 +280,15 @@ char	*expand_heredoc_content(t_shell *shell, char *content)
 }
 
 /**
- * Create tokens from split words
- */
-static t_token	*create_tokens_from_words(t_token *current, char **words,
-        t_token **next)
-{
-    t_token	*last;
-    t_token	*new_token;
-    int		i;
-
-    free(current->value);
-    current->value = ft_strdup(words[0]);
-    last = current;
-    i = 1;
-    while (words[i])
-    {
-        new_token = create_token(TOKEN_WORD, ft_strdup(words[i]), 1);
-        if (!new_token)
-            break;
-        new_token->next = last->next;
-        last->next = new_token;
-        last = new_token;
-        i++;
-    }
-    *next = last->next;
-    return (last);
-}
-
-/**
- * Handle word splitting after expansion
- */
-static t_token	*handle_word_splitting(t_token *current, char *expanded,
-        t_token **next)
-{
-    char	**words;
-    t_token	*last;
-
-    words = ft_split(expanded, ' ');
-    free(expanded);
-    if (!words || !words[0])
-    {
-        if (words)
-            free_env_array(words);
-        return (current);
-    }
-    last = create_tokens_from_words(current, words, next);
-    free_env_array(words);
-    return (last);
-}
-
-/**
- * Process a token for expansion
- */
-static t_token	*process_token_expansion(t_token *current, t_shell *shell,
-        t_token **next)
-{
-    char	*expanded;
-
-    expanded = expand_variables(shell, current->value);
-    if (!expanded)
-        return (current);
-    if (ft_strcmp(expanded, current->value) != 0 && current->type == TOKEN_WORD)
-        current = handle_word_splitting(current, expanded, next);
-    else
-    {
-        free(current->value);
-        current->value = expanded;
-    }
-    return (current);
-}
-
-/**
- * Expand variables in tokens with word splitting
- */
-t_token	*expand_variables_in_tokens_with_splitting(t_token *tokens,
-        t_shell *shell)
-{
-    t_token	*current;
-    t_token	*next;
-    t_token	*head;
-
-    head = tokens;
-    if (!tokens || !shell)
-        return (tokens);
-    current = tokens;
-    while (current)
-    {
-        next = current->next;
-        if (current->type != TOKEN_SINGLE_QUOTE)
-            current = process_token_expansion(current, shell, &next);
-        current = next;
-    }
-    return (head);
-}
-
-/**
  * Check if heredoc should expand variables based on delimiter
+ * (true if delimiter has no quotes)
  */
 int	should_expand_heredoc(char *delimiter)
 {
     int	i;
 
+    if (!delimiter)
+        return (1);
     i = 0;
     while (delimiter[i])
     {

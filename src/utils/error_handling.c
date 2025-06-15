@@ -6,12 +6,24 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 20:15:11 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 07:41:14 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 
 #include "minishell.h"
+
+/**
+ * Remove colon prefix from command name (for quoted variables)
+ */
+static char	*clean_command_name(char *cmd)
+{
+    if (!cmd)
+        return (NULL);
+    if (cmd[0] == ':')
+        return (cmd + 1);
+    return (cmd);
+}
 
 /**
  * Check if string contains substring
@@ -64,267 +76,157 @@ static char	*get_error_prefix(int error_type)
 }
 
 /**
- * Display CD error with enhanced styling - bash-like but prettier
+ * Get command color and icon based on command type
  */
-static void display_cd_error(char *path, char *message)
+static void	get_cmd_style(char *cmd, char **color, char **icon)
 {
-    // Shell name with folder icon
-    ft_putstr_fd(BOLD_YELLOW "📂 minishell" RESET ": ", 2);
-    
-    // CD command in cyan (more visible)
-    ft_putstr_fd(BOLD_CYAN "cd" RESET, 2);
-    
-    if (path && path[0] != '\0')
+    if (!cmd)
     {
-        // Path with nice formatting
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(path, 2);
-        ft_putstr_fd(RESET ": ", 2);
+        *color = BOLD_YELLOW;
+        *icon = "📦";
+        return ;
+    }
+    if (ft_strcmp(cmd, "cd") == 0)
+    {
+        *color = BOLD_CYAN;
+        *icon = "📂";
+    }
+    else if (ft_strcmp(cmd, "echo") == 0)
+    {
+        *color = BOLD_GREEN;
+        *icon = "📢";
+    }
+    else if (ft_strcmp(cmd, "export") == 0)
+    {
+        *color = BOLD_BLUE;
+        *icon = "🔄";
+    }
+    else if (ft_strcmp(cmd, "unset") == 0)
+    {
+        *color = BOLD_MAGENTA;
+        *icon = "🗑️";
+    }
+    else if (ft_strcmp(cmd, "env") == 0)
+    {
+        *color = BOLD_CYAN;
+        *icon = "🌍";
+    }
+    else if (ft_strcmp(cmd, "exit") == 0)
+    {
+        *color = BOLD_RED;
+        *icon = "🚪";
+    }
+    else if (ft_strcmp(cmd, "pwd") == 0)
+    {
+        *color = BOLD_BLUE;
+        *icon = "📂";
     }
     else
     {
-        ft_putstr_fd(": ", 2);
+        *color = BOLD_YELLOW;
+        *icon = "📦";
     }
+}
+
+/**
+ * Display builtin command error with styling
+ */
+static void	display_builtin_error(char *cmd, char *arg, char *message)
+{
+    char	*color;
+    char	*icon;
+    char	*clean_arg;
+
+    clean_arg = clean_command_name(arg);
+    get_cmd_style(cmd, &color, &icon);
+    ft_putstr_fd(color, 2);
+    ft_putstr_fd(icon, 2);
+    ft_putstr_fd(" minishell" RESET ": ", 2);
+    ft_putstr_fd(color, 2);
+    ft_putstr_fd(cmd, 2);
+    ft_putstr_fd(RESET, 2);
+    if (clean_arg && clean_arg[0] != '\0')
+    {
+        ft_putstr_fd(": " BOLD_WHITE, 2);
+        ft_putstr_fd(clean_arg, 2);
+        ft_putstr_fd(RESET ": ", 2);
+    }
+    else
+        ft_putstr_fd(": ", 2);
     if (message)
     {
-        // Error message in red for emphasis
         ft_putstr_fd(BOLD_RED, 2);
         ft_putstr_fd(message, 2);
         ft_putstr_fd(RESET, 2);
-    }   
+    }
     ft_putstr_fd("\n", 2);
 }
 
 /**
  * Display command not found error
  */
-static void	display_not_found_error(char *command)
-{
-    char	*prefix;
-
-    prefix = BOLD_RED "🔍 Command Not Found" RESET ": ";
-    ft_putstr_fd(prefix, 2);
-    if (command && command[0] != '\0')
-    {
-        ft_putstr_fd(command, 2);
-        ft_putstr_fd(": command not found\n", 2);
-    }
-    else
-        ft_putstr_fd("command not found\n", 2);
-}
-
-/**
- * Display Echo error with styling
- */
-static void display_echo_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_GREEN "📢 minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_GREEN "echo" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Display Export error with styling
- */
-static void display_export_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_BLUE "🔄 minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_BLUE "export" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Display Unset error with styling
- */
-static void display_unset_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_MAGENTA "🗑️ minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_MAGENTA "unset" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Display Env error with styling
- */
-static void display_env_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_CYAN "🌍 minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_CYAN "env" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Display Exit error with styling
- */
-static void display_exit_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_RED "🚪 minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_RED "exit" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Display PWD error with styling
- */
-static void display_pwd_error(char *arg, char *message)
-{
-    ft_putstr_fd(BOLD_BLUE "📂 minishell" RESET ": ", 2);
-    ft_putstr_fd(BOLD_BLUE "pwd" RESET, 2);
-    
-    if (arg && arg[0] != '\0')
-    {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
-    }
-    else
-    {
-        ft_putstr_fd(": ", 2);
-    }
-    
-    if (message)
-    {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
-    }
-    
-    ft_putstr_fd("\n", 2);
-}
-
-/**
- * Update the display_error function to handle all command types
- */
-void display_error(int error_type, char *command, char *message)
+static void display_not_found_error(char *command)
 {
     char *prefix;
+    char *display_cmd;
 
+    // Make sure we have a valid command
+    if (!command)
+    {
+        ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET ": command not found\n", 2);
+        return;
+    }
+    
+    // Skip any colon or quote at the start
+    display_cmd = command;
+    while (*display_cmd && (*display_cmd == ':' || *display_cmd == '"' || *display_cmd == '\''))
+        display_cmd++;
+        
+    prefix = BOLD_RED "🔍 Command Not Found" RESET ": ";
+    ft_putstr_fd(prefix, 2);
+    ft_putstr_fd(display_cmd, 2);
+    ft_putstr_fd(": command not found\n", 2);
+}
+
+/**
+ * Display error message with formatting
+ */
+void	display_error(int error_type, char *command, char *message)
+{
+    char	*prefix;
+    char	*clean_cmd;
+
+    clean_cmd = clean_command_name(command);
     if (error_type == ERROR_CD)
-        return (display_cd_error(command, message));
+        return (display_builtin_error("cd", clean_cmd, message));
     else if (error_type == ERROR_ECHO)
-        return (display_echo_error(command, message));
+        return (display_builtin_error("echo", clean_cmd, message));
     else if (error_type == ERROR_EXPORT)
-        return (display_export_error(command, message));
+        return (display_builtin_error("export", clean_cmd, message));
     else if (error_type == ERROR_UNSET)
-        return (display_unset_error(command, message));
+        return (display_builtin_error("unset", clean_cmd, message));
     else if (error_type == ERROR_ENV)
-        return (display_env_error(command, message));
+        return (display_builtin_error("env", clean_cmd, message));
     else if (error_type == ERROR_EXIT)
-        return (display_exit_error(command, message));
+        return (display_builtin_error("exit", clean_cmd, message));
     else if (error_type == ERROR_PWD)
-        return (display_pwd_error(command, message));
-    if (error_type == ERROR_NOT_FOUND)
-        return (display_not_found_error(command));
+        return (display_builtin_error("pwd", clean_cmd, message));
+    if (error_type == ERROR_NOT_FOUND || error_type == ERR_NOT_FOUND)
+        return (display_not_found_error(clean_cmd));
     prefix = get_error_prefix(error_type);
     ft_putstr_fd(prefix, 2);
-    if (command && command[0] != '\0')
+    if (clean_cmd && clean_cmd[0] != '\0')
     {
-        ft_putstr_fd(command, 2);
+        ft_putstr_fd(clean_cmd, 2);
         ft_putstr_fd(": ", 2);
-    }   
+    }
     if (message)
         ft_putstr_fd(message, 2);
-    
     ft_putstr_fd("\n", 2);
 }
 
 /**
- * Print error message to stderr with automatic error type detection
+ * Print error message with automatic error type detection
  */
 void	print_error(char *cmd, char *msg)
 {
@@ -392,14 +294,14 @@ void	free_str_array(char **array)
 /**
  * Print syntax error for tokens
  */
-void print_syntax_error(char *token_value, int token_type)
+void	print_syntax_error(char *token_value, int token_type)
 {
-    char *prefix = "unexpected ";
-    char *suffix;
-    
+    char	*prefix;
+    char	*suffix;
+
+    prefix = "unexpected ";
     if (!token_value)
         token_value = "unexpected token";
-        
     if (token_type == TOKEN_PIPE)
         suffix = "pipe operator '";
     else if (token_type == TOKEN_REDIR_IN || token_type == TOKEN_REDIR_OUT
@@ -407,24 +309,11 @@ void print_syntax_error(char *token_value, int token_type)
         suffix = "redirection '";
     else
         suffix = "token '";
-        
     display_error(ERROR_SYNTAX, "syntax error", NULL);
     ft_putstr_fd(prefix, 2);
     ft_putstr_fd(suffix, 2);
     ft_putstr_fd(token_value, 2);
     ft_putstr_fd("'\n", 2);
-}
-
-/**
- * Handle execution errors and set appropriate exit status
- */
-int	handle_execution_error(t_shell *shell, char *cmd, char *message, 
-        int error_type)
-{
-    display_error(error_type, cmd, message);
-    if (shell)
-        shell->exit_status = get_error_exit_status(error_type);
-    return (get_error_exit_status(error_type));
 }
 
 /**
@@ -443,9 +332,21 @@ static char	*get_errno_message(void)
 }
 
 /**
+ * Handle execution errors and set appropriate exit status
+ */
+int	handle_execution_error(t_shell *shell, char *cmd, char *message,
+        int error_type)
+{
+    display_error(error_type, cmd, message);
+    if (shell)
+        shell->exit_status = get_error_exit_status(error_type);
+    return (get_error_exit_status(error_type));
+}
+
+/**
  * Handle redirection errors specifically
  */
-int handle_redirection_error(t_shell *shell, char *filename, char *message)
+int	handle_redirection_error(t_shell *shell, char *filename, char *message)
 {
     if (!message)
         message = get_errno_message();
@@ -520,8 +421,7 @@ int	handle_fork_error(t_shell *shell, char *context)
  */
 void display_heredoc_eof_warning(char *delimiter)
 {
-    ft_putstr_fd(BOLD_YELLOW "minishell: " RESET, 2);
-    ft_putstr_fd("warning: here-document delimited by end-of-file (wanted `", 2);
-    ft_putstr_fd(delimiter, 2);
-    ft_putstr_fd("')\n", 2);
+    ft_putstr_fd("minishell: warning: here-document delimited by end-of-file (wanted `", STDERR_FILENO);
+    ft_putstr_fd(delimiter, STDERR_FILENO);
+    ft_putstr_fd("')\n", STDERR_FILENO);
 }

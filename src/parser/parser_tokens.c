@@ -6,11 +6,12 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 20:42:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 02:50:16 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
 
 /**
  * Process a token and update the command structure
@@ -20,10 +21,12 @@ int process_token(t_token **token, t_cmd **current, t_shell *shell)
 {
     if (!token || !*token || !current || !*current)
         return (1);
+        
     if ((*token)->type == TOKEN_WORD || (*token)->type == TOKEN_SINGLE_QUOTE
         || (*token)->type == TOKEN_DOUBLE_QUOTE)
     {
-        handle_word_token(*current, token);
+        // Call join_word_tokens directly
+        join_word_tokens(*current, token);
     }
     else if ((*token)->type == TOKEN_PIPE)
     {
@@ -39,15 +42,6 @@ int process_token(t_token **token, t_cmd **current, t_shell *shell)
     return (0);
 }
 
-/**
- * Handle word tokens by adding them as arguments to the command
- */
-void	handle_word_token(t_cmd *cmd, t_token **token)
-{
-    if (!cmd || !token || !*token)
-        return ;
-    join_word_tokens(cmd, token);
-}
 
 /**
  * Handle pipe token by creating a new command in the chain
@@ -70,26 +64,27 @@ t_cmd	*handle_pipe_token(t_cmd *current)
  */
 t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
 {
-    t_cmd   *cmd;
-    t_cmd   *head;
-    t_token *current;
-
-    if (!tokens)
-        return (NULL);
-    cmd = create_cmd();
-    if (!cmd)
-        return (NULL);
-    head = cmd;
-    current = tokens;
-    while (current)
+    t_cmd *cmd_list = NULL;
+    t_cmd *current = NULL;
+    t_token *token = tokens;
+    
+    // Create initial command
+    cmd_list = create_cmd();
+    current = cmd_list;
+    
+    // Process tokens into commands and redirections
+    while (token)
     {
-        if (process_token(&current, &cmd, shell) != 0)
+        if (process_token(&token, &current, shell) != 0)
         {
-            free_cmd_list(head);
+            free_cmd_list(cmd_list);
             return (NULL);
         }
-        if (current)
-            current = current->next;
+        token = token->next;
     }
-    return (head);
+    
+    // This is the correct location! Keep this line:
+    expand_command_args(cmd_list, shell);
+    
+    return (cmd_list);
 }

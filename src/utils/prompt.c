@@ -6,57 +6,86 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 22:00:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/14 21:34:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+// Add this definition at the top
+#define PROMPT_SIZE 256
+
 /**
  * Get shortened path by replacing home directory with ~
  */
-static void	get_shortened_path(char *result, size_t size)
+static void get_shortened_path(char *result, size_t size, t_shell *shell)
 {
-    char	cwd[PATH_MAX];
-    char	*home;
+    char cwd[PATH_MAX];
+    char *home;
 
     if (!getcwd(cwd, sizeof(cwd)))
     {
         ft_strlcpy(result, "unknown", size);
-        return ;
+        return;
     }
-    home = getenv("HOME");
+    
+    // Use shell's environment instead of getenv
+    home = get_env_value(shell->env, "HOME");
     if (home && ft_strncmp(cwd, home, ft_strlen(home)) == 0)
     {
         ft_strlcpy(result, "~", size);
         ft_strlcat(result, cwd + ft_strlen(home), size);
+        free(home); // Free allocated memory
     }
     else
+    {
         ft_strlcpy(result, cwd, size);
+        if (home)
+            free(home);
+    }
 }
 
 /**
- * Create beautiful shell prompt string with colors
+ * Create shell prompt string with colors
  */
-void	create_prompt(char *prompt, int exit_status)
+void create_prompt(char *prompt, int exit_status, t_shell *shell)
 {
-    char	*username;
-    char	path[PATH_MAX];
-
+    char *username;
+    char path[PATH_MAX];
+    
     if (!prompt)
-        return ;
+        return;
+        
+    // Use safer string operations instead of sprintf
+    ft_strlcpy(prompt, BOLD_WHITE, PROMPT_SIZE);
+    ft_strlcat(prompt, "[", PROMPT_SIZE);
+    
     username = getenv("USER");
     if (!username)
         username = "user";
-    get_shortened_path(path, sizeof(path));
+        
     if (exit_status == 0)
-        sprintf(prompt, "%s[%s%s%s]%s:%s[%s%s%s]%s$ ", 
-            BOLD_WHITE, BOLD_GREEN, username, BOLD_WHITE, RESET, 
-            BOLD_WHITE, BOLD_BLUE, path, BOLD_WHITE, RESET);
+        ft_strlcat(prompt, BOLD_GREEN, PROMPT_SIZE);
     else
-        sprintf(prompt, "%s[%s%s%s]%s:%s[%s%s%s]%s$ ", 
-            BOLD_WHITE, BOLD_RED, username, BOLD_WHITE, RESET, 
-            BOLD_WHITE, BOLD_BLUE, path, BOLD_WHITE, RESET);
+        ft_strlcat(prompt, BOLD_RED, PROMPT_SIZE);
+        
+    ft_strlcat(prompt, username, PROMPT_SIZE);
+    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
+    ft_strlcat(prompt, "]", PROMPT_SIZE);
+    ft_strlcat(prompt, RESET, PROMPT_SIZE);
+    ft_strlcat(prompt, ":", PROMPT_SIZE);
+    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
+    ft_strlcat(prompt, "[", PROMPT_SIZE);
+    ft_strlcat(prompt, BOLD_BLUE, PROMPT_SIZE);
+    
+    // Pass shell parameter to the function
+    get_shortened_path(path, sizeof(path), shell);
+    ft_strlcat(prompt, path, PROMPT_SIZE);
+    
+    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
+    ft_strlcat(prompt, "]", PROMPT_SIZE);
+    ft_strlcat(prompt, RESET, PROMPT_SIZE);
+    ft_strlcat(prompt, "$ ", PROMPT_SIZE);
 }
 
 /**

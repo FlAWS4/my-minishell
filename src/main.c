@@ -6,13 +6,61 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/13 21:26:50 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 03:17:37 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 int g_signal;
+
+/**
+ * Parse input string into command structure
+ */
+t_cmd *parse_input(char *input, t_shell *shell)
+{
+    t_token *tokens;
+    t_cmd *cmd;
+
+    if (!input || !*input)
+        return (NULL);
+        
+    tokens = tokenize_and_expand(input, shell);
+    if (!tokens)
+        return (NULL);
+        
+    cmd = parse_tokens(tokens, shell);
+    free_token_list(tokens);
+    return (cmd);
+}
+
+/**
+ * Process command exit status and update shell status
+ */
+void process_cmd_status(t_shell *shell, int status)
+{
+    if (WIFEXITED(status))
+        shell->exit_status = WEXITSTATUS(status);
+    else if (WIFSIGNALED(status))
+    {
+        shell->exit_status = 128 + WTERMSIG(status);
+        if (WTERMSIG(status) == SIGQUIT)
+            ft_putendl_fd("Quit (core dumped)", STDERR_FILENO);
+    }
+}
+void setup_terminal(t_shell *shell)
+{
+    (void)shell; // Unused parameter, can be removed if not needed
+    struct termios new_term;
+    
+    if (!isatty(STDIN_FILENO))
+        return;
+
+    tcgetattr(STDIN_FILENO, &new_term);
+    new_term.c_lflag |= ECHOCTL; // Show ^C when pressing Ctrl+C
+    
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_term);
+}
 
 void free_redirection_list(t_redirection *redirections)
 {
@@ -76,101 +124,46 @@ t_shell *init_shell(char **envp)
     shell->cmd = NULL;
     shell->exit_status = 0;
     shell->should_exit = 0;
-    g_signal = 0;
+    // Removed redundant g_signal reset
     return (shell);
-}
-
-void setup_terminal(t_shell *shell)
-{
-    struct termios term;
-
-    if (!isatty(STDIN_FILENO) || tcgetattr(STDIN_FILENO, &term) == -1)
-        return;
-    if (shell && !shell->orig_termios.c_lflag)
-        shell->orig_termios = term;
-    term.c_lflag |= ECHOCTL;
-    tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
-
-void restore_terminal_settings(t_shell *shell)
-{
-    if (!isatty(STDIN_FILENO) || !shell)
-        return;
-    tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-}
-
-void process_cmd_status(t_shell *shell, int status)
-{
-    if (!shell)
-        return;
-    if (WIFEXITED(status))
-        shell->exit_status = WEXITSTATUS(status);
-    else if (WIFSIGNALED(status))
-    {
-        if (WTERMSIG(status) == SIGINT)
-            ft_putstr_fd("\n", STDOUT_FILENO);
-        shell->exit_status = 128 + WTERMSIG(status);
-    }
-}
-
-t_cmd *parse_input(char *input, t_shell *shell)
-{
-    t_token *tokens;
-    t_cmd *cmd;
-
-    if (!input || !*input)
-        return (NULL);
-    tokens = tokenize_and_expand(input, shell);
-    if (!tokens)
-        return (NULL);
-    if (!validate_syntax(tokens))
-    {
-        shell->exit_status = 2;
-        free_token_list(tokens);
-        return (NULL);
-    }
-    cmd = parse_tokens(tokens, shell);
-    free_token_list(tokens);
-    return (cmd);
 }
 
 void process_input(t_shell *shell, char *input)
 {
-    if (shell->cmd)
-    {
-        free_cmd_list(shell->cmd);
-        shell->cmd = NULL;
-    }
-    shell->cmd = parse_input(input, shell);
-    if (!shell->cmd)
+    t_cmd *cmd;
+    
+    // No need to free shell->cmd, just parse directly
+    cmd = parse_input(input, shell);
+    if (!cmd)
         return;
     if (g_signal != SIGINT)
-        execute(shell, shell->cmd);
+        execute(shell, cmd);
     else
         g_signal = 0;
-    if (shell->cmd)
-    {
-        free_cmd_list(shell->cmd);
-        shell->cmd = NULL;
-    }
+    // Free command after execution
+    free_cmd_list(cmd);
 }
 
 void shell_loop(t_shell *shell)
 {
     char *input;
-    char prompt[100];
+    char prompt[PROMPT_SIZE];
 
+    // Setup only once at the beginning
+    setup_signals();
+    setup_terminal(shell);
+    
     while (!shell->should_exit)
     {
-        setup_signals();
-        setup_terminal(shell);
+        // Reset signal flag if needed
         if (g_signal == SIGINT)
         {
             g_signal = 0;
             shell->exit_status = 130;
-            continue;
         }
-        create_prompt(prompt, shell->exit_status);
+        
+        // Updated to pass shell parameter
+        create_prompt(prompt, shell->exit_status, shell);
         input = readline(prompt);
         if (!input)
         {
@@ -178,7 +171,7 @@ void shell_loop(t_shell *shell)
             shell->should_exit = 1;
             break;
         }
-        if (input[0] != '\0')
+        if (*input)
             add_history(input);
         process_input(shell, input);
         free(input);
@@ -191,11 +184,10 @@ int main(int argc, char **argv, char **envp)
 
     (void)argc;
     (void)argv;
-    g_signal = 0;
+    g_signal = 0;  // Initialize once at the beginning
     shell = init_shell(envp);
     if (!shell)
         return (1);
-    setup_signals();
     ft_display_welcome();
     shell_loop(shell);
     restore_terminal_settings(shell);
