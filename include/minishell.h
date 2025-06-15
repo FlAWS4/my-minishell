@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 04:52:43 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:34:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -219,6 +219,7 @@ int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 char	*ft_strchr(const char *s, int c);
 char	*ft_strstr(const char *haystack, const char *needle);
 void	*ft_memset(void *s, int c, size_t n);
+int	    ft_atoi(const char *nptr);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -342,7 +343,7 @@ void    print_error_and_exit(t_shell *shell, int error_type, char *cmd, char *me
 int     handle_pipe_error(t_shell *shell, char *context);
 int     handle_fork_error(t_shell *shell, char *context);
 void    display_heredoc_eof_warning(char *delimiter);
-
+void    display_shlvl_warning(int level);
 /* Extra functions */
 void	ft_display_welcome(void);
 void create_prompt(char *prompt, int exit_status, t_shell *shell);

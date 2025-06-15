@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 09:27:09 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 09:54:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -208,9 +208,6 @@ int process_heredoc(t_cmd *cmd, t_shell *shell)
     {
         if (redir->type == TOKEN_HEREDOC)
         {
-            printf("Processing heredoc %d/%d with delimiter: %s\n", 
-                   heredoc_count - 1, heredoc_count, redir->word);
-                   
             if (process_heredoc_redir(redir, shell) != 0)
             {
                 if (g_signal == SIGINT)

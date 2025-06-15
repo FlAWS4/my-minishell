@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 07:41:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:33:41 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -421,7 +421,31 @@ int	handle_fork_error(t_shell *shell, char *context)
  */
 void display_heredoc_eof_warning(char *delimiter)
 {
-    ft_putstr_fd("minishell: warning: here-document delimited by end-of-file (wanted `", STDERR_FILENO);
+    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET ": here-document delimited by end-of-file (wanted `", STDERR_FILENO);
+    ft_putstr_fd(BOLD_WHITE, STDERR_FILENO);
     ft_putstr_fd(delimiter, STDERR_FILENO);
-    ft_putstr_fd("')\n", STDERR_FILENO);
+    ft_putstr_fd(RESET "')\n", STDERR_FILENO);
+}
+/**
+ * Display SHLVL warning when value gets too high
+ */
+void display_shlvl_warning(int level)
+{
+    char    *level_str;
+    
+    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET ": shell level (", STDERR_FILENO);
+    
+    // Convert int to string using ft_itoa
+    level_str = ft_itoa(level);
+    if (level_str)
+    {
+        ft_putstr_fd(BOLD_WHITE, STDERR_FILENO);
+        ft_putstr_fd(level_str, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
+        free(level_str);
+    }
+    else
+        ft_putstr_fd("???", STDERR_FILENO); // Fallback if allocation fails
+    
+    ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
 }

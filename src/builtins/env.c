@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/12 02:20:11 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:34:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,52 @@ static void	setup_env_node(t_env *node, int exported, int in_env)
     node->exported = exported;
     node->in_env = in_env;
     node->next = NULL;
+}
+/**
+ * Handle SHLVL environment variable properly
+ */
+static void increment_shlvl(t_env **env_list)
+{
+    t_env *shlvl_var;
+    int level;
+    char *new_value;
+    
+    shlvl_var = find_env_var(*env_list, "SHLVL");
+    if (!shlvl_var)
+    {
+        // SHLVL not found, create with value "1"
+        set_env_var(env_list, "SHLVL", "1");
+        return;
+    }
+    
+    // Get current value
+    if (!shlvl_var->value || !*shlvl_var->value)
+        level = 0;
+    else
+        level = ft_atoi(shlvl_var->value);
+    
+    // Handle invalid values
+    if (level < 0)
+        level = 0;
+    else if (level >= 999)
+    {
+        // Bash warns at 1000 and sets to 1
+        if (level == 999)
+            display_shlvl_warning(1000);
+        level = 0;
+    }
+    
+    // Increment level
+    level++;
+    
+    // Convert back to string
+    new_value = ft_itoa(level);
+    if (!new_value)
+        return;
+    
+    // Update environment
+    free(shlvl_var->value);
+    shlvl_var->value = new_value;
 }
 
 /**
@@ -263,10 +309,10 @@ static void	process_env_string(char *env_str, t_env **env_list)
 /**
  * Initialize environment variables from envp
  */
-t_env	*init_env(char **envp)
+t_env *init_env(char **envp)
 {
-    t_env	*env_list;
-    int		i;
+    t_env *env_list;
+    int i;
 
     env_list = NULL;
     if (!envp)
@@ -277,6 +323,10 @@ t_env	*init_env(char **envp)
         process_env_string(envp[i], &env_list);
         i++;
     }
+    
+    // Add SHLVL handling
+    increment_shlvl(&env_list);
+    
     return (env_list);
 }
 

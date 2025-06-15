@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 03:17:37 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:27:50 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,7 +184,14 @@ int main(int argc, char **argv, char **envp)
 
     (void)argc;
     (void)argv;
-    g_signal = 0;  // Initialize once at the beginning
+    g_signal = 0;
+    if (!isatty(STDIN_FILENO))
+    {
+        ft_putstr_fd(BOLD_RED "🚫 Error" RESET ": ", STDERR_FILENO);
+        ft_putstr_fd("minishell cannot be run in non-interactive mode\n", STDERR_FILENO);
+        ft_putstr_fd(BOLD_YELLOW "💡 Hint" RESET ": Don't pipe minishell into itself\n", STDERR_FILENO);
+        return (1);
+    }
     shell = init_shell(envp);
     if (!shell)
         return (1);

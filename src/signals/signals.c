@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/14 22:24:00 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:14:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,6 @@ int check_for_signals(void)
 {
     if (g_signal == SIGINT)
     {
-        write(1, "\n", 1);
         rl_on_new_line();
         rl_replace_line("", 0);
         rl_redisplay();
@@ -42,7 +41,7 @@ void sigint_handler(int signum)
     if (signum == SIGINT)
     {
         g_signal = SIGINT;
-        rl_done = 1;
+       write(1, "\n", 1);
     }
 }
 
@@ -167,3 +166,26 @@ void restore_terminal_settings(t_shell *shell)
     tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
 }
 
+/**
+ * Restore terminal control after heredoc interruption
+ * Does not require process group management
+ */
+void restore_shell_terminal(t_shell *shell)
+{
+    // Only attempt if we're running in a terminal
+    if (isatty(STDIN_FILENO))
+    {
+        // Reset terminal to canonical mode
+        struct termios term;
+        tcgetattr(STDIN_FILENO, &term);
+        
+        // Enable canonical mode and echo
+        term.c_lflag |= (ICANON | ECHO);
+        
+        // Restore the terminal settings
+        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+        
+        // Reset terminal signals
+        setup_signals();
+    }
+}

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 09:41:54 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 09:55:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,8 +158,6 @@ static int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
             quoted = 1;  // Mark as quoted if we find quotes
         }
     }
-    
-    printf("After stripping, delim: '%s'\n", delim);
     
     // Store the processed delimiter
    if (cmd->heredoc_delim)

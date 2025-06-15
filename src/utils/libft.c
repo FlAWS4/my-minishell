@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 21:57:44 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/15 10:19:02 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,4 +105,29 @@ int	is_whitespace(char c)
 {
     return (c == ' ' || c == '\t' || c == '\n' || 
             c == '\v' || c == '\f' || c == '\r');
+}
+
+int	ft_atoi(const char *nptr)
+{
+	int	i;
+	int	plusminus;
+	int	result;
+
+	i = 0;
+	plusminus = 1;
+	result = 0;
+	while (nptr[i] == ' ' || (nptr[i] >= '\t' && nptr[i] <= '\r'))
+		i++;
+	if (nptr[i] == '-' || nptr[i] == '+')
+	{
+		if (nptr[i] == '-')
+			plusminus = -1;
+		i++;
+	}
+	while (nptr[i] != '\0' && nptr[i] >= '0' && nptr[i] <= '9')
+	{
+		result = (result * 10) + (nptr[i] - '0');
+		i++;
+	}
+	return (result * plusminus);
 }
