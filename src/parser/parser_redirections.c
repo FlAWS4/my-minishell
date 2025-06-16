@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 09:55:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:15:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,6 @@ static int handle_redir_out(t_token **token, t_cmd *cmd, int append)
     *token = (*token)->next;
     return (1);
 }
-
 /**
  * Handle heredoc redirection
  */
@@ -142,6 +141,11 @@ static int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
             if (colon == delim && *(colon+1))
             {
                 char *clean = ft_strdup(delim + 2);
+                if (!clean)
+                {
+                    free(delim);
+                    return (1);
+                }
                 free(delim);
                 delim = clean;
             }
@@ -154,28 +158,24 @@ static int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
         // Check for embedded quotes in non-quoted tokens
         else if (ft_strchr(delim, '\'') || ft_strchr(delim, '\"'))
         {
-            // For tokens that contain quotes but aren't quote tokens themselves
             quoted = 1;  // Mark as quoted if we find quotes
         }
     }
-    
-    // Store the processed delimiter
-   if (cmd->heredoc_delim)
+    if (cmd->heredoc_delim)
         free(cmd->heredoc_delim);
     cmd->heredoc_delim = ft_strdup(delim);
-    
+    if (!cmd->heredoc_delim)
+    {
+        free(delim);
+        return (1);
+    }
     cmd->input_fd = -1;
-    
-    // Pass the current delimiter to add_redirection
     if (!add_redirection(cmd, TOKEN_HEREDOC, delim, quoted))
     {
         free(delim);
         return (1);
     }
-    
-    cmd->heredocs_processed = 0;
-    *token = (*token)->next;
-    return (0);
+    free(delim);
     cmd->heredocs_processed = 0;
     *token = (*token)->next;
     return (0);

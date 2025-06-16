@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:19:02 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 00:45:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,27 +43,25 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size)
     size_t	i;
     size_t	d;
     size_t	s;
-    size_t	j;
 
-    if (!dst || !src)
+    if (!src)
         return (0);
+    if (!dst && size == 0)
+        return (ft_strlen(src));
         
-    i = 0;
-    j = 0;
     d = ft_strlen(dst);
     s = ft_strlen(src);
     
-    if (size < d || size == 0)
+    if (size <= d)
         return (s + size);
         
-    j = d;
-    while (src[i] != '\0' && j < (size - 1))
+    i = 0;
+    while (src[i] && (d + i) < (size - 1))
     {
-        dst[j] = src[i];
+        dst[d + i] = src[i];
         i++;
-        j++;
     }
-    dst[j] = '\0';
+    dst[d + i] = '\0';
     return (d + s);
 }
 
@@ -109,25 +107,28 @@ int	is_whitespace(char c)
 
 int	ft_atoi(const char *nptr)
 {
-	int	i;
-	int	plusminus;
-	int	result;
+    int	i;
+    int	sign;
+    long	result;
 
-	i = 0;
-	plusminus = 1;
-	result = 0;
-	while (nptr[i] == ' ' || (nptr[i] >= '\t' && nptr[i] <= '\r'))
-		i++;
-	if (nptr[i] == '-' || nptr[i] == '+')
-	{
-		if (nptr[i] == '-')
-			plusminus = -1;
-		i++;
-	}
-	while (nptr[i] != '\0' && nptr[i] >= '0' && nptr[i] <= '9')
-	{
-		result = (result * 10) + (nptr[i] - '0');
-		i++;
-	}
-	return (result * plusminus);
+    i = 0;
+    sign = 1;
+    result = 0;
+    while (is_whitespace(nptr[i]))
+        i++;
+    if (nptr[i] == '-' || nptr[i] == '+')
+    {
+        if (nptr[i] == '-')
+            sign = -1;
+        i++;
+    }
+    while (nptr[i] >= '0' && nptr[i] <= '9')
+    {
+        if (result > (INT_MAX - (nptr[i] - '0')) / 10)
+            return (sign == 1 ? INT_MAX : INT_MIN);
+            
+        result = (result * 10) + (nptr[i] - '0');
+        i++;
+    }
+    return ((int)(result * sign));
 }

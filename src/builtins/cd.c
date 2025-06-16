@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:33:17 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/10 23:58:28 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:48:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,19 +15,23 @@
 /**
  * Update PWD environment variable
  */
-static void	update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
+static void update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
 {
-    t_env	*env_node;
+    t_env *env_node;
+    char *new_value;
 
     env_node = shell->env;
     while (env_node)
     {
         if (ft_strcmp(env_node->key, "PWD") == 0)
         {
+            new_value = ft_strdup(cwd);
+            if (!new_value)
+                return;
             free(env_node->value);
-            env_node->value = ft_strdup(cwd);
+            env_node->value = new_value;
             *pwd_exists = 1;
-            break ;
+            break;
         }
         env_node = env_node->next;
     }
@@ -36,19 +40,23 @@ static void	update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
 /**
  * Update OLDPWD environment variable
  */
-static void	update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
+static void update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
 {
-    t_env	*env_node;
+    t_env *env_node;
+    char *new_value;
 
     env_node = shell->env;
     while (env_node)
     {
         if (ft_strcmp(env_node->key, "OLDPWD") == 0)
         {
+            new_value = ft_strdup(old_pwd);
+            if (!new_value)
+                return;
             free(env_node->value);
-            env_node->value = ft_strdup(old_pwd);
+            env_node->value = new_value;
             *oldpwd_exists = 1;
-            break ;
+            break;
         }
         env_node = env_node->next;
     }
@@ -148,20 +156,24 @@ static int	cd_to_home(t_shell *shell)
 /**
  * Expand tilde for home directory in path
  */
-static char	*expand_tilde_home(char *path, char *home)
+static char *expand_tilde_home(char *path, char *home)
 {
-    char	*result;
+    char *result;
 
     if (path[1] == '\0')
     {
         result = ft_strdup(home);
         free(home);
+        if (!result)
+            return (NULL);
         return (result);
     }
     if (path[1] == '/')
     {
         result = ft_strjoin(home, path + 1);
         free(home);
+        if (!result)
+            return (NULL);
         return (result);
     }
     free(home);

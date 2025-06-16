@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:33:41 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 00:54:16 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,28 +25,6 @@ static char	*clean_command_name(char *cmd)
     return (cmd);
 }
 
-/**
- * Check if string contains substring
- */
-static int	str_contains(const char *haystack, const char *needle)
-{
-    int	i;
-    int	j;
-
-    if (!haystack || !needle)
-        return (0);
-    i = 0;
-    while (haystack[i])
-    {
-        j = 0;
-        while (needle[j] && haystack[i + j] && haystack[i + j] == needle[j])
-            j++;
-        if (!needle[j])
-            return (1);
-        i++;
-    }
-    return (0);
-}
 
 /**
  * Get error prefix based on error type
@@ -228,24 +206,26 @@ void	display_error(int error_type, char *command, char *message)
 /**
  * Print error message with automatic error type detection
  */
-void	print_error(char *cmd, char *msg)
+void print_error(char *cmd, char *msg)
 {
-    int	error_type;
+    int error_type;
 
     if (!cmd || !msg)
-        return ;
+        return;
     error_type = 0;
-    if (str_contains(msg, "not found"))
+    if (ft_strstr(msg, "not found"))
         error_type = ERROR_COMMAND;
-    else if (str_contains(msg, "permission"))
+    else if (ft_strstr(msg, "permission"))
         error_type = ERROR_PERMISSION;
-    else if (str_contains(msg, "syntax"))
+    else if (ft_strstr(msg, "syntax"))
         error_type = ERROR_SYNTAX;
-    else if (str_contains(msg, "cannot allocate")
-        || str_contains(msg, "memory") || str_contains(msg, "malloc"))
+    else if (ft_strstr(msg, "cannot allocate") || 
+             ft_strstr(msg, "memory") || 
+             ft_strstr(msg, "malloc"))
         error_type = ERROR_MEMORY;
-    else if (str_contains(msg, "redirect")
-        || str_contains(msg, "file") || str_contains(msg, "directory"))
+    else if (ft_strstr(msg, "redirect") ||
+             ft_strstr(msg, "file") || 
+             ft_strstr(msg, "directory"))
         error_type = ERR_REDIR;
     display_error(error_type, cmd, msg);
 }

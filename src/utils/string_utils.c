@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 21:06:26 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 00:36:05 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,15 +15,18 @@
 /**
  * Duplicate a string
  */
-char	*ft_strdup(const char *s)
+char *ft_strdup(const char *s)
 {
-    char	*dest;
-    size_t	len;
-    size_t	i;
+    char    *dest;
+    size_t  len;
+    size_t  i;
 
+    if (!s)
+        return (NULL);
+        
     i = 0;
     len = ft_strlen(s);
-    dest = (char *)malloc(sizeof(char) * len + 1);
+    dest = (char *)malloc(sizeof(char) * (len + 1));
     if (!dest)
         return (NULL);
     while (s[i] != '\0')
@@ -42,6 +45,15 @@ int	ft_strcmp(const char *s1, const char *s2)
 {
     int	i;
 
+    if (!s1)
+    {
+        if (!s2)
+            return (0);
+        return (-1);
+    }
+    if (!s2)
+        return (1);
+        
     i = 0;
     while (s1[i] && s2[i] && s1[i] == s2[i])
         i++;
@@ -51,38 +63,42 @@ int	ft_strcmp(const char *s1, const char *s2)
 /**
  * Get string length
  */
-size_t	ft_strlen(const char *s)
+size_t ft_strlen(const char *s)
 {
-    size_t	i;
+    size_t  i;
 
+    if (!s)
+        return (0);
+        
     i = 0;
     while (s[i])
         i++;
     return (i);
 }
-
 /**
  * Copy string with size limit
  */
-size_t	ft_strlcpy(char *dst, const char *src, size_t size)
+size_t ft_strlcpy(char *dst, const char *src, size_t size)
 {
-    size_t	i;
-    size_t	len;
+    size_t src_len;
+    size_t i;
 
+    if (!src)
+        return (0); // Added NULL check
+        
+    src_len = ft_strlen(src); // Calculate length once
+    
+    if (!dst || size == 0)
+        return (src_len);
+        
     i = 0;
-    len = 0;
-    while (src[len] != '\0')
-        len++;
-    if (size == 0)
-        return (len);
-    while (src[i] != '\0' && i < size - 1)
+    while (src[i] && i < size - 1)
     {
         dst[i] = src[i];
         i++;
     }
-    if (size > 0)
-        dst[i] = '\0';
-    return (len);
+    dst[i] = '\0';
+    return (src_len);
 }
 
 /**

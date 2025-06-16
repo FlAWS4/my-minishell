@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 04:52:01 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:31:04 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,6 +72,7 @@ static char	**copy_args(t_cmd *cmd, int count)
         new_args[i] = cmd->args[i];
         i++;
     }
+    new_args[i] = NULL;
     return (new_args);
 }
 
@@ -165,11 +166,14 @@ void	free_cmd(t_cmd *cmd)
     if (cmd->heredoc_delim)
         free(cmd->heredoc_delim);
     if (cmd->heredoc_file)
+    {
+        unlink(cmd->heredoc_file);
         free(cmd->heredoc_file);
+    }
     free_redirections(cmd->redirections);
-    if (cmd->input_fd >= 0)
+    if (cmd->input_fd >= 2)
         close(cmd->input_fd);
-    if (cmd->output_fd >= 0)
+    if (cmd->output_fd >= 2)
         close(cmd->output_fd);
     free(cmd);
 }
@@ -180,8 +184,8 @@ void	free_cmd(t_cmd *cmd)
 static char *join_consecutive_tokens(char *word, t_token **current)
 {
     t_token *next;
-    char    *temp;
-    char    *result;
+    char *temp;
+    char *result;
 
     next = (*current)->next;
     while (next && (next->type == TOKEN_WORD || 
@@ -194,9 +198,10 @@ static char *join_consecutive_tokens(char *word, t_token **current)
         result = ft_strjoin(word, next->value);
         if (!result)
         {
-            free(temp);  // Free the original word if join fails
+            free(temp); 
             return (NULL);
         }
+        free(temp);
         word = result;
         *current = next;
         next = next->next;
@@ -241,10 +246,15 @@ int	is_arg_token(t_token *token)
 /**
  * Expand command arguments and handle variable splitting
  */
-void expand_command_args(t_cmd *cmd_list, t_shell *shell)
+int expand_command_args(t_cmd *cmd_list, t_shell *shell)
 {
-    t_cmd *current = cmd_list;
+    t_cmd *current;
+    int error_status;
     
+    error_status = 0;
+    if (!cmd_list || !shell)
+        return (1);
+    current = cmd_list;
     while (current)
     {
         if (current->args)
@@ -252,103 +262,108 @@ void expand_command_args(t_cmd *cmd_list, t_shell *shell)
             int i = 0;
             while (current->args[i])
             {
-                // Save original value for detection logic
                 char *original = ft_strdup(current->args[i]);
                 if (!original)
                 {
-                    i++; // Avoid infinite loop if allocation fails
+                    i++;
+                    error_status = 1;
                     continue;
                 }
-                    
-                // Check for quote markers
                 int is_quoted = 0;
                 char *temp = NULL;
-                
-                // Process quote prefixes (single quotes or double quotes)
                 if ((original[0] == '\'' || original[0] == '"') && original[1] == ':')
                 {
                     is_quoted = 1;
-                    // Remove the quote marker before expansion
                     temp = ft_strdup(original + 2);
-                    if (temp)
+                    if (!temp)
                     {
-                        free(current->args[i]);
-                        current->args[i] = temp;
+                        free(original);
+                        i++;
+                        error_status = 1;
+                        continue;
                     }
+                    free(current->args[i]);
+                    current->args[i] = temp;
                 }
                 else if (original[0] == ':')
                 {
-                    // Handle standalone colon prefix (from quoted variables)
                     is_quoted = 1;
                     temp = ft_strdup(original + 1);
-                    if (temp)
+                    if (!temp)
                     {
-                        free(current->args[i]);
-                        current->args[i] = temp;
+                        free(original);
+                        i++;
+                        error_status = 1;
+                        continue;
                     }
+                    free(current->args[i]);
+                    current->args[i] = temp;
                 }
-                
-                // Identify standalone variables (for word splitting)
                 int is_standalone_var = (original[0] == '$' && 
                                       !ft_strchr(original, '\'') && 
                                       !ft_strchr(original, '\"'));
-                
-                // Free the original copy now that we've used it
                 free(original);
-                
-                // Expand variables in the argument
                 char *expanded = expand_variables(shell, current->args[i]);
                 if (!expanded)
                 {
-                    i++; // Avoid infinite loop if expansion fails
+                    i++;
+                    error_status = 1;
                     continue;
                 }
-                    
                 free(current->args[i]);
                 current->args[i] = expanded;
-                
-                // Only perform word splitting on unquoted standalone variables in command position
                 if (i == 0 && is_standalone_var && !is_quoted && 
                     expanded[0] != '\0' && ft_strchr(expanded, ' '))
                 {
                     char **split = ft_split(expanded, ' ');
                     if (!split)
                     {
-                        i++; // Avoid infinite loop if split fails
+                        i++;
+                        error_status = 1;
                         continue;
                     }
-                    
                     if (split[0])
                     {
-                        // Count the number of split parts
                         int split_count = 0;
                         while (split[split_count])
                             split_count++;
-                            
-                        // Create new args array
                         char **new_args = malloc(sizeof(char *) * (split_count + 1));
                         if (!new_args)
                         {
                             free_env_array(split);
-                            i++; // Avoid infinite loop
+                            i++;
+                            error_status = 1;
                             continue;
                         }
-                        
-                        // Copy split parts
-                        int j;
-                        for (j = 0; j < split_count; j++)
+                        int j = 0;
+                        while (j < split_count)
+                        {
                             new_args[j] = ft_strdup(split[j]);
-                        new_args[split_count] = NULL;
-                        
-                        // Free the old args array
-                        free(current->args[0]);
-                        free(current->args);
-                        
-                        // Set the new args array
-                        current->args = new_args;
-                        
-                        // Reset index to process the new array from the beginning
-                        i = -1;
+                            if (!new_args[j])
+                            {
+                                // Free already allocated strings
+                                int k = 0;
+                                while (k < j)
+                                {
+                                    free(new_args[k]);
+                                    k++;
+                                }
+                                free(new_args);
+                                free_env_array(split);
+                                i++;
+                                error_status = 1;
+                                break;
+                            }
+                            j++;
+                        }
+                        if (j == split_count) // Only if all allocations succeeded
+                        {
+                            new_args[split_count] = NULL;
+                            free(current->args[0]);
+                            free(current->args);
+                            current->args = new_args;
+                            i = -1;
+                        }
                     }
                     free_env_array(split);
                 }
@@ -357,4 +372,5 @@ void expand_command_args(t_cmd *cmd_list, t_shell *shell)
         }
         current = current->next;
     }
+    return (error_status);
 }

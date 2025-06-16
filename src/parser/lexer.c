@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 08:56:31 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 01:56:06 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,16 +126,29 @@ static int check_preceded_by_space(char *input, int i)
 static int handle_input_redir(char *input, int i, t_token **tokens)
 {
     int preceded_by_space = check_preceded_by_space(input, i);
+    char *token_value;
     
     if (input[i + 1] && input[i + 1] == '<')
     {
-        if (create_and_add_token(tokens, TOKEN_HEREDOC, ft_strdup("<<"), preceded_by_space) == -1)
+        token_value = ft_strdup("<<");
+        if (!token_value)
             return (-1);
+        if (create_and_add_token(tokens, TOKEN_HEREDOC, token_value, preceded_by_space) == -1)
+        {
+            free(token_value);  // Need to add this line
+            return (-1);
+        }
         return (i + 2);
     }
     
-    if (create_and_add_token(tokens, TOKEN_REDIR_IN, ft_strdup("<"), preceded_by_space) == -1)
+    token_value = ft_strdup("<");
+    if (!token_value)
         return (-1);
+    if (create_and_add_token(tokens, TOKEN_REDIR_IN, token_value, preceded_by_space) == -1)
+    {
+        free(token_value);  // Need to add this line
+        return (-1);
+    }
     return (i + 1);
 }
 
@@ -145,16 +158,29 @@ static int handle_input_redir(char *input, int i, t_token **tokens)
 static int handle_output_redir(char *input, int i, t_token **tokens)
 {
     int preceded_by_space = check_preceded_by_space(input, i);
+    char *token_value;
     
     if (input[i + 1] && input[i + 1] == '>')
     {
-        if (create_and_add_token(tokens, TOKEN_REDIR_APPEND, ft_strdup(">>"), preceded_by_space) == -1)
+        token_value = ft_strdup(">>");
+        if (!token_value)
             return (-1);
+        if (create_and_add_token(tokens, TOKEN_REDIR_APPEND, token_value, preceded_by_space) == -1)
+        {
+            free(token_value);  // Need to add this
+            return (-1);
+        }
         return (i + 2);
     }
     
-    if (create_and_add_token(tokens, TOKEN_REDIR_OUT, ft_strdup(">"), preceded_by_space) == -1)
+    token_value = ft_strdup(">");
+    if (!token_value)
         return (-1);
+    if (create_and_add_token(tokens, TOKEN_REDIR_OUT, token_value, preceded_by_space) == -1)
+    {
+        free(token_value);  // Need to add this
+        return (-1);
+    }
     return (i + 1);
 }
 
@@ -164,16 +190,22 @@ static int handle_output_redir(char *input, int i, t_token **tokens)
 int handle_special(char *input, int i, t_token **tokens)
 {
     int preceded_by_space;
+    char *token_value;
     
     if (!input || !tokens)
         return (-1);
         
     preceded_by_space = check_preceded_by_space(input, i);
-    
     if (input[i] == '|')
     {
-        if (create_and_add_token(tokens, TOKEN_PIPE, ft_strdup("|"), preceded_by_space) == -1)
+        token_value = ft_strdup("|");
+        if (!token_value)
             return (-1);
+        if (create_and_add_token(tokens, TOKEN_PIPE, token_value, preceded_by_space) == -1)
+        {
+            free(token_value);  // Free value if token creation fails
+            return (-1);
+        }
         return (i + 1);
     }
     else if (input[i] == '<')
@@ -205,8 +237,6 @@ int handle_quote(char *input, int i, t_token **tokens)
         i++;
     if (!input[i])
         return (-1);
-        
-    // Get content between quotes
     char *content = ft_substr(input, start, i - start);
     if (!content)
         return (-1);
@@ -219,8 +249,11 @@ int handle_quote(char *input, int i, t_token **tokens)
         return (-1);
         
     if (create_and_add_token(tokens, type, word, preceded_by_space) == -1)
+    {
+        free(word);  // Add this line to free word if token creation fails
         return (-1);
-        
+    }
+    
     return (i + 1);
 }
 
@@ -288,9 +321,12 @@ int handle_word(char *input, int i, t_token **tokens)
     processed_word = process_escape_sequences(word, input, start);
     if (!processed_word)
         return (-1);
-        
     if (create_and_add_token(tokens, TOKEN_WORD, processed_word, preceded_by_space) == -1)
+    {
+        free(processed_word);
+        free(word);
         return (-1);
+    }
         
     free(word);
     return (i);
@@ -383,9 +419,12 @@ static int merge_tokens(t_token *current, t_token *next)
 {
     char *merged_value;
 
+    if (!current || !next)
+        return (0);
+        
     merged_value = ft_strjoin(current->value, next->value);
     if (!merged_value)
-        return (0);
+        return (0);  // Caller handles cleanup
         
     free(current->value);
     current->value = merged_value;
@@ -408,18 +447,20 @@ void merge_adjacent_quoted_tokens(t_token **tokens)
     {
         next = current->next;
         
-        // Should merge if no space between them and both are word-like tokens
         if (!next->preceded_by_space && 
-            ((current->type == TOKEN_WORD || 
-              current->type == TOKEN_SINGLE_QUOTE || 
-              current->type == TOKEN_DOUBLE_QUOTE) && 
-             (next->type == TOKEN_WORD ||
-              next->type == TOKEN_SINGLE_QUOTE ||
-              next->type == TOKEN_DOUBLE_QUOTE)))
+        ((current->type == TOKEN_WORD || 
+          current->type == TOKEN_SINGLE_QUOTE || 
+          current->type == TOKEN_DOUBLE_QUOTE) && 
+         (next->type == TOKEN_WORD ||
+          next->type == TOKEN_SINGLE_QUOTE ||
+          next->type == TOKEN_DOUBLE_QUOTE)))
         {
             if (!merge_tokens(current, next))
-                return;
-                
+            {
+            // Cannot merge - just continue to next token
+                current = current->next;
+                continue;
+            }
             temp = next;
             current->next = temp->next;
             free(temp->value);
@@ -451,7 +492,7 @@ t_token *process_tokens(char *input)
             if (i == -1)
             {
                 free_token_list(tokens);
-                ft_putstr_fd("minishell: syntax error: unclosed quote\n", 2);
+                display_error(ERROR_SYNTAX, NULL, "unclosed quote");
                 return (NULL);
             }
             
@@ -530,6 +571,8 @@ t_token *tokenize(char *input)
 t_token *tokenize_and_expand(char *input, t_shell *shell)
 {
     t_token *tokens;
+    t_token *current;
+    char *expanded_value;
 
     if (!input || !*input)
         return (NULL);
@@ -544,9 +587,21 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
         return (NULL);
     }
     
-    // Comment out both lines:
-    // tokens = expand_variables_in_tokens_with_splitting(tokens, shell);
-    // tokens = expand_command_args(tokens, shell);
+    // Add expansion of token values
+    current = tokens;
+    while (current)
+    {
+        if (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE)
+        {
+            expanded_value = expand_variables(shell, current->value);
+            if (expanded_value)
+            {
+                free(current->value);
+                current->value = expanded_value;
+            }
+        }
+        current = current->next;
+    }
     
     return (tokens);
 }

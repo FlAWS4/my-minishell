@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:34:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:56:02 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,10 @@ static void increment_shlvl(t_env **env_list)
     // Convert back to string
     new_value = ft_itoa(level);
     if (!new_value)
+    {
+        display_error(ERROR_MEMORY, "SHLVL", "Memory allocation failed");
         return;
+    }
     
     // Update environment
     free(shlvl_var->value);
@@ -279,15 +282,14 @@ void	split_env_string(char *str, char **key, char **value)
         *key = NULL;
     }
 }
-
 /**
  * Process a single environment string
  */
-static void	process_env_string(char *env_str, t_env **env_list)
+static void process_env_string(char *env_str, t_env **env_list)
 {
-    char	*key;
-    char	*value;
-    t_env	*new_node;
+    char *key;
+    char *value;
+    t_env *new_node;
 
     split_env_string(env_str, &key, &value);
     if (key && value)
@@ -299,6 +301,8 @@ static void	process_env_string(char *env_str, t_env **env_list)
             new_node->in_env = 1;
             add_env_var(env_list, new_node);
         }
+        else
+            display_error(ERROR_ENV, key, "Failed to create environment variable");
     }
     if (key)
         free(key);
@@ -332,10 +336,11 @@ t_env *init_env(char **envp)
 
 /**
  * Get environment variable value by key
+ * Note: Caller must free the returned string
  */
-char	*get_env_value(t_env *env_list, const char *key)
+char *get_env_value(t_env *env_list, const char *key)
 {
-    t_env	*current;
+    t_env *current;
 
     if (!env_list || !key)
         return (NULL);
@@ -402,18 +407,27 @@ static int	count_env_for_array(t_env *env_list)
 /**
  * Create single environment string (KEY=VALUE)
  */
-static char	*create_env_string(t_env *env)
+static char *create_env_string(t_env *env)
 {
-    char	*temp;
-    char	*result;
+    char *temp;
+    char *result;
+    char *value_to_use;
 
     temp = ft_strjoin(env->key, "=");
     if (!temp)
         return (NULL);
-    result = ft_strjoin(temp, env->value);
+    
+    // Replace ternary with explicit if/else
+    if (env->value)
+        value_to_use = env->value;
+    else
+        value_to_use = "";
+    
+    result = ft_strjoin(temp, value_to_use);
     free(temp);
     return (result);
 }
+
 
 /**
  * Handle error in env array creation

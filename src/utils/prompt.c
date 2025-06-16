@@ -6,14 +6,11 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/14 21:34:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 00:43:08 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-// Add this definition at the top
-#define PROMPT_SIZE 256
 
 /**
  * Get shortened path by replacing home directory with ~
@@ -60,16 +57,24 @@ void create_prompt(char *prompt, int exit_status, t_shell *shell)
     ft_strlcpy(prompt, BOLD_WHITE, PROMPT_SIZE);
     ft_strlcat(prompt, "[", PROMPT_SIZE);
     
-    username = getenv("USER");
-    if (!username)
-        username = "user";
-        
+    // Use shell's environment instead of getenv for consistency
+    username = get_env_value(shell->env, "USER");
+    
+    // Add color based on exit status
     if (exit_status == 0)
         ft_strlcat(prompt, BOLD_GREEN, PROMPT_SIZE);
     else
         ft_strlcat(prompt, BOLD_RED, PROMPT_SIZE);
         
-    ft_strlcat(prompt, username, PROMPT_SIZE);
+    // Use username or default
+    if (!username)
+        ft_strlcat(prompt, "user", PROMPT_SIZE);
+    else
+    {
+        ft_strlcat(prompt, username, PROMPT_SIZE);
+        free(username); // Free allocated memory
+    }
+    
     ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
     ft_strlcat(prompt, "]", PROMPT_SIZE);
     ft_strlcat(prompt, RESET, PROMPT_SIZE);

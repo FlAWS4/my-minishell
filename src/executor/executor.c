@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 06:41:00 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:43:30 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,7 +139,6 @@ static int	remove_colon_prefix(char **cmd)
     new_cmd = ft_strdup(*cmd + 1);
     if (!new_cmd)
         return (0);
-        
     free(*cmd);
     *cmd = new_cmd;
     return (1);
@@ -177,12 +176,12 @@ static char	**copy_split_args(char **split_args, int count)
  * Try to split a quoted variable into command and arguments
  * Returns 1 if successfully split, 0 otherwise
  */
-static int	try_split_quoted_var(t_shell *shell, t_cmd *cmd)
+static int try_split_quoted_var(t_shell *shell, t_cmd *cmd)
 {
-    char	**split_args;
-    char	*potential_cmd;
-    int		count;
-    char	**new_args;
+    char    **split_args;
+    char    *potential_cmd;
+    int     count;
+    char    **new_args;
 
     if (!cmd->args[0] || cmd->args[0][0] != ':')
         return (0);
@@ -211,7 +210,7 @@ static int	try_split_quoted_var(t_shell *shell, t_cmd *cmd)
             return (1);
         }
     }
-    free(potential_cmd);
+    free(potential_cmd);  // Free potential_cmd in all cases
     free_str_array(split_args);
     return (0);
 }
@@ -219,13 +218,20 @@ static int	try_split_quoted_var(t_shell *shell, t_cmd *cmd)
 /**
  * Set up redirections for builtin command
  */
-static int	setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
+static int setup_builtin_redirections(t_cmd *cmd, int *saved_stdin, 
                                     int *saved_stdout, t_shell *shell)
 {
     *saved_stdin = dup(STDIN_FILENO);
-    *saved_stdout = dup(STDOUT_FILENO);
-    if (*saved_stdin == -1 || *saved_stdout == -1)
+    if (*saved_stdin == -1)
         return (1);
+        
+    *saved_stdout = dup(STDOUT_FILENO);
+    if (*saved_stdout == -1)
+    {
+        close(*saved_stdin);  // Close the successful dup
+        return (1);
+    }
+    
     if (setup_redirections(cmd, shell) != 0)
     {
         close(*saved_stdin);
@@ -346,16 +352,18 @@ static void prepare_child_exec(t_shell *shell, t_cmd *cmd,
 /**
  * Execute a child process for an external command
  */
-void	execute_child(t_shell *shell, t_cmd *cmd)
+void execute_child(t_shell *shell, t_cmd *cmd)
 {
-    char	*cmd_path;
-    char	**env_array;
+    char    *cmd_path;
+    char    **env_array;
 
     prepare_child_exec(shell, cmd, &cmd_path, &env_array);
     execve(cmd_path, cmd->args, env_array);
+    // If we get here, execve failed
     display_error(ERR_EXEC, cmd_path, strerror(errno));
     free(cmd_path);
     free_env_array(env_array);
+    cleanup_redirections(cmd);  // Close any open file descriptors
     exit(126);
 }
 
@@ -427,14 +435,13 @@ int	execute_command(t_shell *shell, t_cmd *cmd)
 /**
  * Execute a command or pipeline with proper handling
  */
-int	execute(t_shell *shell, t_cmd *cmd)
+int execute(t_shell *shell, t_cmd *cmd)
 {
-    t_cmd	*current;
+    t_cmd   *current;
     
     if (!shell || !cmd)
         return (1);
     
-    // Process heredocs first (for all commands in pipeline)
     if (cmd->heredoc_delim || cmd->redirections)
     {
         current = cmd;
@@ -447,7 +454,16 @@ int	execute(t_shell *shell, t_cmd *cmd)
         }
         
         if (g_signal)
+        {
+            // Clean up any partially processed heredocs
+            current = cmd;
+            while (current)
+            {
+                cleanup_redirections(current);
+                current = current->next;
+            }
             return (1);
+        }
     }
     
     // Then execute command(s)

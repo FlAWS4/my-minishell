@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:19:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/09 00:12:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 00:28:16 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,19 +26,40 @@ void	ft_bzero(void *s, size_t n)
         i++;
     }
 }
+/**
+ * Safely adds two sizes with overflow check, including space for null terminator
+ * Returns 1 if the addition is safe, 0 if overflow would occur
+ */
+int ft_safe_size_add(size_t a, size_t b, size_t *result)
+{
+    // Check if a + b would overflow
+    if (a > SIZE_MAX - b)
+        return (0);
+    
+    // Check if (a + b + 1) would overflow (for null terminator)
+    if ((a + b) > SIZE_MAX - 1)
+        return (0);
+    
+    *result = a + b + 1;
+    return (1);
+}
 
 /**
  * Join two strings
  */
-char	*ft_strjoin(const char *s1, const char *s2)
+char *ft_strjoin(const char *s1, const char *s2)
 {
-    char	*result;
-    size_t	i;
-    size_t	j;
+    char    *result;
+    size_t  i;
+    size_t  j;
+    size_t  total_size;
 
     if (!s1 || !s2)
         return (NULL);
-    result = (char *)malloc(ft_strlen(s1) + ft_strlen(s2) + 1);
+        
+    if (!ft_safe_size_add(ft_strlen(s1), ft_strlen(s2), &total_size))
+        return (NULL);   
+    result = (char *)malloc(total_size);
     if (!result)
         return (NULL);
     i = 0;
@@ -96,30 +117,31 @@ int	slen(int n)
 	return (size);
 }
 
-char	*ft_itoa(int n)
+char *ft_itoa(int n)
 {
-	long	num;
-	size_t	len;
-	char	*str;
+    long    num;
+    size_t  len;
+    char    *str;
 
-	num = (long)n;
-	len = slen(n);
-	str = (char *)malloc (len + 1);
-	if (!str)
-		return (NULL);
-	*(str + len--) = '\0';
-	if (n < 0)
-		num *= -1;
-	while (num > 0)
-	{
-		*(str + len--) = num % 10 + '0';
-		num /= 10;
-	}
-	if (str[1] == '\0' && len == 0)
-		*(str + len) = '0';
-	else if (str[1] != '\0' && len == 0)
-		*(str + len) = '-';
-	return (str);
+    num = (long)n;
+    len = slen(n);
+    str = (char *)malloc(len + 1);
+    if (!str)
+        return (NULL);
+    str[len] = '\0';
+    if (n == 0)
+        str[0] = '0';
+    if (n < 0)
+    {
+        str[0] = '-';
+        num *= -1;
+    }
+    while (num > 0)
+    {
+        str[--len] = (num % 10) + '0';
+        num /= 10;
+    }
+    return (str);
 }
 /**
  * Check if character is alphabetic

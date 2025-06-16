@@ -6,51 +6,56 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 06:44:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:28:56 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static void	setup_child_input(int prev_pipe, t_cmd *current)
+static int setup_child_input(int prev_pipe, t_cmd *current)
 {
     if (prev_pipe != -1)
     {
         if (current->input_fd == -1)
         {
             if (dup2(prev_pipe, STDIN_FILENO) == -1)
-                exit(1);
+                return (1);
         }
         else
         {
             if (dup2(current->input_fd, STDIN_FILENO) == -1)
-                exit(1);
+                return (1);
         }
         close(prev_pipe);
     }
     else if (current->input_fd != -1)
     {
         if (dup2(current->input_fd, STDIN_FILENO) == -1)
-            exit(1);
+            return (1);
         close(current->input_fd);
     }
+    return (0);
 }
 
-static void	setup_child_output(int *pipe_fds, t_cmd *current)
+static int setup_child_output(int *pipe_fds, t_cmd *current)
 {
     if (current->next)
     {
         close(pipe_fds[0]);
         if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
-            exit(1);
+            return (1);
         close(pipe_fds[1]);
     }
+    return (0);
 }
 
-static void	setup_child_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
+static int setup_child_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
 {
-    setup_child_input(prev_pipe, current);
-    setup_child_output(pipe_fds, current);
+    if (setup_child_input(prev_pipe, current) != 0)
+        return (1);
+    if (setup_child_output(pipe_fds, current) != 0)
+        return (1);
+    return (0);
 }
 
 static int	handle_pipe_failure(int prev_pipe)
@@ -90,8 +95,13 @@ static int execute_piped_command(t_shell *shell, t_cmd *cmd,
     {
         // Child process
         setup_signals_noninteractive();
-        setup_child_pipes(prev_pipe, pipe_fds, cmd);
+        if (setup_child_pipes(prev_pipe, pipe_fds, cmd) != 0)
+        {
+            display_error(ERR_PIPE, "setup", strerror(errno));
+            exit(1);
+        }
         execute_child(shell, cmd);
+        // If we reach here, execution failed
         exit(1);
     }
     else
@@ -214,18 +224,22 @@ static void	cleanup_after_execution(t_cmd *cmd)
     }
 }
 
-static int	run_pipeline_commands(t_shell *shell, t_cmd *cmd)
+static int run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 {
-    int		pipe_fds[2];
-    t_cmd	*current;
-    int		prev_pipe;
+    int     pipe_fds[2];
+    t_cmd   *current;
+    int     prev_pipe;
 
     prev_pipe = -1;
     current = cmd;
     while (current)
     {
         if (execute_piped_command(shell, current, prev_pipe, pipe_fds))
+        {
+            if (prev_pipe != -1)
+                close(prev_pipe);
             return (1);
+        }
         prev_pipe = manage_parent_pipes(prev_pipe, pipe_fds, current);
         current = current->next;
     }

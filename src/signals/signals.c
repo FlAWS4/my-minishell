@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:14:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:24:19 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,8 @@ void sigint_handler(int signum)
 }
 
 /**
- * Signal handler for heredoc mode
+ * Setup signals for heredoc input
+ * Called in child process handling heredoc input
  */
 void sigint_heredoc_handler(int signum)
 {
@@ -74,6 +75,7 @@ static void setup_signal_action(struct sigaction *sa, void (*handler)(int))
 
 /**
  * Setup signals for interactive mode
+ * Called at shell startup and after command execution
  */
 void setup_signals(void)
 {
@@ -91,6 +93,7 @@ void setup_signals(void)
 
 /**
  * Setup signals for child processes
+ * Called in child processes before executing external commands
  */
 void setup_signals_noninteractive(void)
 {
@@ -175,17 +178,17 @@ void restore_shell_terminal(t_shell *shell)
     // Only attempt if we're running in a terminal
     if (isatty(STDIN_FILENO))
     {
-        // Reset terminal to canonical mode
-        struct termios term;
-        tcgetattr(STDIN_FILENO, &term);
-        
-        // Enable canonical mode and echo
-        term.c_lflag |= (ICANON | ECHO);
-        
-        // Restore the terminal settings
         tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-        
-        // Reset terminal signals
         setup_signals();
     }
+}
+
+// Add this function for cleanup
+void cleanup_readline_resources(void)
+{
+    // Save history first
+    save_history();
+    
+    // Clear readline history using allowed function
+    rl_clear_history();
 }

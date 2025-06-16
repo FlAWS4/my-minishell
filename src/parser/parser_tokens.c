@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 02:50:16 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 01:32:33 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,11 +68,15 @@ t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
     t_cmd *current = NULL;
     t_token *token = tokens;
     
-    // Create initial command
+    if (!shell || !tokens)
+        return (NULL);
+        
     cmd_list = create_cmd();
+    if (!cmd_list)
+        return (NULL);  
+        
     current = cmd_list;
     
-    // Process tokens into commands and redirections
     while (token)
     {
         if (process_token(&token, &current, shell) != 0)
@@ -82,9 +86,5 @@ t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
         }
         token = token->next;
     }
-    
-    // This is the correct location! Keep this line:
-    expand_command_args(cmd_list, shell);
-    
     return (cmd_list);
 }

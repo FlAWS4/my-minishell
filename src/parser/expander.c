@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 08:36:01 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:02:14 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,17 +61,28 @@ char	*get_var_name(char *str)
 /**
  * Get variable value from environment or special vars
  */
-char	*get_var_value(t_shell *shell, char *name)
+char *get_var_value(t_shell *shell, char *name)
 {
-    char	*value;
+    char *value;
+    char *result;
 
     if (!name)
         return (NULL);
     if (ft_strcmp(name, "?") == 0)
-        return (ft_itoa(shell->exit_status));
+    {
+        result = ft_itoa(shell->exit_status);
+        if (!result)
+            handle_memory_error(shell, "variable expansion");
+        return (result);
+    }
     value = get_env_value(shell->env, name);
     if (value)
-        return (ft_strdup(value));
+    {
+        result = ft_strdup(value);
+        if (!result)
+            handle_memory_error(shell, "variable expansion");
+        return (result);
+    }
     return (NULL);
 }
 
@@ -165,8 +176,10 @@ char	*expand_one_var(t_shell *shell, char *str, int *i)
     result = join_expanded_parts(parts, var_value);
     *i = ft_strlen(parts[0]) + ft_strlen(var_value) - 1;
     free_expansion_parts(var_name, var_value, parts);
+    if (!result)
+        return (str);  
     free(str);
-    return (result ? result : str);
+    return (result);
 }
 
 /**

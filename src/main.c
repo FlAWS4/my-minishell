@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:27:50 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:25:22 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -181,6 +181,7 @@ void shell_loop(t_shell *shell)
 int main(int argc, char **argv, char **envp)
 {
     t_shell *shell;
+    int shell_exit_status;
 
     (void)argc;
     (void)argv;
@@ -197,7 +198,9 @@ int main(int argc, char **argv, char **envp)
         return (1);
     ft_display_welcome();
     shell_loop(shell);
+    cleanup_readline_resources();
     restore_terminal_settings(shell);
+    shell_exit_status = shell->exit_status;
     free_shell(shell);
-    return (shell->exit_status);
+    return (shell_exit_status);
 }

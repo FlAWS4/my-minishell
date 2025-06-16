@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/12 02:35:47 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 02:59:30 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -164,22 +164,31 @@ static char	*find_append_op(char *str)
 /**
  * Process value append for export (used by process_append_op)
  */
-static int	append_value(t_shell *shell, char *key, char *value)
+static int append_value(t_shell *shell, char *key, char *value)
 {
-    t_env	*existing;
-    char	*old_value;
-    char	*new_value;
-    int		result;
+    t_env   *existing;
+    char    *old_value;
+    char    *new_value;
+    int     result;
 
     existing = find_env_var(shell->env, key);
     if (existing && existing->value)
     {
         old_value = ft_strdup(existing->value);
+        if (!old_value)
+        {
+            display_error(ERROR_MEMORY, "export", "Memory allocation failed");
+            return (0);
+        }
         new_value = ft_strjoin(old_value, value);
         free(old_value);
+        if (!new_value)
+        {
+            display_error(ERROR_MEMORY, "export", "Memory allocation failed");
+            return (0);
+        }
         result = set_env_var(&shell->env, key, new_value);
-        free(new_value);
-        return (result);
+        return (free(new_value), result);
     }
     return (set_env_var(&shell->env, key, value));
 }

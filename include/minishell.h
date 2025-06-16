@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 10:34:05 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:25:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,16 +27,13 @@
 # include <sys/stat.h>
 # include <termios.h>
 # include <limits.h>
-#include <sys/ioctl.h>  /* For ioctl and TIOCSPGRP */
-#include <termios.h> 
+# include <sys/ioctl.h>
+# include <termios.h>
+# include <stdint.h> 
 
-# ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 128
-# endif
-
-# ifndef MAX_FD
-#  define MAX_FD 1024
-# endif
+# define PROMPT_SIZE 256
+# define BUFFER_SIZE 128
+# define MAX_FD 1024
 
 // Text colors
 # define BLACK "\033[0;30m"
@@ -59,8 +56,8 @@
 # define BOLD_WHITE "\033[1;37m"
 # define BOLD_RESET "\033[1;0m"
 # define BOLD_MAGENTA "\033[1;35m"
+# define RESET "\033[0m"
 
-/* Error types */
 /* Error types */
 # define ERROR_SYNTAX      1
 # define ERROR_COMMAND     2
@@ -75,8 +72,12 @@
 # define ERROR_ENV         105
 # define ERROR_EXIT        106
 # define ERROR_PWD         107
-# define PROMPT_SIZE       256
-# define RESET              "\033[0m"
+
+/* Redirection types */
+# define REDIR_IN          1
+# define REDIR_OUT         2
+# define REDIR_APPEND      3
+# define REDIR_HEREDOC     4
 
 /* Global variable for signal handling (as allowed by subject) */
 extern int	g_signal;
@@ -110,7 +111,7 @@ typedef enum e_token_type
 
 typedef struct s_redirection
 {
-    int                     type;  // REDIR_IN, REDIR_OUT, HEREDOC
+    int                     type;  // REDIR_IN, REDIR_OUT, etc.
     int                    quoted; // Flag to indicate if the word is quoted
     char                    *word;
     struct s_redirection    *next;
@@ -181,12 +182,20 @@ t_env	*create_env_node(char *key, char *value);
 void	add_env_var(t_env **env_list, t_env *new_node);
 void	split_env_string(char *str, char **key, char **value);
 t_env	*init_env(char **envp);
+/**
+ * Get environment variable value by key
+ * Note: Caller must free the returned string
+ */
 char	*get_env_value(t_env *env, const char *key);
 t_env	*find_env_var(t_env *env, const char *key);
 int     set_env_var(t_env **env_list, char *key, char *value);
 int     delete_env_var(t_env **env_list, char *key);
 int	    count_env_vars(t_env *env);
 void	free_env_array(char **array);
+/**
+ * Convert environment linked list to string array (for execve)
+ * Note: Caller must free the returned array with free_env_array
+ */
 char	**env_to_array(t_env *env);
 int     mark_var_for_export(t_env **env_list, char *key);
 int     is_valid_identifier(char *name);
@@ -199,6 +208,10 @@ char	*ft_substr(char const *s, unsigned int start, size_t len);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 char	**ft_split(const char *s, char c);
 char	*ft_strjoin(const char *s1, const char *s2);
+/**
+ * Join strings and free s1
+ * Note: s1 is freed regardless of success or failure
+ */
 char	*ft_strjoin_free(char *s1, char *s2);
 void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
@@ -209,6 +222,10 @@ void	ft_putendl_fd(char *s, int fd);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 void	ft_putchar_fd(char c, int fd);
 int		is_whitespace(char c);
+/**
+ * Get line from file descriptor
+ * Note: Caller must free the returned string
+ */
 char	*get_next_line(int fd);
 void	gnl_cleanup(int fd);
 void	ft_putnbr_fd(int n, int fd);
@@ -220,13 +237,20 @@ char	*ft_strchr(const char *s, int c);
 char	*ft_strstr(const char *haystack, const char *needle);
 void	*ft_memset(void *s, int c, size_t n);
 int	    ft_atoi(const char *nptr);
+int     ft_safe_size_add(size_t a, size_t b, size_t *result);
+/**
+ * Read entire content from file descriptor
+ * Note: Caller must free the returned string
+ */
+char    *read_from_fd(int fd);
 
 /* Signal handling */
 void	setup_signals(void);
 void	setup_signals_noninteractive(void);
 void	setup_signals_heredoc(void);
 void    ignore_tty_signals(void);
-void restore_terminal_settings(t_shell *shell);
+void    restore_terminal_settings(t_shell *shell);
+void    cleanup_readline_resources(void);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -244,14 +268,22 @@ t_token	*get_last_token(t_token *tokens);
 /* Command creation and management */
 t_cmd	*create_cmd(void);
 int		init_args(t_cmd *cmd, char *arg);
-void   add_arg(t_cmd *cmd, char *arg);
-void    expand_command_args(t_cmd *cmd_list, t_shell *shell);
+void    add_arg(t_cmd *cmd, char *arg);
+int     expand_command_args(t_cmd *cmd_list, t_shell *shell);
 
 /* Redirection handling */
 int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
+/**
+ * Set up redirections for a command
+ * Note: Opens file descriptors that must be closed with cleanup_redirections
+ */
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
+/**
+ * Expand command within $() syntax
+ * Note: Caller must free the returned string
+ */
 char    *expand_command_substitution(char *input, t_shell *shell);
 int	    add_redirection(t_cmd *cmd, int type, char *word, int quoted);
 int     process_input_redir(t_redirection *redir);
@@ -261,6 +293,9 @@ int     process_single_redir(t_redirection *redir, t_shell *shell);
 int	    is_redirection_token(t_token *token);
 void    free_redirection_list(t_redirection *redirections);
 int     process_heredoc(t_cmd *cmd, t_shell *shell);
+/**
+ * Clean up file descriptors opened by redirections
+ */
 void    cleanup_redirections(t_cmd *cmd);
 int     apply_redirections(t_cmd *cmd);
 int     has_heredoc_redirection(t_cmd *cmd);
@@ -273,14 +308,26 @@ int     process_token(t_token **token, t_cmd **current, t_shell *shell);
 t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
 int		validate_syntax(t_token *tokens);
 void    merge_adjacent_quoted_tokens(t_token **tokens);
+/**
+ * Tokenize input and expand variables
+ * Note: Returns allocated token list that must be freed with free_token_list
+ */
 t_token *tokenize_and_expand(char *input, t_shell *shell);
 void    join_word_tokens(t_cmd *cmd, t_token **token);
 
 /* Executor functions */
+/**
+ * Find executable command in PATH
+ * Note: Caller must free the returned string
+ */
 char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
 void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
+/**
+ * Create path by joining directory and command
+ * Note: Caller must free the returned string
+ */
 char	*create_path(char *dir, char *cmd);
 void	process_cmd_status(t_shell *shell, int status);
 int     is_executable(char *path);
@@ -303,7 +350,7 @@ int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 int     builtin_help(t_shell *shell);
 
 /* Main.c functions */
-void setup_terminal(t_shell *shell);
+void    setup_terminal(t_shell *shell);
 void	process_input(t_shell *shell, char *input);
 void	shell_loop(t_shell *shell);
 t_shell	*init_shell(char **envp);
@@ -311,18 +358,34 @@ t_cmd	*parse_input(char *input, t_shell *shell);
 void	execute_parsed_commands(t_shell *shell);
 void    free_shell(t_shell *shell);
 void    handle_pending_signals(t_shell *shell);
-char **custom_completion(const char *text, int start, int end);
-char *command_generator(const char *text, int state);
+char    **custom_completion(const char *text, int start, int end);
+char    *command_generator(const char *text, int state);
 
 /* Expander functions */
+/**
+ * Expand environment variables in string
+ * Note: Caller must free the returned string
+ */
 char    *expand_variables(t_shell *shell, char *str);
 char	*expand_one_var(t_shell *shell, char *str, int *i);
 void	free_expansion_parts(char *name, char *value, char **parts);
+/**
+ * Expand variables in tokens with word splitting
+ * Note: Returns new token list that must be freed with free_token_list
+ */
 t_token *expand_variables_in_tokens_with_splitting(t_token *tokens, t_shell *shell);
 char	*get_var_name(char *str);
 char	*get_var_value(t_shell *shell, char *name);
+/**
+ * Expand variables in heredoc content
+ * Note: Caller must free the returned string
+ */
 char    *expand_heredoc_content(t_shell *shell, char *content);
 int     should_expand_heredoc(char *delimiter);
+/**
+ * Process heredoc content with optional variable expansion
+ * Note: Caller must free the returned string
+ */
 char    *process_heredoc_content(t_shell *shell, char *content, char *delimiter);
 
 /* Free functions */
@@ -344,14 +407,15 @@ int     handle_pipe_error(t_shell *shell, char *context);
 int     handle_fork_error(t_shell *shell, char *context);
 void    display_heredoc_eof_warning(char *delimiter);
 void    display_shlvl_warning(int level);
+
 /* Extra functions */
 void	ft_display_welcome(void);
-void create_prompt(char *prompt, int exit_status, t_shell *shell);
+void    create_prompt(char *prompt, int exit_status, t_shell *shell);
 
 /* History functions */
 void	init_history(void);
 void	save_history(void);
 void	add_to_history(char *cmd);
-
+int     builtin_history(t_shell *shell);
 
 #endif

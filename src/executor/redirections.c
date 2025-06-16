@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/15 09:54:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 03:37:31 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,13 +17,14 @@
  */
 static char *create_heredoc_tempfile(int *fd_out)
 {
-    char    *temp_file;
-    char    *pid_str;
+    char *temp_file;
+    char *pid_str;
+    char *result;
     
     temp_file = ft_strdup("/tmp/minishell_heredoc_");
     if (!temp_file)
         return (NULL);
-    
+        
     pid_str = ft_itoa(getpid());
     if (!pid_str)
     {
@@ -31,17 +32,22 @@ static char *create_heredoc_tempfile(int *fd_out)
         return (NULL);
     }
     
-    temp_file = ft_strjoin_free(temp_file, pid_str);
+    result = ft_strjoin(temp_file, pid_str);
+    free(temp_file);
     free(pid_str);
     
-    *fd_out = open(temp_file, O_CREAT | O_RDWR | O_TRUNC, 0600);
+    if (!result)
+        return (NULL);
+        
+    *fd_out = open(result, O_CREAT | O_RDWR | O_TRUNC, 0600);
     if (*fd_out == -1)
     {
-        free(temp_file);
+        free(result);
         display_error(ERR_REDIR, "heredoc", strerror(errno));
         return (NULL);
     }
-    return (temp_file);
+    
+    return (result);
 }
 
 /**
@@ -79,6 +85,12 @@ static void handle_heredoc_child(char *delimiter, int fd, t_shell *shell, int qu
                 free(line);
                 line = expanded;
             }
+           else
+            {
+                // If expansion fails, display error but continue with unexpanded line
+                display_error(ERR_MEMORY, "heredoc", "variable expansion failed");
+                // Original line is preserved and will be used
+            }
         }
         
         ft_putstr_fd(line, fd);
@@ -99,17 +111,17 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
     
     pid = fork();
     if (pid == -1)
+    {
+        display_error(ERR_FORK, "heredoc", strerror(errno));
         return (0);
-        
+    }  
     if (pid == 0)
     {
         // Child process that reads the heredoc input
         handle_heredoc_child(delimiter, fd, shell, quoted);
     }
-        
     // Parent process waits for child
     waitpid(pid, &status, 0);
-    
     // Simple signal reset
     setup_signals();
     
@@ -119,14 +131,8 @@ int collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell)
         g_signal = SIGINT;
         return (0);
     }
-    
-    // Return status from child to detect EOF properly
     if (WIFEXITED(status) && WEXITSTATUS(status) == 1)
-    {
-        // Child exited due to EOF - handle without executing command
-        return (0);
-    }
-    
+        return (0); // Indicate EOF was reached
     return (1);
 }
 
@@ -138,7 +144,7 @@ int process_heredoc_redir(t_redirection *redir, t_shell *shell)
 {
     int     fd;
     char    *temp_file;
-    char    *clean_delim = NULL;
+    char    *clean_delim;
     
     if (!redir || !redir->word)
         return (1);
@@ -150,25 +156,30 @@ int process_heredoc_redir(t_redirection *redir, t_shell *shell)
     redir->temp_file = temp_file;
     
     // Trust the quoted flag from the parser
-    // Only clean up the delimiter if needed
     clean_delim = ft_strdup(redir->word);
     if (!clean_delim)
-        clean_delim = redir->word; // Fallback if strdup fails
+    {
+        close(fd);
+        unlink(temp_file);
+        free(temp_file);
+        redir->temp_file = NULL;
+        return (1);
+    }
     
     // Use the clean delimiter for comparison
     if (!collect_heredoc_input(clean_delim, fd, redir->quoted, shell))
     {
-        if (clean_delim != redir->word)
-            free(clean_delim);
+        free(clean_delim);
         close(fd);
         unlink(temp_file);
+        free(temp_file);
+        redir->temp_file = NULL;
         return (1);
     }
     
-    if (clean_delim != redir->word)
-        free(clean_delim);
-    
+    free(clean_delim);
     close(fd);
+    
     redir->input_fd = open(temp_file, O_RDONLY);
     if (redir->input_fd == -1)
     {
@@ -188,21 +199,11 @@ int process_heredoc(t_cmd *cmd, t_shell *shell)
 {
     t_redirection *redir;
     int success = 1;
-    int heredoc_count = 0;
 
     if (cmd->heredocs_processed || g_signal == SIGINT)
         return (1);
-        
-    // First count how many heredocs we have
-    redir = cmd->redirections;
-    while (redir)
-    {
-        if (redir->type == TOKEN_HEREDOC)
-            heredoc_count++;
-        redir = redir->next;
-    }
     
-    // Now process each one
+    // Process each heredoc
     redir = cmd->redirections;
     while (redir)
     {
@@ -235,9 +236,9 @@ int process_redirections(t_cmd *cmd, t_shell *shell)
     // First process heredocs if needed
     if (!cmd->heredocs_processed)
     {
-        // Change this line to handle heredoc EOF more gracefully
+        // Only abort if interrupted by SIGINT
         if (!process_heredoc(cmd, shell) && g_signal == SIGINT)
-            return (1);  // Only abort if interrupted by SIGINT
+            return (1);
     }
     
     // Then handle regular redirections
@@ -250,6 +251,7 @@ int process_redirections(t_cmd *cmd, t_shell *shell)
             if (redir->input_fd == -1)
             {
                 display_error(ERR_REDIR, redir->word, strerror(errno));
+                cleanup_redirections(cmd);
                 return (1);
             }
         }
@@ -263,6 +265,7 @@ int process_redirections(t_cmd *cmd, t_shell *shell)
             if (redir->output_fd == -1)
             {
                 display_error(ERR_REDIR, redir->word, strerror(errno));
+                cleanup_redirections(cmd);  // Added cleanup here
                 return (1);
             }
         }
@@ -302,6 +305,9 @@ int apply_redirections(t_cmd *cmd)
         if (dup2(last_in, STDIN_FILENO) == -1)
         {
             display_error(ERR_REDIR, "input", strerror(errno));
+            close(last_in);  // Close the fd even on error
+            if (last_out != -1)
+                close(last_out);  // Close output fd if it exists
             return (1);
         }
         close(last_in); // Close after duplicate
@@ -312,6 +318,7 @@ int apply_redirections(t_cmd *cmd)
         if (dup2(last_out, STDOUT_FILENO) == -1)
         {
             display_error(ERR_REDIR, "output", strerror(errno));
+            close(last_out);  // Close the fd even on error
             return (1);
         }
         close(last_out); // Close after duplicate

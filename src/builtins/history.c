@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   history.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 23:44:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/02 16:52:18 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/16 03:04:12 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,22 +16,17 @@
  * Get path to history file
  * Returns allocated string with path or NULL on error
  */
-static char	*get_history_path(void)
+static char *get_history_path(void)
 {
-    char	*home_dir;
-    char	history_path[PATH_MAX];
+    char *home_dir;
+    char *history_path;
 
     home_dir = getenv("HOME");
     if (!home_dir)
         return (NULL);
-        
-    if (ft_strlen(home_dir) + ft_strlen("/.minishell_history") >= PATH_MAX)
-        return (NULL);
-        
-    ft_strlcpy(history_path, home_dir, PATH_MAX);
-    ft_strlcat(history_path, "/.minishell_history", PATH_MAX);
     
-    return (ft_strdup(history_path));
+    history_path = ft_strjoin(home_dir, "/.minishell_history");
+    return (history_path);
 }
 
 /**
@@ -121,16 +116,16 @@ void	add_to_history(char *cmd)
  * Built-in history command
  * Displays command history
  */
-int	builtin_history(t_shell *shell)
+int builtin_history(t_shell *shell)
 {
-    HIST_ENTRY **hist_entries;  // Renamed from history_list to avoid conflict
+    HIST_ENTRY **hist_entries;
     int i;
     
     (void)shell;  // Unused parameter
     
     hist_entries = history_list();  // This is the readline function
     if (!hist_entries)
-        return (0);
+        return (1);  // Return error code if history list can't be obtained
         
     for (i = 0; hist_entries[i]; i++)
     {
@@ -141,3 +136,4 @@ int	builtin_history(t_shell *shell)
     
     return (0);
 }
+
