@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 02:02:14 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/16 20:51:44 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,7 @@ char *get_var_value(t_shell *shell, char *name)
         result = ft_strdup(value);
         if (!result)
             handle_memory_error(shell, "variable expansion");
+        free(value);
         return (result);
     }
     return (NULL);

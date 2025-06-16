@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 03:15:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 00:15:54 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,37 +109,44 @@ static int handle_redir_out(t_token **token, t_cmd *cmd, int append)
 /**
  * Handle heredoc redirection
  */
+/**
+ * Handle heredoc redirection
+ * Parses the heredoc token and its delimiter
+ */
 static int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
 {
     int quoted;
     char *delim = NULL;
     
+    // Shell parameter might be needed for future features
     (void)shell;
+    
+    // Check if there's a valid token after heredoc
     if (!(*token)->next || !is_valid_redir_target((*token)->next))
     {
         display_error(ERR_SYNTAX, "expected delimiter after <<", NULL);
         return (1);
     }
     
-    // Set quoted flag based on token type
+    // Determine if the delimiter is quoted
     quoted = ((*token)->next->type == TOKEN_SINGLE_QUOTE || 
               (*token)->next->type == TOKEN_DOUBLE_QUOTE);
     
-    // Get a clean copy of the token value
+    // Copy the token value without modification
     delim = ft_strdup((*token)->next->value);
     if (!delim)
         return (1);
     
-    // Only process for non-quoted tokens or for tokens with embedded quotes
+    // Process special cases for unquoted delimiters
     if (!quoted)
     {
-        // Check for colon format (from old lexer format)
+        // Handle special colon format if present
         char *colon = ft_strchr(delim, ':');
         if (colon)
         {
-            // If colon is at beginning, skip over it and next char
             if (colon == delim && *(colon+1))
             {
+                // For ":xyz" format, use "xyz"
                 char *clean = ft_strdup(delim + 2);
                 if (!clean)
                 {
@@ -149,32 +156,44 @@ static int handle_heredoc(t_token **token, t_cmd *cmd, t_shell *shell)
                 free(delim);
                 delim = clean;
             }
-            // If colon is in middle/end, truncate it
             else if (colon != delim)
             {
+                // For "abc:xyz" format, use "abc"
                 *colon = '\0';
             }
         }
-        // Check for embedded quotes in non-quoted tokens
+        // If there are quotes within the unquoted delimiter, treat as quoted
         else if (ft_strchr(delim, '\'') || ft_strchr(delim, '\"'))
         {
-            quoted = 1;  // Mark as quoted if we find quotes
+            quoted = 1;
         }
+        
+        // Note: We do NOT expand variables in heredoc delimiters
+        // This matches bash's behavior
     }
+    
+    // Store the delimiter in the command structure
     if (cmd->heredoc_delim)
         free(cmd->heredoc_delim);
+        
     cmd->heredoc_delim = ft_strdup(delim);
     if (!cmd->heredoc_delim)
     {
         free(delim);
         return (1);
     }
+    
+    // Mark input as pending
     cmd->input_fd = -1;
+    
+    // Add the redirection to the command
     if (!add_redirection(cmd, TOKEN_HEREDOC, delim, quoted))
     {
         free(delim);
         return (1);
     }
+    
+    // Cleanup and advance token
     free(delim);
     cmd->heredocs_processed = 0;
     *token = (*token)->next;

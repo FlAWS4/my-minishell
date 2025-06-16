@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 01:56:06 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 00:19:37 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -591,7 +591,14 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
     current = tokens;
     while (current)
     {
-        if (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE)
+        // Skip expansion for heredoc delimiters
+        if (current->type == TOKEN_HEREDOC && current->next)
+        {
+            current = current->next->next; // Skip the next token (delimiter)
+            continue;
+        }
+        
+        if (current && (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE))
         {
             expanded_value = expand_variables(shell, current->value);
             if (expanded_value)
@@ -600,7 +607,9 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
                 current->value = expanded_value;
             }
         }
-        current = current->next;
+        
+        if (current)
+            current = current->next;
     }
     
     return (tokens);
