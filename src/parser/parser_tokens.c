@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 01:46:48 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/18 00:47:07 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,3 +88,4 @@ t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
     }
     return (cmd_list);
 }
+

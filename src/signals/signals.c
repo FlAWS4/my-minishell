@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/18 00:17:26 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/18 00:47:18 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,3 +172,4 @@ void	cleanup_readline_resources(void)
     save_history();
     rl_clear_history();
 }
+

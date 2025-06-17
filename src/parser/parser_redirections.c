@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 05:05:41 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/18 00:47:03 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,3 +73,4 @@ int parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell)
     }
     return (0);
 }
+
