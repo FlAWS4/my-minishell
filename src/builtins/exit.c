@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:18:40 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:01:51 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,10 +65,7 @@ static int	check_overflow(long result, char digit, int sign)
     if ((result > LONG_MAX / 10) || 
         (result == LONG_MAX / 10 && (digit - '0') > LONG_MAX % 10))
     {
-        if (sign == 1)
-            return (1);
-        else
-            return (-1);
+        return (sign == 1) ? 1 : -1;
     }
     return (0);
 }

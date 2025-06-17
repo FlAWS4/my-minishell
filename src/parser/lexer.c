@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:10 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 00:19:37 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 22:25:16 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,7 +135,7 @@ static int handle_input_redir(char *input, int i, t_token **tokens)
             return (-1);
         if (create_and_add_token(tokens, TOKEN_HEREDOC, token_value, preceded_by_space) == -1)
         {
-            free(token_value);  // Need to add this line
+            free(token_value);
             return (-1);
         }
         return (i + 2);
@@ -146,7 +146,7 @@ static int handle_input_redir(char *input, int i, t_token **tokens)
         return (-1);
     if (create_and_add_token(tokens, TOKEN_REDIR_IN, token_value, preceded_by_space) == -1)
     {
-        free(token_value);  // Need to add this line
+        free(token_value);
         return (-1);
     }
     return (i + 1);
@@ -167,7 +167,7 @@ static int handle_output_redir(char *input, int i, t_token **tokens)
             return (-1);
         if (create_and_add_token(tokens, TOKEN_REDIR_APPEND, token_value, preceded_by_space) == -1)
         {
-            free(token_value);  // Need to add this
+            free(token_value);
             return (-1);
         }
         return (i + 2);
@@ -178,7 +178,7 @@ static int handle_output_redir(char *input, int i, t_token **tokens)
         return (-1);
     if (create_and_add_token(tokens, TOKEN_REDIR_OUT, token_value, preceded_by_space) == -1)
     {
-        free(token_value);  // Need to add this
+        free(token_value);
         return (-1);
     }
     return (i + 1);
@@ -203,7 +203,7 @@ int handle_special(char *input, int i, t_token **tokens)
             return (-1);
         if (create_and_add_token(tokens, TOKEN_PIPE, token_value, preceded_by_space) == -1)
         {
-            free(token_value);  // Free value if token creation fails
+            free(token_value);
             return (-1);
         }
         return (i + 1);
@@ -237,20 +237,14 @@ int handle_quote(char *input, int i, t_token **tokens)
         i++;
     if (!input[i])
         return (-1);
-    char *content = ft_substr(input, start, i - start);
-    if (!content)
-        return (-1);
     
-    // Store the content directly - no prefix needed
-    word = ft_strdup(content);
-    free(content);
-    
+    word = ft_substr(input, start, i - start);
     if (!word)
         return (-1);
         
     if (create_and_add_token(tokens, type, word, preceded_by_space) == -1)
     {
-        free(word);  // Add this line to free word if token creation fails
+        free(word);
         return (-1);
     }
     
@@ -335,7 +329,7 @@ int handle_word(char *input, int i, t_token **tokens)
 /**
  * Check if redirection has valid target
  */
-static int has_valid_redir_target(t_token *next)
+int is_valid_redir_target(t_token *next)
 {
     if (!next)
         return (0);
@@ -371,7 +365,7 @@ int validate_syntax(t_token *tokens)
         else if (is_redirection_token(current))
         {
             // Validate redirection syntax
-            if (!has_valid_redir_target(next))
+            if (!is_valid_redir_target(next))
             {
                 if (!next)
                     print_syntax_error("newline", -1);
@@ -389,7 +383,7 @@ int validate_syntax(t_token *tokens)
 /**
  * Check for unclosed quotes in input string
  */
-int check_unclosed_quotes(char *input)
+static int check_unclosed_quotes(char *input)
 {
     int i, in_single_quote = 0, in_double_quote = 0;
 
@@ -425,7 +419,6 @@ static int merge_tokens(t_token *current, t_token *next)
     merged_value = ft_strjoin(current->value, next->value);
     if (!merged_value)
         return (0);  // Caller handles cleanup
-        
     free(current->value);
     current->value = merged_value;
     current->type = TOKEN_WORD;
@@ -478,6 +471,7 @@ t_token *process_tokens(char *input)
 {
     t_token *tokens = NULL;
     int i = 0, was_space = 1;
+    t_token *last;
 
     while (input[i])
     {
@@ -497,7 +491,7 @@ t_token *process_tokens(char *input)
             }
             
             // Update space flag for last token
-            t_token *last = get_last_token(tokens);
+            last = get_last_token(tokens);
             if (last)
                 last->preceded_by_space = was_space;
             was_space = 0;
@@ -512,7 +506,7 @@ t_token *process_tokens(char *input)
             }
             
             // Update space flag for last token
-            t_token *last = get_last_token(tokens);
+            last = get_last_token(tokens);
             if (last)
                 last->preceded_by_space = was_space;
             was_space = 0;
@@ -527,7 +521,7 @@ t_token *process_tokens(char *input)
             }
             
             // Update space flag for last token
-            t_token *last = get_last_token(tokens);
+            last = get_last_token(tokens);
             if (last)
                 last->preceded_by_space = was_space;
             was_space = 0;
@@ -564,7 +558,6 @@ t_token *tokenize(char *input)
     
     return (tokens);
 }
-
 /**
  * Process input string into tokens, performing variable expansion
  */
@@ -573,6 +566,7 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
     t_token *tokens;
     t_token *current;
     char *expanded_value;
+    int skip_next;
 
     if (!input || !*input)
         return (NULL);
@@ -587,17 +581,33 @@ t_token *tokenize_and_expand(char *input, t_shell *shell)
         return (NULL);
     }
     
-    // Add expansion of token values
     current = tokens;
+    skip_next = 0;
     while (current)
     {
-        // Skip expansion for heredoc delimiters
-        if (current->type == TOKEN_HEREDOC && current->next)
+        // Handle heredoc delimiters with proper quote detection
+        if (current->type == TOKEN_HEREDOC)
         {
-            current = current->next->next; // Skip the next token (delimiter)
+            skip_next = 1;
+            current = current->next;
             continue;
         }
         
+        if (skip_next)
+        {
+            // This is a heredoc delimiter - don't expand variables in it
+            // But do mark it as quoted if it has single quotes
+            if (current->type == TOKEN_SINGLE_QUOTE)
+            {
+                // Mark this token so parser knows to disable var expansion in heredoc
+                current->preceded_by_space = 2; // Special flag for single-quoted heredoc delimiters
+            }
+            skip_next = 0;
+            current = current->next;
+            continue;
+        }
+        
+        // Normal token expansion for non-heredoc tokens
         if (current && (current->type == TOKEN_WORD || current->type == TOKEN_DOUBLE_QUOTE))
         {
             expanded_value = expand_variables(shell, current->value);

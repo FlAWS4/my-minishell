@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 02:59:30 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:07:23 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 
 /**
  * Compare two environment variables by key name
- * Used for sorting environment variables alphabetically
  */
 static int	env_var_compare(const void *a, const void *b)
 {
@@ -57,7 +56,6 @@ static void	print_escaped_value(char *value)
 
 /**
  * Print a single environment variable in export format
- * Shows all exported variables, whether they're in env or not
  */
 static void	print_env_var(t_env *env)
 {
@@ -75,40 +73,6 @@ static void	print_env_var(t_env *env)
 }
 
 /**
- * Allocate array for sorting environment variables
- */
-static t_env	**alloc_env_array(t_env *env, int count)
-{
-    t_env	**env_array;
-
-    (void)env;  // Avoid unused parameter warning
-    env_array = malloc(sizeof(t_env *) * count);
-    if (!env_array)
-    {
-        display_error(ERROR_MEMORY, "export", "Memory allocation failed");
-        return (NULL);
-    }
-    return (env_array);
-}
-
-/**
- * Copy environment variables to array for sorting
- */
-static void	copy_env_to_array(t_env *env, t_env **env_array)
-{
-    t_env	*curr;
-    int		i;
-
-    i = 0;
-    curr = env;
-    while (curr)
-    {
-        env_array[i++] = curr;
-        curr = curr->next;
-    }
-}
-
-/**
  * Display exported variables in sorted order
  */
 static void	display_exported_vars(t_env *env)
@@ -122,10 +86,18 @@ static void	display_exported_vars(t_env *env)
     count = count_env_vars(env);
     if (count <= 0)
         return ;
-    env_array = alloc_env_array(env, count);
+    env_array = malloc(sizeof(t_env *) * count);
     if (!env_array)
+    {
+        display_error(ERROR_MEMORY, "export", "Memory allocation failed");
         return ;
-    copy_env_to_array(env, env_array);
+    }
+    i = 0;
+    while (env)
+    {
+        env_array[i++] = env;
+        env = env->next;
+    }
     sort_env_array(env_array, count);
     i = 0;
     while (i < count)
@@ -162,35 +134,34 @@ static char	*find_append_op(char *str)
 }
 
 /**
- * Process value append for export (used by process_append_op)
+ * Process value append for export
  */
-static int append_value(t_shell *shell, char *key, char *value)
+static int	append_value(t_shell *shell, char *key, char *value)
 {
-    t_env   *existing;
-    char    *old_value;
-    char    *new_value;
-    int     result;
+    t_env	*existing;
+    char	*old_value;
+    char	*new_value;
+    int		result;
 
     existing = find_env_var(shell->env, key);
-    if (existing && existing->value)
+    if (!existing || !existing->value)
+        return (set_env_var(&shell->env, key, value));
+    old_value = ft_strdup(existing->value);
+    if (!old_value)
     {
-        old_value = ft_strdup(existing->value);
-        if (!old_value)
-        {
-            display_error(ERROR_MEMORY, "export", "Memory allocation failed");
-            return (0);
-        }
-        new_value = ft_strjoin(old_value, value);
-        free(old_value);
-        if (!new_value)
-        {
-            display_error(ERROR_MEMORY, "export", "Memory allocation failed");
-            return (0);
-        }
-        result = set_env_var(&shell->env, key, new_value);
-        return (free(new_value), result);
+        display_error(ERROR_MEMORY, "export", "Memory allocation failed");
+        return (0);
     }
-    return (set_env_var(&shell->env, key, value));
+    new_value = ft_strjoin(old_value, value);
+    free(old_value);
+    if (!new_value)
+    {
+        display_error(ERROR_MEMORY, "export", "Memory allocation failed");
+        return (0);
+    }
+    result = set_env_var(&shell->env, key, new_value);
+    free(new_value);
+    return (result);
 }
 
 /**
@@ -240,14 +211,8 @@ static int	process_assignment(t_shell *shell, char *arg, char *equals_pos)
  */
 static int	process_no_assignment(t_shell *shell, char *arg)
 {
-    // Check if the identifier is valid first
     if (!is_valid_identifier(arg))
-    {
-        display_error(ERROR_EXPORT, arg, "not a valid identifier");
-        return (1);
-    }
-    
-    // Only mark for export if identifier is valid
+        return (handle_invalid_id(arg));
     return (!mark_var_for_export(&shell->env, arg));
 }
 
@@ -256,26 +221,17 @@ static int	process_no_assignment(t_shell *shell, char *arg)
  */
 static int	process_export_arg(t_shell *shell, char *arg)
 {
-    char *equals_pos;
-    char *append_pos;
-    
-    if (!arg || !*arg)  // Handle empty arguments explicitly
-    {
-        display_error(ERROR_EXPORT, "", "not a valid identifier");
-        return (1);
-    }
-    
-    // Check for append operation (+=)
+    char	*equals_pos;
+    char	*append_pos;
+
+    if (!arg || !*arg)
+        return (handle_invalid_id(""));
     append_pos = find_append_op(arg);
     if (append_pos)
         return (process_append_op(shell, arg, append_pos));
-    
-    // Check for regular assignment (=)
     equals_pos = ft_strchr(arg, '=');
     if (equals_pos)
         return (process_assignment(shell, arg, equals_pos));
-    
-    // No assignment, just mark for export
     return (process_no_assignment(shell, arg));
 }
 
@@ -286,35 +242,23 @@ int	builtin_export(t_shell *shell, t_cmd *cmd)
 {
     int	i;
     int	result;
-    
+
     if (!shell || !cmd)
         return (1);
-    
-    // With no arguments, just display exported variables
     if (!cmd->args[1])
     {
         display_exported_vars(shell->env);
         return (0);
     }
-    
-    // Process each argument
     result = 0;
     i = 1;
     while (cmd->args[i])
     {
-        // Empty strings should be reported as invalid
         if (cmd->args[i][0] == '\0')
-        {
-            display_error(ERROR_EXPORT, "", "not a valid identifier");
-            result = 1;
-        }
+            result |= handle_invalid_id("");
         else
-        {
-            // Process non-empty arguments
             result |= process_export_arg(shell, cmd->args[i]);
-        }
         i++;
     }
-    
     return (result);
 }

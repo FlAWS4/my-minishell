@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 00:30:05 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 23:41:52 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -243,6 +243,7 @@ int     ft_safe_size_add(size_t a, size_t b, size_t *result);
  * Note: Caller must free the returned string
  */
 char    *read_from_fd(int fd);
+int     is_empty_delimiter(char *word);
 
 /* Signal handling */
 void	setup_signals(void);
@@ -251,6 +252,9 @@ void	setup_signals_heredoc(void);
 void    ignore_tty_signals(void);
 void    restore_terminal_settings(t_shell *shell);
 void    cleanup_readline_resources(void);
+void    prepare_terminal_for_command(void);
+void	reset_signals(void);
+void    check_pending_signals(t_shell *shell);
 
 /* Lexer functions */
 int		handle_word(char *input, int i, t_token **tokens);
@@ -280,6 +284,7 @@ int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
 int		setup_redirections(t_cmd *cmd, t_shell *shell);
 int		process_redirections(t_cmd *cmd, t_shell *shell);
 int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
+int     process_regular_redirections(t_cmd *cmd);
 /**
  * Expand command within $() syntax
  * Note: Caller must free the returned string
@@ -291,8 +296,10 @@ int     process_output_redir(t_redirection *redir);
 int     process_heredoc_redir(t_redirection *redir, t_shell *shell);
 int     process_single_redir(t_redirection *redir, t_shell *shell);
 int	    is_redirection_token(t_token *token);
+int     is_valid_redir_target(t_token *next);
 void    free_redirection_list(t_redirection *redirections);
 int     process_heredoc(t_cmd *cmd, t_shell *shell);
+int     process_token(t_token **token, t_cmd **current, t_shell *shell);
 /**
  * Clean up file descriptors opened by redirections
  */
@@ -324,6 +331,8 @@ char	*find_command(t_shell *shell, char *cmd);
 int		execute_builtin(t_shell *shell, t_cmd *cmd);
 void	execute_child(t_shell *shell, t_cmd *cmd);
 int		execute_command(t_shell *shell, t_cmd *cmd);
+void    execute_cmd(t_shell *shell, t_cmd *cmd);
+int     process_command_args(t_shell *shell, t_cmd *cmd);
 /**
  * Create path by joining directory and command
  * Note: Caller must free the returned string
@@ -348,6 +357,8 @@ int		is_builtin(char *cmd);
 void	print_sorted_env(t_shell *shell);
 int		builtin_pwd(t_shell *shell, t_cmd *cmd);
 int     builtin_help(t_shell *shell);
+int     is_builtin(char *cmd);
+void handle_builtin_child(t_shell *shell, t_cmd *cmd);
 
 /* Main.c functions */
 void    setup_terminal(t_shell *shell);
@@ -360,6 +371,7 @@ void    free_shell(t_shell *shell);
 void    handle_pending_signals(t_shell *shell);
 char    **custom_completion(const char *text, int start, int end);
 char    *command_generator(const char *text, int state);
+void	restore_shell_terminal(t_shell *shell);
 
 /* Expander functions */
 /**

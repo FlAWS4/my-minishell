@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 01:32:33 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 01:46:48 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ int process_token(t_token **token, t_cmd **current, t_shell *shell)
     if ((*token)->type == TOKEN_WORD || (*token)->type == TOKEN_SINGLE_QUOTE
         || (*token)->type == TOKEN_DOUBLE_QUOTE)
     {
-        // Call join_word_tokens directly
+        // Add word to command arguments
         join_word_tokens(*current, token);
     }
     else if ((*token)->type == TOKEN_PIPE)
@@ -42,13 +42,12 @@ int process_token(t_token **token, t_cmd **current, t_shell *shell)
     return (0);
 }
 
-
 /**
  * Handle pipe token by creating a new command in the chain
  */
-t_cmd	*handle_pipe_token(t_cmd *current)
+t_cmd *handle_pipe_token(t_cmd *current)
 {
-    t_cmd	*new_cmd;
+    t_cmd *new_cmd;
 
     if (!current)
         return (NULL);
@@ -64,9 +63,9 @@ t_cmd	*handle_pipe_token(t_cmd *current)
  */
 t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
 {
-    t_cmd *cmd_list = NULL;
-    t_cmd *current = NULL;
-    t_token *token = tokens;
+    t_cmd *cmd_list;
+    t_cmd *current;
+    t_token *token;
     
     if (!shell || !tokens)
         return (NULL);
@@ -76,6 +75,7 @@ t_cmd *parse_tokens(t_token *tokens, t_shell *shell)
         return (NULL);  
         
     current = cmd_list;
+    token = tokens;
     
     while (token)
     {

@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 02:56:02 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:00:36 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,52 +21,51 @@ static void	setup_env_node(t_env *node, int exported, int in_env)
     node->in_env = in_env;
     node->next = NULL;
 }
+
+/**
+ * Process SHLVL string value to int
+ */
+static int	parse_shlvl_value(char *value)
+{
+    int	level;
+
+    if (!value || !*value)
+        return (0);
+    level = ft_atoi(value);
+    if (level < 0)
+        return (0);
+    if (level >= 999)
+    {
+        if (level == 999)
+            display_shlvl_warning(1000);
+        return (0);
+    }
+    return (level);
+}
+
 /**
  * Handle SHLVL environment variable properly
  */
-static void increment_shlvl(t_env **env_list)
+static void	increment_shlvl(t_env **env_list)
 {
-    t_env *shlvl_var;
-    int level;
-    char *new_value;
-    
+    t_env	*shlvl_var;
+    int		level;
+    char	*new_value;
+
     shlvl_var = find_env_var(*env_list, "SHLVL");
     if (!shlvl_var)
     {
-        // SHLVL not found, create with value "1"
         set_env_var(env_list, "SHLVL", "1");
-        return;
+        return ;
     }
-    
-    // Get current value
-    if (!shlvl_var->value || !*shlvl_var->value)
-        level = 0;
-    else
-        level = ft_atoi(shlvl_var->value);
-    
-    // Handle invalid values
-    if (level < 0)
-        level = 0;
-    else if (level >= 999)
-    {
-        // Bash warns at 1000 and sets to 1
-        if (level == 999)
-            display_shlvl_warning(1000);
-        level = 0;
-    }
-    
-    // Increment level
+    level = parse_shlvl_value(shlvl_var->value);
     level++;
-    
-    // Convert back to string
     new_value = ft_itoa(level);
     if (!new_value)
     {
         display_error(ERROR_MEMORY, "SHLVL", "Memory allocation failed");
-        return;
+        return ;
     }
-    
-    // Update environment
     free(shlvl_var->value);
     shlvl_var->value = new_value;
 }
@@ -89,10 +88,7 @@ t_env	*create_env_node(char *key, char *value)
         free(new_node);
         return (NULL);
     }
-    if (value)
-        new_node->value = ft_strdup(value);
-    else
-        new_node->value = ft_strdup("");
+    new_node->value = value ? ft_strdup(value) : ft_strdup("");
     if (!new_node->value)
     {
         free(new_node->key);
@@ -145,18 +141,14 @@ t_env	*find_env_var(t_env *env_list, const char *key)
 /**
  * Check if a string is a valid shell variable identifier
  */
-int is_valid_identifier(char *id)
+int	is_valid_identifier(char *id)
 {
-    int i;
-    
-    if (!id || !*id) // Check if the string is NULL or empty
+    int	i;
+
+    if (!id || !*id)
         return (0);
-    
-    // First character must be letter or underscore
     if (!ft_isalpha(id[0]) && id[0] != '_')
         return (0);
-    
-    // Rest can be letters, numbers, or underscores
     i = 1;
     while (id[i])
     {
@@ -211,10 +203,7 @@ int	mark_var_for_export(t_env **env_list, char *key)
 static int	update_env_var(t_env *existing, char *value)
 {
     free(existing->value);
-    if (value)
-        existing->value = ft_strdup(value);
-    else
-        existing->value = ft_strdup("");
+    existing->value = value ? ft_strdup(value) : ft_strdup("");
     existing->exported = 1;
     existing->in_env = 1;
     return (existing->value != NULL);
@@ -282,14 +271,15 @@ void	split_env_string(char *str, char **key, char **value)
         *key = NULL;
     }
 }
+
 /**
  * Process a single environment string
  */
-static void process_env_string(char *env_str, t_env **env_list)
+static void	process_env_string(char *env_str, t_env **env_list)
 {
-    char *key;
-    char *value;
-    t_env *new_node;
+    char	*key;
+    char	*value;
+    t_env	*new_node;
 
     split_env_string(env_str, &key, &value);
     if (key && value)
@@ -302,7 +292,7 @@ static void process_env_string(char *env_str, t_env **env_list)
             add_env_var(env_list, new_node);
         }
         else
-            display_error(ERROR_ENV, key, "Failed to create environment variable");
+            display_error(ERROR_ENV, key, "Failed to create env variable");
     }
     if (key)
         free(key);
@@ -313,10 +303,10 @@ static void process_env_string(char *env_str, t_env **env_list)
 /**
  * Initialize environment variables from envp
  */
-t_env *init_env(char **envp)
+t_env	*init_env(char **envp)
 {
-    t_env *env_list;
-    int i;
+    t_env	*env_list;
+    int		i;
 
     env_list = NULL;
     if (!envp)
@@ -327,20 +317,16 @@ t_env *init_env(char **envp)
         process_env_string(envp[i], &env_list);
         i++;
     }
-    
-    // Add SHLVL handling
     increment_shlvl(&env_list);
-    
     return (env_list);
 }
 
 /**
  * Get environment variable value by key
- * Note: Caller must free the returned string
  */
-char *get_env_value(t_env *env_list, const char *key)
+char	*get_env_value(t_env *env_list, const char *key)
 {
-    t_env *current;
+    t_env	*current;
 
     if (!env_list || !key)
         return (NULL);
@@ -407,27 +393,20 @@ static int	count_env_for_array(t_env *env_list)
 /**
  * Create single environment string (KEY=VALUE)
  */
-static char *create_env_string(t_env *env)
+static char	*create_env_string(t_env *env)
 {
-    char *temp;
-    char *result;
-    char *value_to_use;
+    char	*temp;
+    char	*result;
+    char	*value_to_use;
 
     temp = ft_strjoin(env->key, "=");
     if (!temp)
         return (NULL);
-    
-    // Replace ternary with explicit if/else
-    if (env->value)
-        value_to_use = env->value;
-    else
-        value_to_use = "";
-    
+    value_to_use = env->value ? env->value : "";
     result = ft_strjoin(temp, value_to_use);
     free(temp);
     return (result);
 }
-
 
 /**
  * Handle error in env array creation

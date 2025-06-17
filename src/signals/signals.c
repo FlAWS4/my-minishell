@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 03:24:19 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/18 00:17:26 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,12 @@
 /**
  * Used to track signal state between processes
  */
-extern int g_signal;
+extern int	g_signal;
 
 /**
  * Event hook for readline - called between key presses
  */
-int check_for_signals(void)
+int	check_for_signals(void)
 {
     if (g_signal == SIGINT)
     {
@@ -36,36 +36,33 @@ int check_for_signals(void)
 /**
  * Signal handler for interactive mode
  */
-void sigint_handler(int signum)
+void	sigint_handler(int signum)
 {
     if (signum == SIGINT)
     {
         g_signal = SIGINT;
-       write(1, "\n", 1);
+        write(1, "\n", 1);
     }
 }
 
 /**
- * Setup signals for heredoc input
- * Called in child process handling heredoc input
+ * Signal handler for heredoc input mode
  */
-void sigint_heredoc_handler(int signum)
+void	sigint_heredoc_handler(int signum)
 {
     if (signum == SIGINT)
     {
         g_signal = SIGINT;
         write(STDOUT_FILENO, "\n", 1);
-        
-        // These two lines are critical:
-        close(STDIN_FILENO); // Close stdin to stop any further reading
-        exit(130);  // Exit immediately with status 130 (128 + SIGINT)
+        close(STDIN_FILENO);
+        exit(130);
     }
 }
 
 /**
  * Configure a sigaction structure with given handler
  */
-static void setup_signal_action(struct sigaction *sa, void (*handler)(int))
+static void	setup_signal_action(struct sigaction *sa, void (*handler)(int))
 {
     ft_bzero(sa, sizeof(struct sigaction));
     sa->sa_handler = handler;
@@ -74,54 +71,46 @@ static void setup_signal_action(struct sigaction *sa, void (*handler)(int))
 }
 
 /**
- * Setup signals for interactive mode
- * Called at shell startup and after command execution
+ * Setup signals for interactive shell mode
  */
-void setup_signals(void)
+void	setup_signals(void)
 {
-    struct sigaction sa_int;
-    struct sigaction sa_quit;
+    struct sigaction	sa_int;
+    struct sigaction	sa_quit;
 
     rl_event_hook = check_for_signals;
-    
     setup_signal_action(&sa_int, sigint_handler);
     sigaction(SIGINT, &sa_int, NULL);
-    
     setup_signal_action(&sa_quit, SIG_IGN);
     sigaction(SIGQUIT, &sa_quit, NULL);
 }
 
 /**
- * Setup signals for child processes
- * Called in child processes before executing external commands
+ * Setup signals for child processes running commands
  */
-void setup_signals_noninteractive(void)
+void	setup_signals_noninteractive(void)
 {
-    struct sigaction sa_int;
-    struct sigaction sa_quit;
-    
+    struct sigaction	sa_int;
+    struct sigaction	sa_quit;
+
     rl_event_hook = NULL;
-    
     setup_signal_action(&sa_int, SIG_DFL);
     sigaction(SIGINT, &sa_int, NULL);
-    
     setup_signal_action(&sa_quit, SIG_DFL);
     sigaction(SIGQUIT, &sa_quit, NULL);
 }
 
 /**
- * Setup signals for heredoc input
+ * Setup signals for heredoc input handling
  */
-void setup_signals_heredoc(void)
+void	setup_signals_heredoc(void)
 {
-    struct sigaction sa_int;
-    struct sigaction sa_quit;
-    
+    struct sigaction	sa_int;
+    struct sigaction	sa_quit;
+
     rl_event_hook = NULL;
-    
     setup_signal_action(&sa_int, sigint_heredoc_handler);
     sigaction(SIGINT, &sa_int, NULL);
-    
     setup_signal_action(&sa_quit, SIG_IGN);
     sigaction(SIGQUIT, &sa_quit, NULL);
 }
@@ -129,31 +118,27 @@ void setup_signals_heredoc(void)
 /**
  * Reset all signals to default behavior
  */
-void reset_signals(void)
+void	reset_signals(void)
 {
-    struct sigaction sa;
-    
+    struct sigaction	sa;
+
     setup_signal_action(&sa, SIG_DFL);
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
-    
     rl_event_hook = NULL;
     g_signal = 0;
 }
 
 /**
- * Ignore terminal control signals (SIGTTIN, SIGTTOU)
- * Used by child processes to avoid being suspended
+ * Ignore terminal control signals in child processes
  */
-void ignore_tty_signals(void)
+void	ignore_tty_signals(void)
 {
-    struct sigaction sa;
-    
+    struct sigaction	sa;
+
     sa.sa_handler = SIG_IGN;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    
-    // Ignore terminal control signals
     sigaction(SIGTTIN, &sa, NULL);
     sigaction(SIGTTOU, &sa, NULL);
 }
@@ -161,34 +146,29 @@ void ignore_tty_signals(void)
 /**
  * Restore original terminal settings
  */
-void restore_terminal_settings(t_shell *shell)
+void	restore_terminal_settings(t_shell *shell)
 {
     if (!isatty(STDIN_FILENO))
-        return;
-        
+        return ;
     tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
 }
 
 /**
- * Restore terminal control after heredoc interruption
- * Does not require process group management
+ * Restore shell terminal state after heredoc interruption
  */
-void restore_shell_terminal(t_shell *shell)
+void	restore_shell_terminal(t_shell *shell)
 {
-    // Only attempt if we're running in a terminal
-    if (isatty(STDIN_FILENO))
-    {
-        tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-        setup_signals();
-    }
+    if (!isatty(STDIN_FILENO))
+        return ;
+    tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
+    setup_signals();
 }
 
-// Add this function for cleanup
-void cleanup_readline_resources(void)
+/**
+ * Clean up readline resources before exit
+ */
+void	cleanup_readline_resources(void)
 {
-    // Save history first
     save_history();
-    
-    // Clear readline history using allowed function
     rl_clear_history();
 }

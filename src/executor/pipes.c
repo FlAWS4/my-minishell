@@ -6,138 +6,169 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 02:28:56 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 23:49:58 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static int setup_child_input(int prev_pipe, t_cmd *current)
+/**
+ * Handle pipe creation failure - non-static to match header declaration
+ */
+int handle_pipe_error(t_shell *shell, char *context)
 {
-    if (prev_pipe != -1)
-    {
-        if (current->input_fd == -1)
-        {
-            if (dup2(prev_pipe, STDIN_FILENO) == -1)
-                return (1);
-        }
-        else
-        {
-            if (dup2(current->input_fd, STDIN_FILENO) == -1)
-                return (1);
-        }
-        close(prev_pipe);
-    }
-    else if (current->input_fd != -1)
-    {
-        if (dup2(current->input_fd, STDIN_FILENO) == -1)
-            return (1);
-        close(current->input_fd);
-    }
-    return (0);
-}
-
-static int setup_child_output(int *pipe_fds, t_cmd *current)
-{
-    if (current->next)
-    {
-        close(pipe_fds[0]);
-        if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
-            return (1);
-        close(pipe_fds[1]);
-    }
-    return (0);
-}
-
-static int setup_child_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
-{
-    if (setup_child_input(prev_pipe, current) != 0)
-        return (1);
-    if (setup_child_output(pipe_fds, current) != 0)
-        return (1);
-    return (0);
-}
-
-static int	handle_pipe_failure(int prev_pipe)
-{
-    if (prev_pipe != -1)
-        close(prev_pipe);
-    display_error(ERR_PIPE, "pipe", strerror(errno));
+    (void)shell;
+    display_error(ERR_PIPE, context, strerror(errno));
     return (1);
 }
 
-static int	handle_fork_failure(int prev_pipe, int *pipe_fds, t_cmd *cmd)
+/**
+ * Handle fork failure - non-static to match header declaration
+ */
+int handle_fork_error(t_shell *shell, char *context)
+{
+    (void)shell;
+    display_error(ERR_FORK, context, strerror(errno));
+    return (1);
+}
+
+/**
+ * Clean up pipe resources on error
+ */
+static void cleanup_pipe_resources(int prev_pipe, int *pipe_fds, t_cmd *cmd)
 {
     if (prev_pipe != -1)
         close(prev_pipe);
-    if (cmd->next)
+    
+    if (cmd && cmd->next)
     {
         close(pipe_fds[0]);
         close(pipe_fds[1]);
     }
-    display_error(ERR_FORK, "fork", strerror(errno));
-    return (1);
 }
 
-static int execute_piped_command(t_shell *shell, t_cmd *cmd, 
-                  int prev_pipe, int *pipe_fds)
+/**
+ * Execute a command in the pipeline
+ */
+static int execute_pipe_command(t_shell *shell, t_cmd *cmd, 
+                                int prev_pipe, int *pipe_fds)
 {
     pid_t pid;
 
+    // Process heredocs for this command first
+    if (!cmd->heredocs_processed)
+    {
+        if (!process_heredoc(cmd, shell) && g_signal == SIGINT)
+            return (1);
+    }
+
+    // Create pipe for next command if needed
     if (cmd->next && pipe(pipe_fds) == -1)
-        return (handle_pipe_failure(prev_pipe));
+    {
+        cleanup_pipe_resources(prev_pipe, NULL, NULL);
+        return (handle_pipe_error(shell, "pipe"));
+    }
     
+    // Fork process
     pid = fork();
     if (pid == -1)
-        return (handle_fork_failure(prev_pipe, pipe_fds, cmd));
+    {
+        cleanup_pipe_resources(prev_pipe, pipe_fds, cmd);
+        return (handle_fork_error(shell, "fork"));
+    }
     
     if (pid == 0)
     {
         // Child process
         setup_signals_noninteractive();
-        if (setup_child_pipes(prev_pipe, pipe_fds, cmd) != 0)
+        
+        // 1. Handle pipe input
+        if (cmd->input_fd != -1)
         {
-            display_error(ERR_PIPE, "setup", strerror(errno));
-            exit(1);
+            if (dup2(cmd->input_fd, STDIN_FILENO) == -1)
+            {
+                display_error(ERR_REDIR, "input", strerror(errno));
+                exit(1);
+            }
+            close(cmd->input_fd);
+            if (prev_pipe != -1)
+                close(prev_pipe);
         }
-        execute_child(shell, cmd);
-        // If we reach here, execution failed
-        exit(1);
+        else if (prev_pipe != -1)
+        {
+            if (dup2(prev_pipe, STDIN_FILENO) == -1)
+            {
+                display_error(ERR_REDIR, "input", strerror(errno));
+                exit(1);
+            }
+            close(prev_pipe);
+        }
+        
+        // 2. Handle pipe output
+        if (cmd->next)
+        {
+            close(pipe_fds[0]);
+            if (cmd->output_fd == -1) // Only redirect to pipe if no file redirection
+            {
+                if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
+                {
+                    display_error(ERR_REDIR, "output", strerror(errno));
+                    exit(1);
+                }
+            }
+            close(pipe_fds[1]);
+        }
+        
+        // 3. Process regular file redirections (skip heredocs already processed)
+        process_regular_redirections(cmd);
+        
+        // 4. Process command arguments (handle colon prefixes)
+        if (!process_command_args(shell, cmd))
+            exit(1);
+        
+        // 5. Execute the command using shared function
+        execute_cmd(shell, cmd);
+        // execute_cmd never returns
     }
     else
     {
+        // Parent - store child PID for later
         cmd->pid = pid;
     }
     return (0);
 }
 
+/**
+ * Wait for all child processes and handle their exit status
+ */
 int wait_for_children(t_shell *shell)
 {
     int status;
     int pid;
-    int last_status = 0;
+    int last_status;
     
     if (!shell)
         return (1);
     
-    // Wait for all child processes
+    last_status = 0;
     while (1)
     {
         pid = waitpid(-1, &status, 0);
         if (pid <= 0)
         {
             if (errno == EINTR)
-                continue;  // Retry if interrupted
+                continue;
             break;
         }
         
-        // Track exit status
         if (WIFEXITED(status))
             last_status = WEXITSTATUS(status);
         else if (WIFSIGNALED(status))
         {
-            if (WTERMSIG(status) == SIGINT)
-                write(STDOUT_FILENO, "\n", 1);
+            // No need to print newline here since signal handler already did
+            if (WTERMSIG(status) == SIGQUIT)
+                ft_putendl_fd("Quit (core dumped)", STDERR_FILENO);
+                
             last_status = 128 + WTERMSIG(status);
         }
     }
@@ -146,84 +177,25 @@ int wait_for_children(t_shell *shell)
     return (last_status);
 }
 
-static int	manage_parent_pipes(int prev_pipe, int *pipe_fds, t_cmd *current)
+/**
+ * Manage pipe file descriptors between commands
+ */
+static int manage_parent_pipes(int prev_pipe, int *pipe_fds, t_cmd *cmd)
 {
     if (prev_pipe != -1)
         close(prev_pipe);
-    if (current->next)
+    
+    if (cmd->next)
     {
-        close(pipe_fds[1]);
-        return (pipe_fds[0]);
+        close(pipe_fds[1]);  // Close write end
+        return (pipe_fds[0]);  // Return read end for next command
     }
-    return (-1);
+    return (-1);  // No more pipes needed
 }
 
-static void	cleanup_heredoc_files(t_cmd *cmd, t_cmd *current)
-{
-    t_cmd	*cleanup;
-
-    cleanup = cmd;
-    while (cleanup != current)
-    {
-        if (cleanup->heredoc_file)
-        {
-            unlink(cleanup->heredoc_file);
-            free(cleanup->heredoc_file);
-            cleanup->heredoc_file = NULL;
-        }
-        cleanup = cleanup->next;
-    }
-}
-
-static int	process_cmd_heredoc(t_shell *shell, t_cmd *cmd, t_cmd *current)
-{
-    if (!process_heredoc(current, shell))
-    {
-        cleanup_heredoc_files(cmd, current);
-        return (0);
-    }
-    return (1);
-}
-
-static int	process_pipeline_heredocs(t_shell *shell, t_cmd *cmd)
-{
-    t_cmd	*current;
-
-    current = cmd;
-    while (current)
-    {
-        if (current->heredoc_delim)
-        {
-            if (!process_cmd_heredoc(shell, cmd, current))
-                return (0);
-        }
-        current = current->next;
-    }
-    return (1);
-}
-
-static void	cleanup_after_execution(t_cmd *cmd)
-{
-    t_cmd	*current;
-
-    current = cmd;
-    while (current)
-    {
-        if (current->heredoc_file)
-        {
-            unlink(current->heredoc_file);
-            free(current->heredoc_file);
-            current->heredoc_file = NULL;
-        }
-        if (current->input_fd != -1)
-        {
-            close(current->input_fd);
-            current->input_fd = -1;
-        }
-        current = current->next;
-    }
-}
-
+/**
+ * Run all commands in a pipeline
+ */
 static int run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 {
     int     pipe_fds[2];
@@ -232,35 +204,41 @@ static int run_pipeline_commands(t_shell *shell, t_cmd *cmd)
 
     prev_pipe = -1;
     current = cmd;
+    
+    // Process each command in the pipeline
     while (current)
     {
-        if (execute_piped_command(shell, current, prev_pipe, pipe_fds))
+        // Execute the command (heredocs now processed inside execute_pipe_command)
+        if (execute_pipe_command(shell, current, prev_pipe, pipe_fds))
         {
-            if (prev_pipe != -1)
-                close(prev_pipe);
+            // Error already handled by execute_pipe_command
             return (1);
         }
+        
+        // Update pipe for next command
         prev_pipe = manage_parent_pipes(prev_pipe, pipe_fds, current);
         current = current->next;
     }
     return (0);
 }
 
+/**
+ * Execute a pipeline of commands
+ */
 int execute_pipeline(t_shell *shell, t_cmd *cmd)
 {
     int result;
     
-    // Process all heredocs first
-    if (!process_pipeline_heredocs(shell, cmd))
+    if (!shell || !cmd || !cmd->next)
         return (1);
-    
-    // Run all commands in the pipeline
     if (run_pipeline_commands(shell, cmd))
         return (1);
     
+    // Wait for all processes to complete
     result = wait_for_children(shell);
     
-    cleanup_after_execution(cmd);
+    // Clean up any remaining resources
+    cleanup_redirections(cmd);
     
     // Reset signal handlers
     setup_signals();

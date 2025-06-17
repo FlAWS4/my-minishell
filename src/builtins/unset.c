@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:28:12 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:04:53 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,10 +39,8 @@ static void	remove_env_var(t_shell *shell, char *key)
 
     if (!shell || !key)
         return ;
-        
     curr = shell->env;
     prev = NULL;
-    
     while (curr)
     {
         if (ft_strcmp(curr->key, key) == 0)
@@ -79,14 +77,10 @@ int	builtin_unset(t_shell *shell, t_cmd *cmd)
 
     if (!shell || !cmd || !cmd->args)
         return (1);
-        
     status = 0;
     i = 1;
-    
-    /* Handle case of no arguments (success, do nothing) */
     if (!cmd->args[i])
         return (0);
-        
     while (cmd->args[i])
     {
         if (!is_valid_identifier(cmd->args[i]))
@@ -95,6 +89,5 @@ int	builtin_unset(t_shell *shell, t_cmd *cmd)
             remove_env_var(shell, cmd->args[i]);
         i++;
     }
-    
     return (status);
 }

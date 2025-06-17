@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 00:35:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 01:57:55 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,6 @@ static char	*clean_command_name(char *cmd)
         return (cmd + 1);
     return (cmd);
 }
-
 
 /**
  * Get error prefix based on error type
@@ -54,16 +53,16 @@ static char	*get_error_prefix(int error_type)
 }
 
 /**
- * Get command color and icon based on command type
+ * Get command style based on command name
  */
 static void	get_cmd_style(char *cmd, char **color, char **icon)
 {
+    *color = BOLD_YELLOW;
+    *icon = "📦";
+    
     if (!cmd)
-    {
-        *color = BOLD_YELLOW;
-        *icon = "📦";
-        return ;
-    }
+        return;
+        
     if (ft_strcmp(cmd, "cd") == 0)
     {
         *color = BOLD_CYAN;
@@ -98,11 +97,6 @@ static void	get_cmd_style(char *cmd, char **color, char **icon)
     {
         *color = BOLD_BLUE;
         *icon = "📂";
-    }
-    else
-    {
-        *color = BOLD_YELLOW;
-        *icon = "📦";
     }
 }
 
@@ -143,25 +137,23 @@ static void	display_builtin_error(char *cmd, char *arg, char *message)
 /**
  * Display command not found error
  */
-static void display_not_found_error(char *command)
+static void	display_not_found_error(char *command)
 {
-    char *prefix;
-    char *display_cmd;
+    char	*display_cmd;
 
-    // Make sure we have a valid command
     if (!command)
     {
-        ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET ": command not found\n", 2);
+        ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET 
+            ": command not found\n", 2);
         return;
     }
     
-    // Skip any colon or quote at the start
     display_cmd = command;
-    while (*display_cmd && (*display_cmd == ':' || *display_cmd == '"' || *display_cmd == '\''))
+    while (*display_cmd && (*display_cmd == ':' || *display_cmd == '"' 
+        || *display_cmd == '\''))
         display_cmd++;
         
-    prefix = BOLD_RED "🔍 Command Not Found" RESET ": ";
-    ft_putstr_fd(prefix, 2);
+    ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET ": ", 2);
     ft_putstr_fd(display_cmd, 2);
     ft_putstr_fd(": command not found\n", 2);
 }
@@ -206,9 +198,9 @@ void	display_error(int error_type, char *command, char *message)
 /**
  * Print error message with automatic error type detection
  */
-void print_error(char *cmd, char *msg)
+void	print_error(char *cmd, char *msg)
 {
-    int error_type;
+    int	error_type;
 
     if (!cmd || !msg)
         return;
@@ -220,12 +212,12 @@ void print_error(char *cmd, char *msg)
     else if (ft_strstr(msg, "syntax"))
         error_type = ERROR_SYNTAX;
     else if (ft_strstr(msg, "cannot allocate") || 
-             ft_strstr(msg, "memory") || 
-             ft_strstr(msg, "malloc"))
+            ft_strstr(msg, "memory") || 
+            ft_strstr(msg, "malloc"))
         error_type = ERROR_MEMORY;
     else if (ft_strstr(msg, "redirect") ||
-             ft_strstr(msg, "file") || 
-             ft_strstr(msg, "directory"))
+            ft_strstr(msg, "file") || 
+            ft_strstr(msg, "directory"))
         error_type = ERR_REDIR;
     display_error(error_type, cmd, msg);
 }
@@ -261,7 +253,7 @@ void	free_str_array(char **array)
     int	i;
 
     if (!array)
-        return ;
+        return;
     i = 0;
     while (array[i])
     {
@@ -297,7 +289,7 @@ void	print_syntax_error(char *token_value, int token_type)
 }
 
 /**
- * Set error message based on errno
+ * Get error message based on errno
  */
 static char	*get_errno_message(void)
 {
@@ -331,9 +323,7 @@ int	handle_redirection_error(t_shell *shell, char *filename, char *message)
     if (!message)
         message = get_errno_message();
     if (filename && message)
-    {
         display_error(ERR_REDIR, filename, message);
-    }
     if (shell)
         shell->exit_status = 1;
     return (1);
@@ -369,53 +359,26 @@ void	print_error_and_exit(t_shell *shell, int error_type, char *cmd,
 }
 
 /**
- * Handle pipe errors specifically
- */
-int	handle_pipe_error(t_shell *shell, char *context)
-{
-    if (context)
-        display_error(ERR_PIPE, context, strerror(errno));
-    else
-        display_error(ERR_PIPE, "pipe", strerror(errno));
-    if (shell)
-        shell->exit_status = 1;
-    return (1);
-}
-
-/**
- * Handle fork errors specifically
- */
-int	handle_fork_error(t_shell *shell, char *context)
-{
-    if (context)
-        display_error(ERR_FORK, context, strerror(errno));
-    else
-        display_error(ERR_FORK, "fork", strerror(errno));
-    if (shell)
-        shell->exit_status = 1;
-    return (1);
-}
-
-/**
  * Display heredoc EOF warning
  */
-void display_heredoc_eof_warning(char *delimiter)
+void	display_heredoc_eof_warning(char *delimiter)
 {
-    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET ": here-document delimited by end-of-file (wanted `", STDERR_FILENO);
+    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET 
+        ": here-document delimited by end-of-file (wanted `", STDERR_FILENO);
     ft_putstr_fd(BOLD_WHITE, STDERR_FILENO);
     ft_putstr_fd(delimiter, STDERR_FILENO);
     ft_putstr_fd(RESET "')\n", STDERR_FILENO);
 }
+
 /**
  * Display SHLVL warning when value gets too high
  */
-void display_shlvl_warning(int level)
+void	display_shlvl_warning(int level)
 {
-    char    *level_str;
+    char	*level_str;
     
     ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET ": shell level (", STDERR_FILENO);
     
-    // Convert int to string using ft_itoa
     level_str = ft_itoa(level);
     if (level_str)
     {
@@ -425,7 +388,7 @@ void display_shlvl_warning(int level)
         free(level_str);
     }
     else
-        ft_putstr_fd("???", STDERR_FILENO); // Fallback if allocation fails
+        ft_putstr_fd("???", STDERR_FILENO);
     
     ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
 }

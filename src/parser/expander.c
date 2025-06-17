@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:34:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 20:51:44 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 01:21:21 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,9 @@
 /**
  * Join two strings and free the first one
  */
-char	*ft_strjoin_free(char *s1, char *s2)
+char *ft_strjoin_free(char *s1, char *s2)
 {
-    char	*result;
+    char *result;
 
     result = ft_strjoin(s1, s2);
     free(s1);
@@ -27,7 +27,7 @@ char	*ft_strjoin_free(char *s1, char *s2)
 /**
  * Free all memory allocated during expansion
  */
-void	free_expansion_parts(char *var_name, char *var_value, char **parts)
+void free_expansion_parts(char *var_name, char *var_value, char **parts)
 {
     if (var_name)
         free(var_name);
@@ -42,10 +42,10 @@ void	free_expansion_parts(char *var_name, char *var_value, char **parts)
 /**
  * Get variable name from string starting at position
  */
-char	*get_var_name(char *str)
+char *get_var_name(char *str)
 {
-    int		i;
-    char	*name;
+    int     i;
+    char    *name;
 
     i = 0;
     if (str[i] == '?')
@@ -84,16 +84,16 @@ char *get_var_value(t_shell *shell, char *name)
         free(value);
         return (result);
     }
-    return (NULL);
+    return (ft_strdup("")); // Return empty string for undefined variables
 }
 
 /**
  * Handle quoting in variable expansion
  */
-static int	is_quoted_var(char *str, int pos)
+int is_quoted_var(char *str, int pos)
 {
-    int	i;
-    int	in_single_quote;
+    int i;
+    int in_single_quote;
 
     i = 0;
     in_single_quote = 0;
@@ -107,78 +107,47 @@ static int	is_quoted_var(char *str, int pos)
 }
 
 /**
- * Prepare parts for variable expansion
- */
-static int	prepare_var_parts(char *str, int i, char **parts, char *var_name)
-{
-    parts[0] = ft_substr(str, 0, i - 1);
-    parts[1] = ft_strdup(&str[i + ft_strlen(var_name)]);
-    if (!parts[0] || !parts[1])
-        return (0);
-    return (1);
-}
-
-/**
- * Create expanded result string
- */
-static char	*join_expanded_parts(char **parts, char *var_value)
-{
-    char	*result;
-    char	*temp;
-
-    result = ft_strjoin(parts[0], var_value);
-    if (!result)
-        return (NULL);
-    temp = result;
-    result = ft_strjoin(result, parts[1]);
-    if (!result)
-    {
-        free(temp);
-        return (NULL);
-    }
-    free(temp);
-    return (result);
-}
-
-/**
- * Check if variable name is valid
- */
-static int	is_valid_var_char(char c)
-{
-    return (c == '?' || ft_isalnum(c) || c == '_');
-}
-
-/**
  * Expand a single variable
  */
-char	*expand_one_var(t_shell *shell, char *str, int *i)
+char *expand_one_var(t_shell *shell, char *str, int *i)
 {
-    char	*var_name;
-    char	*var_value;
-    char	*parts[2];
-    char	*result;
+    char *var_name;
+    char *var_value;
+    char *parts[2];
+    char *result;
 
     parts[0] = NULL;
     parts[1] = NULL;
     (*i)++;
-    if (!str[*i] || !is_valid_var_char(str[*i]))
+    if (!str[*i] || !(str[*i] == '?' || ft_isalnum(str[*i]) || str[*i] == '_'))
         return (str);
     var_name = get_var_name(&str[*i]);
     if (!var_name)
         return (str);
     var_value = get_var_value(shell, var_name);
-    if (!var_value)
-        var_value = ft_strdup("");
-    if (!prepare_var_parts(str, *i, parts, var_name))
+    parts[0] = ft_substr(str, 0, *i - 1);
+    parts[1] = ft_strdup(&str[*i + ft_strlen(var_name)]);
+    if (!parts[0] || !parts[1])
     {
         free_expansion_parts(var_name, var_value, parts);
         return (str);
     }
-    result = join_expanded_parts(parts, var_value);
-    *i = ft_strlen(parts[0]) + ft_strlen(var_value) - 1;
-    free_expansion_parts(var_name, var_value, parts);
+    result = ft_strjoin(parts[0], var_value ? var_value : "");
     if (!result)
-        return (str);  
+    {
+        free_expansion_parts(var_name, var_value, parts);
+        return (str);
+    }
+    *i = ft_strlen(parts[0]) + (var_value ? ft_strlen(var_value) : 0) - 1;
+    free(var_name);
+    free(var_value);
+    var_name = result;
+    result = ft_strjoin(result, parts[1]);
+    free(var_name);
+    free(parts[0]);
+    free(parts[1]);
+    if (!result)
+        return (str);
     free(str);
     return (result);
 }
@@ -186,10 +155,10 @@ char	*expand_one_var(t_shell *shell, char *str, int *i)
 /**
  * Expand variables in string
  */
-char	*expand_variables(t_shell *shell, char *token)
+char *expand_variables(t_shell *shell, char *token)
 {
-    char	*result;
-    int		i;
+    char *result;
+    int   i;
 
     if (!token)
         return (NULL);
@@ -212,61 +181,39 @@ char	*expand_variables(t_shell *shell, char *token)
 }
 
 /**
- * Extract and expand a variable in heredoc
+ * Extract variable name from content starting at position
  */
-static int	extract_and_expand_var(char *content, int *i, char **result,
-        t_shell *shell)
+char *extract_var_name(char *content, int *i)
 {
-    int		start;
-    int		len;
-    char	*var_name;
-    char	*var_value;
-    char	*temp;
+    int   start;
+    int   len;
+    char  *var_name;
 
     start = *i + 1;
     if (content[start] == '?')
     {
-        var_name = ft_strdup("?");
         *i += 2;
+        return (ft_strdup("?"));
     }
-    else
-    {
-        len = 0;
-        while (content[start + len] && (ft_isalnum(content[start + len])
-                || content[start + len] == '_'))
-            len++;
-        var_name = ft_substr(content, start, len);
-        *i += len + 1;
-    }
-    var_value = get_var_value(shell, var_name);
-    temp = *result;
-    *result = var_value ? ft_strjoin(*result, var_value) : ft_strjoin(*result, "");
-    return (free(temp), free(var_name), free(var_value), *result != NULL);
+    len = 0;
+    while (content[start + len] && (ft_isalnum(content[start + len])
+            || content[start + len] == '_'))
+        len++;
+    var_name = ft_substr(content, start, len);
+    *i += len + 1;
+    return (var_name);
 }
 
 /**
- * Append a single character to result string
+ * Expand heredoc content with variables
  */
-static int	append_char_to_result(char c, char **result)
+char *expand_heredoc_content(t_shell *shell, char *content)
 {
-    char	c_str[2];
-    char	*temp;
-
-    c_str[0] = c;
-    c_str[1] = '\0';
-    temp = *result;
-    *result = ft_strjoin(*result, c_str);
-    free(temp);
-    return (*result != NULL);
-}
-
-/**
- * Special handling for heredoc variable expansion
- */
-char	*expand_heredoc_content(t_shell *shell, char *content)
-{
-    char	*result;
-    int		i;
+    char *result;
+    char *temp;
+    int   i;
+    char  *var_name;
+    char  *var_value;
 
     result = ft_strdup("");
     if (!content || !result)
@@ -277,15 +224,21 @@ char	*expand_heredoc_content(t_shell *shell, char *content)
         if (content[i] == '$' && content[i + 1] && (ft_isalnum(content[i + 1])
                 || content[i + 1] == '?' || content[i + 1] == '_'))
         {
-            if (!extract_and_expand_var(content, &i, &result, shell))
-            {
-                free(result);
+            var_name = extract_var_name(content, &i);
+            var_value = get_var_value(shell, var_name);
+            temp = result;
+            result = ft_strjoin(result, var_value ? var_value : "");
+            free(temp);
+            free(var_name);
+            free(var_value);
+            if (!result)
                 return (NULL);
-            }
         }
         else
         {
-            if (!append_char_to_result(content[i], &result))
+            temp = result;
+            result = ft_strjoin_free(result, ft_substr(content, i, 1));
+            if (!result)
                 return (NULL);
             i++;
         }
@@ -294,31 +247,20 @@ char	*expand_heredoc_content(t_shell *shell, char *content)
 }
 
 /**
- * Check if heredoc should expand variables based on delimiter
- * (true if delimiter has no quotes)
+ * Process heredoc content for variable expansion
  */
-int	should_expand_heredoc(char *delimiter)
+char *process_heredoc_content(t_shell *shell, char *content, char *delimiter)
 {
-    int	i;
+    int i;
 
     if (!delimiter)
-        return (1);
+        return (expand_heredoc_content(shell, content));
     i = 0;
     while (delimiter[i])
     {
         if (delimiter[i] == '\'' || delimiter[i] == '\"')
-            return (0);
+            return (ft_strdup(content));
         i++;
     }
-    return (1);
-}
-
-/**
- * Process heredoc content for variable expansion
- */
-char	*process_heredoc_content(t_shell *shell, char *content, char *delimiter)
-{
-    if (!should_expand_heredoc(delimiter))
-        return (ft_strdup(content));
     return (expand_heredoc_content(shell, content));
 }

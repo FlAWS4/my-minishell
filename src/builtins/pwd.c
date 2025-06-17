@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:54 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:29:49 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:05:42 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,6 @@ static int	handle_pwd_args(t_cmd *cmd)
 {
     if (!cmd->args[1])
         return (0);
-    
     if (cmd->args[1][0] == '-' && cmd->args[1][1] != '\0')
     {
         if (!is_valid_pwd_option(cmd->args[1]))
@@ -42,13 +41,11 @@ static int	handle_pwd_args(t_cmd *cmd)
             return (1);
         }
     }
-    
     if (cmd->args[2] != NULL)
     {
         display_error(ERROR_PWD, NULL, "too many arguments");
         return (1);
     }
-    
     return (0);
 }
 
@@ -60,7 +57,6 @@ static char	*get_fallback_pwd(t_shell *shell)
 {
     if (!shell)
         return (NULL);
-    
     return (get_env_value(shell->env, "PWD"));
 }
 
@@ -78,7 +74,6 @@ static int	handle_pwd_fallback(t_shell *shell)
         free(pwd);
         return (0);
     }
-    
     display_error(ERROR_PWD, NULL, strerror(errno));
     return (1);
 }
@@ -93,10 +88,8 @@ int	builtin_pwd(t_shell *shell, t_cmd *cmd)
     
     if (!cmd || !cmd->args)
         return (1);
-        
     if (handle_pwd_args(cmd))
         return (1);
-
     if (getcwd(cwd, sizeof(cwd)))
     {
         ft_putendl_fd(cwd, STDOUT_FILENO);

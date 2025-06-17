@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:33:17 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 02:48:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:03:20 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,10 @@
 /**
  * Update PWD environment variable
  */
-static void update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
+static void	update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
 {
-    t_env *env_node;
-    char *new_value;
+    t_env	*env_node;
+    char	*new_value;
 
     env_node = shell->env;
     while (env_node)
@@ -27,11 +27,11 @@ static void update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
         {
             new_value = ft_strdup(cwd);
             if (!new_value)
-                return;
+                return ;
             free(env_node->value);
             env_node->value = new_value;
             *pwd_exists = 1;
-            break;
+            break ;
         }
         env_node = env_node->next;
     }
@@ -40,10 +40,10 @@ static void update_pwd(t_shell *shell, char *cwd, int *pwd_exists)
 /**
  * Update OLDPWD environment variable
  */
-static void update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
+static void	update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
 {
-    t_env *env_node;
-    char *new_value;
+    t_env	*env_node;
+    char	*new_value;
 
     env_node = shell->env;
     while (env_node)
@@ -52,11 +52,11 @@ static void update_oldpwd(t_shell *shell, char *old_pwd, int *oldpwd_exists)
         {
             new_value = ft_strdup(old_pwd);
             if (!new_value)
-                return;
+                return ;
             free(env_node->value);
             env_node->value = new_value;
             *oldpwd_exists = 1;
-            break;
+            break ;
         }
         env_node = env_node->next;
     }
@@ -156,9 +156,9 @@ static int	cd_to_home(t_shell *shell)
 /**
  * Expand tilde for home directory in path
  */
-static char *expand_tilde_home(char *path, char *home)
+static char	*expand_tilde_home(char *path, char *home)
 {
-    char *result;
+    char	*result;
 
     if (path[1] == '\0')
     {
@@ -198,8 +198,8 @@ static char	*expand_tilde(t_shell *shell, char *path)
 /**
  * Prepare for changing directory
  */
-static int	prepare_cd(t_shell *shell, char *dir, char *old_pwd, 
-                    char **expanded_path)
+static int	prepare_cd(t_shell *shell, char *dir, char *old_pwd,
+                char **expanded_path)
 {
     if (getcwd(old_pwd, PATH_MAX) == NULL)
     {
@@ -216,6 +216,23 @@ static int	prepare_cd(t_shell *shell, char *dir, char *old_pwd,
 }
 
 /**
+ * Handle chdir errors with specific messages
+ */
+static int	handle_chdir_error(char *dir, char *expanded_path)
+{
+    if (errno == ENOENT)
+        display_error(ERROR_CD, dir, "No such file or directory");
+    else if (errno == EACCES)
+        display_error(ERROR_CD, dir, "Permission denied");
+    else if (errno == ENOTDIR)
+        display_error(ERROR_CD, dir, "Not a directory");
+    else
+        display_error(ERROR_CD, dir, strerror(errno));
+    free(expanded_path);
+    return (1);
+}
+
+/**
  * Change to specified directory
  */
 static int	cd_to_dir(t_shell *shell, char *dir)
@@ -228,18 +245,7 @@ static int	cd_to_dir(t_shell *shell, char *dir)
         return (1);
     ret = chdir(expanded_path);
     if (ret != 0)
-    {
-        if (errno == ENOENT)
-            display_error(ERROR_CD, dir, "No such file or directory");
-        else if (errno == EACCES)
-            display_error(ERROR_CD, dir, "Permission denied");
-        else if (errno == ENOTDIR)
-            display_error(ERROR_CD, dir, "Not a directory");
-        else
-            display_error(ERROR_CD, dir, strerror(errno));
-        free(expanded_path);
-        return (1);
-    }
+        return (handle_chdir_error(dir, expanded_path));
     update_pwd_vars(shell, old_pwd);
     free(expanded_path);
     return (0);

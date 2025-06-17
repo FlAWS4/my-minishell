@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/11 00:14:48 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/17 02:04:10 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ static int	is_n_flag(char *arg)
     if (!arg || arg[0] != '-')
         return (0);
     i = 1;
-    if (arg[i] == '\0')  // Just a hyphen is not a flag
+    if (arg[i] == '\0')
         return (0);
     while (arg[i])
     {
@@ -65,23 +65,15 @@ int	builtin_echo(t_cmd *cmd)
         display_error(ERROR_ECHO, NULL, "Invalid command structure");
         return (1);
     }
-    
     i = 1;
     n_flag = 0;
-    
-    // Process all consecutive -n flags
     while (cmd->args[i] && is_n_flag(cmd->args[i]))
     {
         n_flag = 1;
         i++;
     }
-    
-    // Print all remaining arguments with spaces between them
     print_args(cmd->args, i);
-    
-    // Print newline if -n flag was not specified
     if (!n_flag)
         ft_putchar_fd('\n', STDOUT_FILENO);
-        
     return (0);
 }
