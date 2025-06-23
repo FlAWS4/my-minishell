@@ -3,232 +3,159 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/18 00:05:39 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 19:44:50 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-int	g_signal;
+int	g_exit_status = 0;
 
 /**
- * Parse input string into command structure
+ * dispatch_commands - Execute commands stored in the shell structure
+ * @shell: Shell structure containing commands to execute
+ *
+ * Routes command execution based on command type:
+ * 1. Empty command list: Early return
+ * 2. Redirection-only command: Handle redirections and update exit status
+ * 3. Pipeline (multiple commands): Call pipe execution handler
+ * 4. Single command: Execute directly
+ * 
+ * All commands are freed after execution regardless of success/failure.
  */
-t_cmd	*parse_input(char *input, t_shell *shell)
+void	dispatch_commands(t_shell *shell)
 {
-    t_token	*tokens;
-    t_cmd	*cmd;
+    t_command	*cmd;
 
-    if (!input || !*input)
-        return (NULL);
-    tokens = tokenize_and_expand(input, shell);
-    if (!tokens)
-        return (NULL);
-    cmd = parse_tokens(tokens, shell);
-    free_token_list(tokens);
-    return (cmd);
-}
-
-/**
- * Process command exit status and update shell status
- */
-void	process_cmd_status(t_shell *shell, int status)
-{
-    if (WIFEXITED(status))
-        shell->exit_status = WEXITSTATUS(status);
-    else if (WIFSIGNALED(status))
-    {
-        shell->exit_status = 128 + WTERMSIG(status);
-        if (WTERMSIG(status) == SIGQUIT)
-            ft_putendl_fd("Quit (core dumped)", STDERR_FILENO);
-    }
-}
-
-/**
- * Setup terminal settings for shell
- */
-void	setup_terminal(t_shell *shell)
-{
-    struct termios	term;
-
-    if (!isatty(STDIN_FILENO))
-        return ;
-    tcgetattr(STDIN_FILENO, &term);
-    term.c_lflag |= ECHOCTL;
-    tcsetattr(STDIN_FILENO, TCSANOW, &term);
-    (void)shell;
-}
-
-/**
- * Free a list of redirections
- */
-void	free_redirection_list(t_redirection *redirections)
-{
-    t_redirection	*tmp;
-
-    while (redirections)
-    {
-        if (redirections->word)
-            free(redirections->word);
-        if (redirections->temp_file)
-            free(redirections->temp_file);
-        tmp = redirections;
-        redirections = redirections->next;
-        free(tmp);
-    }
-}
-
-/**
- * Free environment variables
- */
-static void	free_env_vars(t_shell *shell)
-{
-    t_env	*env;
-    t_env	*next_env;
-
-    env = shell->env;
-    while (env)
-    {
-        next_env = env->next;
-        if (env->key)
-            free(env->key);
-        if (env->value)
-            free(env->value);
-        free(env);
-        env = next_env;
-    }
-}
-
-/**
- * Free shell structure and all resources
- */
-void	free_shell(t_shell *shell)
-{
-    if (!shell)
-        return ;
-    if (shell->cmd)
-        free_cmd_list(shell->cmd);
-    free_env_vars(shell);
-    free(shell);
-}
-
-/**
- * Initialize the shell structure
- */
-t_shell	*init_shell(char **envp)
-{
-    t_shell	*shell;
-
-    shell = malloc(sizeof(t_shell));
-    if (!shell)
-        return (NULL);
-    shell->env = init_env(envp);
-    if (!shell->env && envp && *envp)
-    {
-        free(shell);
-        return (NULL);
-    }
-    if (isatty(STDIN_FILENO))
-        tcgetattr(STDIN_FILENO, &shell->orig_termios);
-    shell->cmd = NULL;
-    shell->exit_status = 0;
-    shell->should_exit = 0;
-    return (shell);
-}
-
-/**
- * Process user input into commands and execute
- */
-void	process_input(t_shell *shell, char *input)
-{
-    t_cmd	*cmd;
-
-    cmd = parse_input(input, shell);
+    cmd = shell->commands;
     if (!cmd)
-        return ;
-    if (g_signal != SIGINT)
-        execute(shell, cmd);
+        return;
+    
+    // Handle redirection-only commands (no args but with redirections)
+    if (!cmd->args && cmd->redirs && !cmd->next)
+    {
+        g_exit_status = (handle_redirections(cmd, shell) == -1) ? 1 : 0;
+        free_command(&shell->commands);
+        return;
+    }
+    
+    // Dispatch based on whether we have a pipeline or single command
+    if (cmd->next)
+        prepare_pipe_execution(shell, cmd);
     else
-        g_signal = 0;
-    free_cmd_list(cmd);
+        execute_single_command(shell, cmd);
+        
+    free_command(&shell->commands);
 }
 
-/**
- * Handle input preparation and prompt creation
- */
-static char	*get_shell_input(t_shell *shell)
+static int	parse_input(t_shell *shell, char *input)
 {
-    char	prompt[PROMPT_SIZE];
-    char	*input;
-
-    if (g_signal == SIGINT)
-    {
-        g_signal = 0;
-        shell->exit_status = 130;
-    }
-    create_prompt(prompt, shell->exit_status, shell);
-    input = readline(prompt);
-    if (!input)
-    {
-        ft_putstr_fd("exit\n", 1);
-        shell->should_exit = 1;
-        return (NULL);
-    }
-    return (input);
+	if (end_with_pipe(input))
+	{
+		if (get_next_command(shell, &input))
+			return (1);
+	}
+	add_history(input);
+	shell->tokens = tokenize_input(input);
+	if (syntax_check(shell))
+		return (free_command(&shell->commands), 1);
+	return (0);
 }
 
-/**
- * Main shell loop
- */
-void	shell_loop(t_shell *shell)
+static int	get_input(char **input, const char *prompt)
 {
-    char	*input;
+	*input = readline(prompt);
+	if (*input == NULL)
+	{
+		ft_putstr_fd("exit\n", STDOUT_FILENO);
+		return (1);
+	}
+	if (**input == '\0')
+	{
+		free(*input);
+		return (2);
+	}
+	return (0);
+}
 
-    setup_signals();
-    setup_terminal(shell);
-    while (!shell->should_exit)
-    {
-        input = get_shell_input(shell);
-        if (!input)
-            break ;
-        if (*input)
-            add_history(input);
-        process_input(shell, input);
-        free(input);
-    }
+static int	shell_loop(t_shell *shell)
+{
+	const char	*prompt;
+	char		*input;
+	int			status;
+
+	prompt = format_shell_prompt(shell);
+	while (1)
+	{
+		setup_signals();
+		status = get_input(&input, prompt);
+		if (status == 1)
+			break ;
+		if (status == 2)
+			continue ;
+		if (parse_input(shell, input))
+			continue ;
+		if (execute_with_signal_recovery(shell))
+			continue ;
+		restore_std_fds(shell);
+	}
+	return (0);
 }
 
 /**
- * Main entry point
+ * main - Entry point for minishell program
+ * @argc: Argument count
+ * @argv: Argument values
+ * @envp: Environment variables
+ *
+ * Initializes the shell environment, sets up signal handlers,
+ * duplicates standard file descriptors, checks for invalid usage,
+ * and starts the main command loop. Handles cleanup on exit.
+ *
+ * Return: Exit status of last command or error code
  */
 int	main(int argc, char **argv, char **envp)
 {
-    t_shell	*shell;
-    int		exit_status;
+    t_shell	shell;
 
-    (void)argc;
     (void)argv;
-    g_signal = 0;
-    if (!isatty(STDIN_FILENO))
+    
+    // Validate arguments
+    if (argc != 1)
     {
-        ft_putstr_fd(BOLD_RED "🚫 Error" RESET ": ", STDERR_FILENO);
-        ft_putstr_fd("minishell cannot be run in non-interactive mode\n", 
-            STDERR_FILENO);
-        ft_putstr_fd(BOLD_YELLOW "💡 Hint" RESET 
-            ": go fuck yourself\n", STDERR_FILENO);
+        ft_putstr_fd(BOLD_RED "Usage: ./minishell\n" RESET, STDERR_FILENO);
         return (1);
     }
-    shell = init_shell(envp);
-    if (!shell)
+    
+    // Initialize shell structure
+    ft_memset(&shell, 0, sizeof(t_shell));
+    shell.env = init_env(envp, &shell);
+    if (!shell.env)
+        clean_and_exit_shell(&shell, 1);
+    
+    // Save original file descriptors
+    shell.saved_stdin = dup(STDIN_FILENO);
+    shell.saved_stdout = dup(STDOUT_FILENO);
+    if (shell.saved_stdin == -1 || shell.saved_stdout == -1)
+    {
+        error("dup", NULL, strerror(errno));
         return (1);
+    }
+    
+    // Don't allow piping minishell into itself
+    if (!isatty(STDIN_FILENO))
+    {
+        ft_putstr_fd(BOLD_YELLOW "dont pipe minishell into minishell.\n" RESET, STDERR_FILENO);
+        return (0);
+    }
+    
+    // Display welcome message and start shell
     ft_display_welcome();
-    shell_loop(shell);
-    cleanup_readline_resources();
-    restore_terminal_settings(shell);
-    exit_status = shell->exit_status;
-    free_shell(shell);
-    return (exit_status);
+    shell_loop(&shell);
+    clean_and_exit_shell(&shell, g_exit_status);
+    
+    return (g_exit_status);
 }

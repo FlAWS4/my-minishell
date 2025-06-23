@@ -3,530 +3,371 @@
 /*                                                        :::      ::::::::   */
 /*   env.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:46 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 02:00:36 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 04:42:42 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Setup node after initial creation
- */
-static void	setup_env_node(t_env *node, int exported, int in_env)
+int	duplicate_existing_vars(t_shell *shell, char **new_env, int size)
 {
-    node->exported = exported;
-    node->in_env = in_env;
-    node->next = NULL;
+	int	i;
+
+	i = 0;
+	while (i < size)
+	{
+		new_env[i] = gc_strdup(&shell->gc, shell->env[i]);
+		if (!new_env[i])
+		{
+			gc_free_all(&shell->gc);
+			return (0);
+		}
+		i++;
+	}
+	return (1);
 }
 
-/**
- * Process SHLVL string value to int
- */
-static int	parse_shlvl_value(char *value)
+int	env_error(const char *msg, t_gc **gc)
 {
-    int	level;
-
-    if (!value || !*value)
-        return (0);
-    level = ft_atoi(value);
-    if (level < 0)
-        return (0);
-    if (level >= 999)
-    {
-        if (level == 999)
-            display_shlvl_warning(1000);
-        return (0);
-    }
-    return (level);
+	if (msg)
+		error("env", NULL, msg);
+	if (gc && *gc)
+		gc_free_all(gc);
+	return (1);
 }
 
-/**
- * Handle SHLVL environment variable properly
- */
-static void	increment_shlvl(t_env **env_list)
+static int	duplicate_env_vars(char **envp, t_shell *shell)
 {
-    t_env	*shlvl_var;
-    int		level;
-    char	*new_value;
+	int	i;
 
-    shlvl_var = find_env_var(*env_list, "SHLVL");
-    if (!shlvl_var)
-    {
-        set_env_var(env_list, "SHLVL", "1");
-        return ;
-    }
-    level = parse_shlvl_value(shlvl_var->value);
-    level++;
-    new_value = ft_itoa(level);
-    if (!new_value)
-    {
-        display_error(ERROR_MEMORY, "SHLVL", "Memory allocation failed");
-        return ;
-    }
-    free(shlvl_var->value);
-    shlvl_var->value = new_value;
+	i = 0;
+	while (envp[i])
+	{
+		shell->env[i] = gc_strdup(&shell->gc, envp[i]);
+		if (!shell->env[i])
+			return (env_error("failed to init environment\n", &shell->gc));
+		i++;
+	}
+	shell->env[i] = NULL;
+	return (1);
 }
 
-/**
- * Create a new environment variable node
- */
-t_env	*create_env_node(char *key, char *value)
+char	**get_env(char **envp, t_shell *shell)
 {
-    t_env	*new_node;
+	int	env_vars;
 
-    if (!key)
-        return (NULL);
-    new_node = malloc(sizeof(t_env));
-    if (!new_node)
-        return (NULL);
-    new_node->key = ft_strdup(key);
-    if (!new_node->key)
-    {
-        free(new_node);
-        return (NULL);
-    }
-    new_node->value = value ? ft_strdup(value) : ft_strdup("");
-    if (!new_node->value)
-    {
-        free(new_node->key);
-        free(new_node);
-        return (NULL);
-    }
-    setup_env_node(new_node, 0, 0);
-    return (new_node);
+	env_vars = 0;
+	if (!envp || !*envp)
+	{
+		env_error("invalid environment\n", NULL);
+		return (NULL);
+	}
+	while (envp[env_vars])
+		env_vars++;
+	shell->env = gc_malloc(&shell->gc, sizeof(char *) * (env_vars + 1),
+			GC_FATAL, NULL);
+	if (!shell->env)
+		return (NULL);
+	if (!duplicate_env_vars(envp, shell))
+		return (NULL);
+	return (shell->env);
 }
 
-/**
- * Add environment variable to list
- */
-void	add_env_var(t_env **env_list, t_env *new_node)
+char	**init_env(char **envp, t_shell *shell)
 {
-    t_env	*current;
+	char	**mini_env;
 
-    if (!env_list || !new_node)
-        return ;
-    if (!*env_list)
-    {
-        *env_list = new_node;
-        return ;
-    }
-    current = *env_list;
-    while (current->next)
-        current = current->next;
-    current->next = new_node;
+	if (env_has_path(envp))
+	{
+		shell->default_path = NULL;
+		shell->env = get_env(envp, shell);
+		return (shell->env);
+	}
+	shell->default_path = ft_strdup("/usr/local/bin:/usr/bin:/bin");
+	mini_env = init_minimal_env();
+	if (!mini_env)
+	{
+		error("env", NULL, "failed to create minimal environment");
+		return (NULL);
+	}
+	shell->env = get_env(mini_env, shell);
+	free_array(mini_env);
+	if (!shell->env)
+		return (NULL);
+	return (shell->env);
+}
+static void	free_tmp_env_vars(char **tmp, int count)
+{
+	int	i;
+
+	i = 0;
+	while (i < count)
+	{
+		free(tmp[i]);
+		i++;
+	}
 }
 
-/**
- * Find environment variable by key
- */
-t_env	*find_env_var(t_env *env_list, const char *key)
+static void	copy_tmp_to_env(char **dest, char **src, int count)
 {
-    t_env	*current;
+	int	i;
 
-    if (!env_list || !key)
-        return (NULL);
-    current = env_list;
-    while (current)
-    {
-        if (ft_strcmp(current->key, key) == 0)
-            return (current);
-        current = current->next;
-    }
-    return (NULL);
+	i = 0;
+	while (i < count)
+	{
+		dest[i] = src[i];
+		i++;
+	}
+	dest[i] = NULL;
 }
 
-/**
- * Check if a string is a valid shell variable identifier
- */
-int	is_valid_identifier(char *id)
+char	**init_minimal_env(void)
 {
-    int	i;
+	char	*tmp[3];
+	char	*cwd;
+	char	**mini_env;
 
-    if (!id || !*id)
-        return (0);
-    if (!ft_isalpha(id[0]) && id[0] != '_')
-        return (0);
-    i = 1;
-    while (id[i])
-    {
-        if (!ft_isalnum(id[i]) && id[i] != '_')
-            return (0);
-        i++;
-    }
-    return (1);
+	cwd = getcwd(NULL, 0);
+	if (!cwd)
+		return (NULL);
+	tmp[0] = ft_strjoin("PWD=", cwd);
+	tmp[1] = ft_strdup("SHLVL=1");
+	tmp[2] = ft_strdup("_=/usr/bin/env");
+	free(cwd);
+	if (!tmp[0] || !tmp[1] || !tmp[2])
+		return (free_tmp_env_vars(tmp, 3), NULL);
+	mini_env = malloc(4 * sizeof(char *));
+	if (!mini_env)
+		return (free_tmp_env_vars(tmp, 3), NULL);
+	copy_tmp_to_env(mini_env, tmp, 3);
+	return (mini_env);
+}
+void	update_env(t_shell *shell, char *var, char *new_value)
+{
+	int		i;
+	size_t	var_len;
+	char	*new_var;
+	char	*tmp;
+
+	i = 0;
+	if (!shell || !shell->env || !var || !new_value)
+		return ;
+	var_len = ft_strlen(var);
+	tmp = gc_strjoin(&shell->gc, var, "=");
+	if (!tmp)
+		return ;
+	new_var = gc_strjoin(&shell->gc, tmp, new_value);
+	if (!new_var)
+		return ;
+	while (shell->env[i])
+	{
+		if (ft_strncmp(shell->env[i], var, var_len) == 0
+			&& shell->env[i][var_len] == '=')
+			return ((void)(shell->env[i] = new_var));
+		i++;
+	}
+	shell->env = add_env_var(shell, new_var);
 }
 
-/**
- * Create new export node when variable doesn't exist
- */
-static int	create_export_node(t_env **env_list, char *key)
+int	add_to_env(t_shell *shell, char *new_var)
 {
-    t_env	*new_node;
+	char	**new_env;
+	int		size;
 
-    new_node = create_env_node(key, NULL);
-    if (!new_node)
-    {
-        display_error(ERROR_EXPORT, key, "Memory allocation failed");
-        return (0);
-    }
-    new_node->exported = 1;
-    new_node->in_env = 0;
-    add_env_var(env_list, new_node);
-    return (1);
+	size = 0;
+	if (!new_var)
+		return (env_error("minishell: invalid variable\n", NULL));
+	while (shell->env && shell->env[size])
+		size++;
+	new_env = gc_malloc(&shell->gc, sizeof(char *) * (size + 2), GC_SOFT, NULL);
+	if (!new_env || !duplicate_existing_vars(shell, new_env, size))
+		return (1);
+	new_env[size] = gc_strdup(&shell->gc, new_var);
+	if (!new_env[size])
+		return (env_error("minishell: failed to duplicate new variable\n",
+				&shell->gc));
+	new_env[size + 1] = NULL;
+	shell->env = new_env;
+	return (0);
 }
 
-/**
- * Mark a variable for export without adding it to environment
- */
-int	mark_var_for_export(t_env **env_list, char *key)
+static char	**duplicate_env(t_shell *shell, int new_size)
 {
-    t_env	*existing;
+	char	**new_env;
+	int		i;
 
-    if (!env_list || !key)
-        return (0);
-    existing = find_env_var(*env_list, key);
-    if (existing)
-    {
-        existing->exported = 1;
-        return (1);
-    }
-    else
-        return (create_export_node(env_list, key));
+	i = 0;
+	new_env = gc_malloc(&shell->gc, sizeof(char *) * new_size, GC_SOFT, NULL);
+	if (!new_env)
+		return (NULL);
+	while (shell->env[i] && i < new_size - 1)
+	{
+		new_env[i] = gc_strdup(&shell->gc, shell->env[i]);
+		if (!new_env[i])
+			return (NULL);
+		i++;
+	}
+	return (new_env);
 }
 
-/**
- * Update existing environment variable
- */
-static int	update_env_var(t_env *existing, char *value)
+static int	add_new_var(t_shell *shell, char **new_env, char *new_var, int pos)
 {
-    free(existing->value);
-    existing->value = value ? ft_strdup(value) : ft_strdup("");
-    existing->exported = 1;
-    existing->in_env = 1;
-    return (existing->value != NULL);
+	new_env[pos] = gc_strdup(&shell->gc, new_var);
+	if (!new_env[pos])
+	{
+		env_error("minishell: failed to duplicate new variable\n", &shell->gc);
+		return (0);
+	}
+	new_env[pos + 1] = NULL;
+	return (1);
 }
 
-/**
- * Create a new environment variable
- */
-static int	create_new_env_var(t_env **env_list, char *key, char *value)
+char	**add_env_var(t_shell *shell, char *new_var)
 {
-    t_env	*new_node;
+	char	**new_env;
+	int		env_size;
 
-    new_node = create_env_node(key, value);
-    if (!new_node)
-    {
-        display_error(ERROR_ENV, key, "Memory allocation failed");
-        return (0);
-    }
-    new_node->exported = 1;
-    new_node->in_env = 1;
-    add_env_var(env_list, new_node);
-    return (1);
+	if (!shell || !shell->env || !new_var)
+	{
+		env_error("minishell: invalid parameters to add_env_var\n", NULL);
+		return (NULL);
+	}
+	env_size = 0;
+	while (shell->env[env_size])
+		env_size++;
+	new_env = duplicate_env(shell, env_size + 2);
+	if (!new_env)
+	{
+		env_error("minishell: failed to allocate new environment\n",
+			&shell->gc);
+		return (NULL);
+	}
+	if (!add_new_var(shell, new_env, new_var, env_size))
+		return (NULL);
+	return (new_env);
+}
+int	env_has_path(char **envp)
+{
+	int	i;
+
+	i = 0;
+	if (!envp || !*envp)
+		return (0);
+	while (envp[i])
+	{
+		if (ft_strncmp(envp[i], "PATH=", 5) == 0)
+			return (1);
+		i++;
+	}
+	return (0);
 }
 
-/**
- * Update or add environment variable
- */
-int	set_env_var(t_env **env_list, char *key, char *value)
+char	*get_env_value(t_shell *shell, const char *var_name)
 {
-    t_env	*existing;
+	int		i;
+	size_t	var_len;
 
-    if (!env_list || !key)
-        return (0);
-    existing = find_env_var(*env_list, key);
-    if (existing)
-        return (update_env_var(existing, value));
-    else
-        return (create_new_env_var(env_list, key, value));
+	i = 0;
+	if (!shell || !shell->env || !var_name || !*var_name)
+		return (NULL);
+	var_len = ft_strlen(var_name);
+	while (shell->env[i])
+	{
+		if (ft_strncmp(shell->env[i], var_name, var_len) == 0
+			&& shell->env[i][var_len] == '=')
+			return (shell->env[i] + var_len + 1);
+		i++;
+	}
+	return (NULL);
 }
 
-/**
- * Split environment string into key and value
- */
-void	split_env_string(char *str, char **key, char **value)
+int	find_var_pos(char *var_name, t_shell *shell)
 {
-    int	i;
+	int		i;
+	size_t	len;
 
-    i = 0;
-    *key = NULL;
-    *value = NULL;
-    if (!str)
-        return ;
-    while (str[i] && str[i] != '=')
-        i++;
-    *key = ft_substr(str, 0, i);
-    if (!*key)
-        return ;
-    if (str[i] == '=')
-        *value = ft_strdup(&str[i + 1]);
-    else
-        *value = ft_strdup("");
-    if (!*value)
-    {
-        free(*key);
-        *key = NULL;
-    }
+	i = 0;
+	if (!shell || !shell->env || !var_name || !*var_name)
+		return (-1);
+	len = ft_strlen(var_name);
+	while (shell->env[i])
+	{
+		if (!ft_strncmp(shell->env[i], var_name, len)
+			&& (shell->env[i][len] == '=' || shell->env[i][len] == '\0'))
+			return (i);
+		i++;
+	}
+	return (-1);
 }
 
-/**
- * Process a single environment string
- */
-static void	process_env_string(char *env_str, t_env **env_list)
+void	sort_env_for_export(char **env_copy)
 {
-    char	*key;
-    char	*value;
-    t_env	*new_node;
+	int		i;
+	int		j;
+	char	*temp;
 
-    split_env_string(env_str, &key, &value);
-    if (key && value)
-    {
-        new_node = create_env_node(key, value);
-        if (new_node)
-        {
-            new_node->exported = 1;
-            new_node->in_env = 1;
-            add_env_var(env_list, new_node);
-        }
-        else
-            display_error(ERROR_ENV, key, "Failed to create env variable");
-    }
-    if (key)
-        free(key);
-    if (value)
-        free(value);
+	i = 0;
+	if (!env_copy)
+		return ;
+	while (env_copy[i + 1])
+	{
+		j = 0;
+		while (env_copy[j + 1])
+		{
+			if (ft_strcmp(env_copy[j], env_copy[j + 1]) > 0)
+			{
+				temp = env_copy[j];
+				env_copy[j] = env_copy[j + 1];
+				env_copy[j + 1] = temp;
+			}
+			j++;
+		}
+		i++;
+	}
 }
 
-/**
- * Initialize environment variables from envp
- */
-t_env	*init_env(char **envp)
+int	is_valid_identifier(const char *str)
 {
-    t_env	*env_list;
-    int		i;
+	int	i;
 
-    env_list = NULL;
-    if (!envp)
-        return (NULL);
-    i = 0;
-    while (envp[i])
-    {
-        process_env_string(envp[i], &env_list);
-        i++;
-    }
-    increment_shlvl(&env_list);
-    return (env_list);
+	i = 1;
+	if (!str || !str[0])
+		return (0);
+	if (!ft_isalpha(str[0]) && str[0] != '_')
+		return (0);
+	while (str[i])
+	{
+		if (str[i] == '=' || (!ft_isalnum(str[i]) && str[i] != '_'))
+			return (0);
+		i++;
+	}
+	return (1);
 }
-
-/**
- * Get environment variable value by key
- */
-char	*get_env_value(t_env *env_list, const char *key)
+int	builtin_env(t_shell *shell, t_command *cmd)
 {
-    t_env	*current;
+	int	i;
 
-    if (!env_list || !key)
-        return (NULL);
-    current = env_list;
-    while (current)
-    {
-        if (ft_strcmp(current->key, key) == 0)
-            return (ft_strdup(current->value));
-        current = current->next;
-    }
-    return (NULL);
-}
-
-/**
- * Delete environment variable by key
- */
-int	delete_env_var(t_env **env_list, char *key)
-{
-    t_env	*current;
-    t_env	*prev;
-
-    if (!env_list || !*env_list || !key)
-        return (0);
-    current = *env_list;
-    prev = NULL;
-    while (current)
-    {
-        if (ft_strcmp(current->key, key) == 0)
-        {
-            if (prev)
-                prev->next = current->next;
-            else
-                *env_list = current->next;
-            free(current->key);
-            free(current->value);
-            free(current);
-            return (1);
-        }
-        prev = current;
-        current = current->next;
-    }
-    return (0);
-}
-
-/**
- * Count environment variables for array creation
- */
-static int	count_env_for_array(t_env *env_list)
-{
-    int		count;
-    t_env	*current;
-
-    count = 0;
-    current = env_list;
-    while (current)
-    {
-        if (current->in_env)
-            count++;
-        current = current->next;
-    }
-    return (count);
-}
-
-/**
- * Create single environment string (KEY=VALUE)
- */
-static char	*create_env_string(t_env *env)
-{
-    char	*temp;
-    char	*result;
-    char	*value_to_use;
-
-    temp = ft_strjoin(env->key, "=");
-    if (!temp)
-        return (NULL);
-    value_to_use = env->value ? env->value : "";
-    result = ft_strjoin(temp, value_to_use);
-    free(temp);
-    return (result);
-}
-
-/**
- * Handle error in env array creation
- */
-static char	**handle_env_array_error(char **env_array, int i)
-{
-    while (--i >= 0)
-        free(env_array[i]);
-    free(env_array);
-    return (NULL);
-}
-
-/**
- * Fill environment array with string values
- */
-static char	**fill_env_array(t_env *env_list, char **env_array, int count)
-{
-    t_env	*current;
-    int		i;
-
-    i = 0;
-    current = env_list;
-    while (current && i < count)
-    {
-        if (current->in_env)
-        {
-            env_array[i] = create_env_string(current);
-            if (!env_array[i])
-                return (handle_env_array_error(env_array, i));
-            i++;
-        }
-        current = current->next;
-    }
-    env_array[i] = NULL;
-    return (env_array);
-}
-
-/**
- * Convert environment linked list to string array (for execve)
- */
-char	**env_to_array(t_env *env_list)
-{
-    char	**env_array;
-    int		count;
-
-    if (!env_list)
-        return (NULL);
-    count = count_env_for_array(env_list);
-    env_array = (char **)malloc(sizeof(char *) * (count + 1));
-    if (!env_array)
-        return (NULL);
-    return (fill_env_array(env_list, env_array, count));
-}
-
-/**
- * Free the environment array created by env_to_array
- */
-void	free_env_array(char **env_array)
-{
-    int	i;
-
-    if (!env_array)
-        return ;
-    i = 0;
-    while (env_array[i])
-    {
-        free(env_array[i]);
-        i++;
-    }
-    free(env_array);
-}
-
-/**
- * Count number of environment variables
- */
-int	count_env_vars(t_env *env)
-{
-    int	count;
-
-    count = 0;
-    while (env)
-    {
-        count++;
-        env = env->next;
-    }
-    return (count);
-}
-
-/**
- * Display environment variables
- */
-static void	display_env_vars(t_env *env)
-{
-    while (env)
-    {
-        if (env->key && env->in_env)
-        {
-            ft_putstr_fd(env->key, STDOUT_FILENO);
-            ft_putchar_fd('=', STDOUT_FILENO);
-            if (env->value)
-                ft_putstr_fd(env->value, STDOUT_FILENO);
-            ft_putchar_fd('\n', STDOUT_FILENO);
-        }
-        env = env->next;
-    }
-}
-
-/**
- * Built-in env command
- */
-int	builtin_env(t_shell *shell)
-{
-    if (!shell)
-        return (1);
-    if (shell->cmd && shell->cmd->args && shell->cmd->args[1])
-    {
-        display_error(ERROR_ENV, shell->cmd->args[1], "too many arguments");
-        return (1);
-    }
-    if (shell->env)
-        display_env_vars(shell->env);
-    return (0);
+	i = 0;
+	if (!shell || !cmd)
+		return (error("env", NULL, "internal error"), 1);
+	if (!shell->env)
+		return (error("env", NULL, "environment not found"), 1);
+	if (cmd->args[1])
+	{
+		error("env", NULL, "options not supported");
+		return (1);
+	}
+	while (shell->env[i])
+	{
+		if (ft_strchr(shell->env[i], '='))
+		{
+			ft_putstr_fd(shell->env[i], STDOUT_FILENO);
+			ft_putchar_fd('\n', STDOUT_FILENO);
+		}
+		i++;
+	}
+	return (0);
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   libft.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 21:42:20 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 00:45:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 18:23:17 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,10 +69,11 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size)
  * Output character to file descriptor
  * Safely handles invalid file descriptors
  */
-void	ft_putchar_fd(char c, int fd)
+int	ft_putchar_fd(char c, int fd)
 {
-    if (fd >= 0)
-        write(fd, &c, 1);
+	if (write(fd, &c, 1) == -1)
+		return (-1);
+	return (0);
 }
 
 /**
@@ -95,15 +96,6 @@ void	ft_display_welcome(void)
         BOLD_WHITE, YELLOW, RESET);
 }
 
-/**
- * Check if character is whitespace (space, tab, newline)
- * Returns 1 if true, 0 if false
- */
-int	is_whitespace(char c)
-{
-    return (c == ' ' || c == '\t' || c == '\n' || 
-            c == '\v' || c == '\f' || c == '\r');
-}
 
 int	ft_atoi(const char *nptr)
 {

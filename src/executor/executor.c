@@ -3,420 +3,235 @@
 /*                                                        :::      ::::::::   */
 /*   executor.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/18 00:06:40 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 18:36:54 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Create a full path by joining directory and command
- */
-char *create_path(char *dir, char *cmd)
+static void	check_null_command(t_shell *shell, t_command *cmd)
 {
-    char *path;
-    char *with_slash;
-
-    if (!dir || !cmd)
-        return (NULL);
-    with_slash = ft_strjoin(dir, "/");
-    if (!with_slash)
-        return (NULL);
-    path = ft_strjoin(with_slash, cmd);
-    free(with_slash);
-    return (path);
+	if (!cmd)
+		handle_cmd_error(shell, NULL, "internal error (null command)",
+			EXIT_FAILURE);
+	if (!cmd->args || !cmd->args[0] || cmd->args[0][0] == '\0')
+		handle_cmd_error(shell, "", "command not found", 127);
 }
 
-/**
- * Check if a command exists and is executable in the given path
- */
-int is_executable(char *path)
+static char	*check_absolute_path(t_shell *shell, char *cmd_path)
 {
-    struct stat file_stat;
-
-    if (!path)
-        return (0);
-    if (stat(path, &file_stat) == -1)
-        return (0);
-    return (S_ISREG(file_stat.st_mode) && (file_stat.st_mode & S_IXUSR));
+	if (access(cmd_path, F_OK) != 0)
+		handle_cmd_error(shell, cmd_path, "No such file or directory\n", 127);
+	if (access(cmd_path, X_OK) != 0)
+		handle_cmd_error(shell, cmd_path, "Permission denied", 126);
+	return (cmd_path);
 }
 
-/**
- * Validate command character set
- */
-static int validate_cmd_chars(char *cmd)
+char	*find_executable(char *cmd, t_shell *shell)
 {
-    int i;
+	char	**paths;
+	char	*full_path;
+	char	*temp;
+	int		i;
+	char	*path_env;
 
-    i = 0;
-    while (cmd[i])
-    {
-        if (!ft_isalnum(cmd[i]) && cmd[i] != '/' && cmd[i] != '.' && 
-            cmd[i] != '_' && cmd[i] != '-')
-            return (0);
-        i++;
-    }
-    return (1);
+	i = 0;
+	path_env = get_env_value(shell, "PATH");
+	if (!path_env && shell->default_path)
+		path_env = shell->default_path;
+	if (!path_env)
+		return (NULL);
+	paths = ft_split(path_env, ':');
+	if (!paths)
+		return (NULL);
+	while (paths[i])
+	{
+		temp = gc_strjoin(&shell->gc, paths[i], "/");
+		full_path = gc_strjoin(&shell->gc, temp, cmd);
+		if (access(full_path, X_OK) == 0)
+			return (free_array(paths), full_path);
+		i++;
+	}
+	free_array(paths);
+	return (NULL);
 }
 
-/**
- * Find a command in the PATH environment
- */
-char *find_command(t_shell *shell, char *cmd)
+static char	*find_in_path(t_shell *shell, char *cmd_name)
 {
-    char    *path_var;
-    char    **paths;
-    char    *cmd_path;
-    int     i;
+	char	*executable_path;
 
-    if (!cmd || !cmd[0] || !shell || !shell->env)
-        return (NULL);
-    if (!validate_cmd_chars(cmd))
-        return (NULL);
-    if (cmd[0] == '/' || (cmd[0] == '.' && cmd[1] == '/'))
-    {
-        if (access(cmd, X_OK) == 0)
-            return (ft_strdup(cmd));
-        return (NULL);
-    }
-    path_var = get_env_value(shell->env, "PATH");
-    if (!path_var)
-        return (NULL);
-    paths = ft_split(path_var, ':');
-    free(path_var);
-    if (!paths)
-        return (NULL);
-    i = 0;
-    while (paths[i])
-    {
-        cmd_path = create_path(paths[i], cmd);
-        if (cmd_path && access(cmd_path, X_OK) == 0)
-        {
-            free_env_array(paths);
-            return (cmd_path);
-        }
-        free(cmd_path);
-        i++;
-    }
-    free_env_array(paths);
-    return (NULL);
-}
-/**
- * Execute a command directly (shared between executor and pipes)
- */
-void execute_cmd(t_shell *shell, t_cmd *cmd)
-{
-    char *cmd_path;
-    char **env_array;
-    
-    // Handle builtin commands
-    if (is_builtin(cmd->args[0]))
-        handle_builtin_child(shell, cmd);
-    cmd_path = find_command(shell, cmd->args[0]);
-    if (!cmd_path)
-    {
-        display_error(ERR_NOT_FOUND, cmd->args[0], "command not found");
-        exit(127);
-    }
-    env_array = env_to_array(shell->env);
-    if (!env_array)
-    {
-        free(cmd_path);
-        display_error(ERROR_MEMORY, "execute", "Memory allocation failed");
-        exit(126);
-    }
-    execve(cmd_path, cmd->args, env_array);
-    display_error(ERR_EXEC, cmd_path, strerror(errno));
-    free(cmd_path);
-    free_env_array(env_array);
-    exit(126);
+	executable_path = find_executable(cmd_name, shell);
+	if (!executable_path)
+		handle_cmd_error(shell, cmd_name, "command not found", 127);
+	return (executable_path);
 }
 
-/**
- * Duplicate arguments from split result into a new array
- */
-static char **duplicate_arguments(char **split_args, int count)
+char	*get_command_path(t_shell *shell, t_command *cmd)
 {
-    char    **new_args;
-    int     i;
+	char	*executable_path;
 
-    new_args = malloc(sizeof(char *) * (count + 1));
-    if (!new_args)
-        return (NULL);
-    i = 0;
-    while (i < count)
-    {
-        new_args[i] = ft_strdup(split_args[i]);
-        if (!new_args[i])
-        {
-            while (i > 0)
-            {
-                i--;
-                free(new_args[i]);
-            }
-            free(new_args);
-            return (NULL);
-        }
-        i++;
-    }
-    new_args[count] = NULL;
-    return (new_args);
+	check_null_command(shell, cmd);
+	redirect_stdio(cmd);
+	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+		clean_and_exit_shell(shell, 1);
+	if (ft_strchr(cmd->args[0], '/'))
+		executable_path = check_absolute_path(shell, cmd->args[0]);
+	else
+		executable_path = find_in_path(shell, cmd->args[0]);
+	return (executable_path);
 }
 
-/**
- * Process command arguments with special handling for colon prefixes
- */
-int process_command_args(t_shell *shell, t_cmd *cmd)
+int	is_builtin(t_command *cmd)
 {
-    char    **split_args;
-    char    **new_args;
-    char    *potential_cmd;
-    int     count;
-    
-    if (!cmd->args[0] || cmd->args[0][0] != ':')
-        return (1);
-    
-    // Remove colon prefix
-    char *new_cmd = ft_strdup(cmd->args[0] + 1);
-    if (!new_cmd)
-        return (0);
-    
-    free(cmd->args[0]);
-    cmd->args[0] = new_cmd;
-    
-    // Only process if there are spaces
-    if (!ft_strchr(cmd->args[0], ' '))
-        return (1);
-        
-    split_args = ft_split(cmd->args[0], ' ');
-    if (!split_args || !split_args[0])
-    {
-        free_str_array(split_args);
-        return (0);
-    }
-    
-    potential_cmd = find_command(shell, split_args[0]);
-    if (!potential_cmd && !is_builtin(split_args[0]))
-    {
-        free_str_array(split_args);
-        return (1);
-    }
-    
-    // Count arguments
-    count = 0;
-    while (split_args[count])
-        count++;
-    
-    // Create new argument array
-    new_args = duplicate_arguments(split_args, count);
-    if (!new_args)
-    {
-        free(potential_cmd);
-        free_str_array(split_args);
-        return (0);
-    }
-    
-    // Replace command arguments
-    free_str_array(cmd->args);
-    cmd->args = new_args;
-    free(potential_cmd);
-    free_str_array(split_args);
-    return (1);
-}
-
-/**
- * Execute builtin command with redirection handling
- */
-int execute_builtin(t_shell *shell, t_cmd *cmd)
-{
-    int     saved_stdin;
-    int     saved_stdout;
-    int     result;
-    char    *cmd_name;
-    
-    if (!cmd->args || !cmd->args[0])
-        return (1);
-    
-    // Save current standard I/O
-    saved_stdin = dup(STDIN_FILENO);
-    saved_stdout = dup(STDOUT_FILENO);
-    if (saved_stdin == -1 || saved_stdout == -1)
-    {
-        if (saved_stdin != -1)
-            close(saved_stdin);
-        if (saved_stdout != -1)
-            close(saved_stdout);
-        return (1);
-    }
-    
-    // Setup redirections
-    if (setup_redirections(cmd, shell) != 0)
-    {
-        close(saved_stdin);
-        close(saved_stdout);
-        return (1);
-    }
-    
-    // Execute the builtin command
-    cmd_name = cmd->args[0];
-    if (ft_strcmp(cmd_name, "echo") == 0)
-        result = builtin_echo(cmd);
-    else if (ft_strcmp(cmd_name, "cd") == 0)
-        result = builtin_cd(shell, cmd);
-    else if (ft_strcmp(cmd_name, "pwd") == 0)
-        result = builtin_pwd(shell, cmd);
-    else if (ft_strcmp(cmd_name, "export") == 0)
-        result = builtin_export(shell, cmd);
-    else if (ft_strcmp(cmd_name, "unset") == 0)
-        result = builtin_unset(shell, cmd);
-    else if (ft_strcmp(cmd_name, "env") == 0)
-        result = builtin_env(shell);
-    else if (ft_strcmp(cmd_name, "exit") == 0)
-        result = builtin_exit(shell, cmd);
-    else if (ft_strcmp(cmd_name, "help") == 0)
-        result = builtin_help(shell);
-    else
-        result = 1;
-    
-    // Restore standard I/O
-    dup2(saved_stdin, STDIN_FILENO);
-    dup2(saved_stdout, STDOUT_FILENO);
-    close(saved_stdin);
-    close(saved_stdout);
-    
-    // Clean up
-    cleanup_redirections(cmd);
-    
-    return (result);
-}
-
-/**
- * Check if command is a builtin
- */
-int is_builtin(char *cmd)
-{
-    if (!cmd)
-        return (0);
-    
-    return (
-        ft_strcmp(cmd, "echo") == 0 ||
-        ft_strcmp(cmd, "cd") == 0 ||
-        ft_strcmp(cmd, "pwd") == 0 ||
-        ft_strcmp(cmd, "export") == 0 ||
-        ft_strcmp(cmd, "unset") == 0 ||
-        ft_strcmp(cmd, "env") == 0 ||
-        ft_strcmp(cmd, "exit") == 0 ||
-        ft_strcmp(cmd, "help") == 0
-    );
-}
-
-/**
- * Handle builtin command execution in child process
- * Exported to be shared with pipes.c
- */
-void handle_builtin_child(t_shell *shell, t_cmd *cmd)
-{
-    char *cmd_name;
-
-    cmd_name = cmd->args[0];
-    if (ft_strcmp(cmd_name, "echo") == 0)
-        exit(builtin_echo(cmd));
-    else if (ft_strcmp(cmd_name, "cd") == 0)
-        exit(builtin_cd(shell, cmd));
-    else if (ft_strcmp(cmd_name, "pwd") == 0)
-        exit(builtin_pwd(shell, cmd));
-    else if (ft_strcmp(cmd_name, "export") == 0)
-        exit(builtin_export(shell, cmd));
-    else if (ft_strcmp(cmd_name, "unset") == 0)
-        exit(builtin_unset(shell, cmd));
-    else if (ft_strcmp(cmd_name, "env") == 0)
-        exit(builtin_env(shell));
-    else if (ft_strcmp(cmd_name, "exit") == 0)
-        exit(builtin_exit(shell, cmd));
-    else if (ft_strcmp(cmd_name, "help") == 0)
-        exit(builtin_help(shell));
-    exit(1);
-}
-
-/**
- * Execute a child process
- */
-void execute_child(t_shell *shell, t_cmd *cmd)
-{
-    // Set up redirections
-    if (setup_redirections(cmd, shell) != 0)
-        exit(1);
-    
-    // Process command arguments
-    if (!process_command_args(shell, cmd))
-        exit(1);
-    
-    // Execute the command (shared logic)
-    execute_cmd(shell, cmd);
-    // execute_cmd never returns
-}
-
-/**
- * Execute a command with proper error handling
- */
-int execute_command(t_shell *shell, t_cmd *cmd)
-{
-    pid_t   pid;
-    int     status;
-    int     result;
-    
     if (!cmd || !cmd->args || !cmd->args[0])
         return (0);
-    
-    // Process command arguments
-    process_command_args(shell, cmd);
-    
-    // Check if command is a builtin and not in a pipeline
-    if (is_builtin(cmd->args[0]) && !cmd->next)
-    {
-        result = execute_builtin(shell, cmd);
-        shell->exit_status = result;
-        return (result);
-    }
-    pid = fork();
-    if (pid == -1)
-    {
-        display_error(ERR_FORK, "fork", strerror(errno));
+    if (ft_strcmp(cmd->args[0], "cd") == 0 ||
+        ft_strcmp(cmd->args[0], "echo") == 0 ||
+        ft_strcmp(cmd->args[0], "env") == 0 ||
+        ft_strcmp(cmd->args[0], "exit") == 0 ||
+        ft_strcmp(cmd->args[0], "export") == 0 ||
+        ft_strcmp(cmd->args[0], "pwd") == 0 ||
+        ft_strcmp(cmd->args[0], "unset") == 0 ||
+        ft_strcmp(cmd->args[0], "help") == 0)  // Add help command
         return (1);
-    }
-    
-    if (pid == 0)
-    {
-        // Child process
-        setup_signals_noninteractive();
-        execute_child(shell, cmd);
-        exit(126);  // Should never reach this
-    }
-    
-    // Parent process - make sure to close any redirected fds
-    cleanup_redirections(cmd);
-    
-    // Wait for command to complete
-    waitpid(pid, &status, 0);
-    process_cmd_status(shell, status);
-    
-    return (shell->exit_status);
+    return (0);
 }
 
-/**
- * Execute a command or pipeline with proper handling
- */
-int execute(t_shell *shell, t_cmd *cmd)
+int	run_builtin(t_shell *shell, t_command *cmd)
 {
-    if (!shell || !cmd)
-        return (1);
-    
-    // Execute according to whether it's a pipeline or single command
-    if (cmd->next)
-        return (execute_pipeline(shell, cmd));
-    else
-        return (execute_command(shell, cmd));
+    if (ft_strcmp(cmd->args[0], "cd") == 0)
+        return (builtin_cd(shell, cmd));
+    else if (ft_strcmp(cmd->args[0], "echo") == 0)
+        return (builtin_echo(cmd));
+    else if (ft_strcmp(cmd->args[0], "env") == 0)
+        return (builtin_env(shell, cmd));
+    else if (ft_strcmp(cmd->args[0], "exit") == 0)
+        return (builtin_exit(shell, cmd));
+    else if (ft_strcmp(cmd->args[0], "export") == 0)
+        return (builtin_export(shell, cmd));
+    else if (ft_strcmp(cmd->args[0], "pwd") == 0)
+        return (builtin_pwd(shell));
+    else if (ft_strcmp(cmd->args[0], "unset") == 0)
+        return (builtin_unset(shell, cmd));
+    else if (ft_strcmp(cmd->args[0], "help") == 0)
+        return (builtin_help(shell));  // Add help command handler
+    return (1);
+}
+
+static void	check_dev_full(t_command *cmd)
+{
+	t_redir	*redir;
+
+	redir = cmd->redirs;
+	while (redir && redir->next)
+		redir = redir->next;
+	if (redir && (redir->type == REDIR_OUT || redir->type == APPEND)
+		&& redir->file_or_del && ft_strcmp(redir->file_or_del, "/dev/full") == 0
+		&& ft_strcmp(cmd->args[0], "unset") != 0
+		&& ft_strcmp(cmd->args[0], "cd") != 0)
+	{
+		if (write(STDOUT_FILENO, " ", 1) == -1 && errno == ENOSPC)
+		{
+			error(cmd->args[0], NULL, "write error: No space left on device");
+			g_exit_status = 1;
+		}
+	}
+}
+
+void	apply_redirs_and_run_builtin(t_shell *shell, t_command *cmd)
+{
+	if (handle_redirections(cmd, shell) == -1)
+		return ;
+	redirect_stdio(cmd);
+	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+		return (restore_std_fds(shell), g_exit_status = 1, (void)0);
+	if (!ft_strcmp(cmd->args[0], "exit"))
+		return (builtin_exit(shell, cmd), restore_std_fds(shell), (void)0);
+	g_exit_status = run_builtin(shell, cmd);
+	check_dev_full(cmd);
+	restore_std_fds(shell);
+}
+
+static void	update_exit_after_wait(pid_t pid)
+{
+	int	status;
+	int	sig;
+
+	if (waitpid(pid, &status, 0) == -1)
+		return ;
+	if (WIFEXITED(status))
+		g_exit_status = WEXITSTATUS(status);
+	else if (WIFSIGNALED(status))
+	{
+		sig = WTERMSIG(status);
+		if (sig == SIGINT)
+			ft_putendl_fd("", STDOUT_FILENO);
+		else if (sig == SIGQUIT)
+			ft_putendl_fd("^\\Quit", STDOUT_FILENO);
+		g_exit_status = 128 + sig;
+	}
+}
+
+static void	ignore_sigint_and_wait(pid_t child_pid)
+{
+	void	(*original_handler)(int);
+
+	original_handler = signal(SIGINT, SIG_IGN);
+	update_exit_after_wait(child_pid);
+	signal(SIGINT, original_handler);
+}
+
+static void	execute_external_command(t_shell *shell, t_command *cmd)
+{
+	char		*exec_path;
+	struct stat	path_stat;
+
+	exec_path = get_command_path(shell, cmd);
+	if (stat(exec_path, &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
+	{
+		error(NULL, exec_path, "Is a directory");
+		clean_and_exit_shell(shell, 126);
+	}
+	close_fds(shell);
+	execve(exec_path, cmd->args, shell->env);
+	error(NULL, exec_path, strerror(errno));
+	clean_and_exit_shell(shell, 126);
+}
+
+static void	execute_in_child(t_shell *shell, t_command *cmd)
+{
+	reset_signals_to_default();
+	if (handle_redirections(cmd, shell) == -1)
+		clean_and_exit_shell(shell, 1);
+	redirect_stdio(cmd);
+	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+		clean_and_exit_shell(shell, 1);
+	if (cmd->args && is_shell_command(cmd->args[0]))
+		update_shell_lvl(shell);
+	execute_external_command(shell, cmd);
+}
+
+void	execute_single_command(t_shell *shell, t_command *cmd)
+{
+	pid_t	child_pid;
+
+	if (is_builtin(cmd))
+	{
+		apply_redirs_and_run_builtin(shell, cmd);
+		return ;
+	}
+	child_pid = fork();
+	if (child_pid == -1)
+	{
+		error("fork", NULL, strerror(errno));
+		g_exit_status = 1;
+		return ;
+	}
+	if (child_pid == 0)
+		execute_in_child(shell, cmd);
+	else
+		ignore_sigint_and_wait(child_pid);
 }

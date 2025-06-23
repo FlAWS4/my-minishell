@@ -3,77 +3,65 @@
 /*                                                        :::      ::::::::   */
 /*   echo.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 02:04:10 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 04:47:25 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Check if the argument is the -n flag
- * Valid flags are -n, -nn, -nnn, etc.
- */
-static int	is_n_flag(char *arg)
+static int	is_valid_n_option(const char *arg)
 {
-    int	i;
+	int	i;
 
-    if (!arg || arg[0] != '-')
-        return (0);
-    i = 1;
-    if (arg[i] == '\0')
-        return (0);
-    while (arg[i])
-    {
-        if (arg[i] != 'n')
-            return (0);
-        i++;
-    }
-    return (1);
+	i = 1;
+	if (!arg || arg[0] != '-' || arg[1] != 'n')
+		return (0);
+	while (arg[i] == 'n')
+		i++;
+	if (arg[i] == '\0')
+		return (1);
+	else
+		return (0);
 }
 
-/**
- * Print arguments with spaces between them
- */
-static void	print_args(char **args, int start_idx)
+static int	print_echo_args(char **args, int i)
 {
-    int	i;
+	int	is_first_arg;
 
-    i = start_idx;
-    while (args[i])
-    {
-        ft_putstr_fd(args[i], STDOUT_FILENO);
-        if (args[i + 1])
-            ft_putchar_fd(' ', STDOUT_FILENO);
-        i++;
-    }
+	is_first_arg = 1;
+	while (args[i])
+	{
+		if (!is_first_arg)
+			ft_putchar_fd(' ', STDOUT_FILENO);
+		ft_putstr_fd(args[i], STDOUT_FILENO);
+		is_first_arg = 0;
+		i++;
+	}
+	return (0);
 }
 
-/**
- * Built-in echo command
- * Handles the -n option to suppress trailing newline
- */
-int	builtin_echo(t_cmd *cmd)
+int		builtin_echo(t_command *cmd)
 {
-    int	i;
-    int	n_flag;
+	int	i;
+	int	print_newline;
 
-    if (!cmd || !cmd->args)
-    {
-        display_error(ERROR_ECHO, NULL, "Invalid command structure");
-        return (1);
-    }
-    i = 1;
-    n_flag = 0;
-    while (cmd->args[i] && is_n_flag(cmd->args[i]))
-    {
-        n_flag = 1;
-        i++;
-    }
-    print_args(cmd->args, i);
-    if (!n_flag)
-        ft_putchar_fd('\n', STDOUT_FILENO);
-    return (0);
+	i = 1;
+	print_newline = 1;
+	if (!cmd || !cmd->args || !cmd->args[0])
+		return (0);
+	while (cmd->args[i] && is_valid_n_option(cmd->args[i]))
+	{
+		print_newline = 0;
+		i++;
+	}
+	print_echo_args(cmd->args, i);
+	if (print_newline == 1)
+	{
+		if (ft_putchar_fd('\n', STDOUT_FILENO) != 0)
+			return (1);
+	}
+	return (0);
 }

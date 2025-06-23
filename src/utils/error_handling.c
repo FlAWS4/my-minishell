@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   error_handling.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 01:57:55 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 19:29:53 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,381 +14,408 @@
 #include "minishell.h"
 
 /**
- * Remove colon prefix from command name (for quoted variables)
+ * error - Display formatted error message with color highlighting
+ * @cmd: Command that caused the error (can be NULL)
+ * @error_item: Item causing the error (can be NULL)
+ * @msg: Error message to display
+ *
+ * Displays a formatted error message with color-coded components to improve
+ * readability and error visibility.
  */
-static char	*clean_command_name(char *cmd)
+void	error(const char *cmd, const char *error_item, const char *msg)
 {
-    if (!cmd)
-        return (NULL);
-    if (cmd[0] == ':')
-        return (cmd + 1);
-    return (cmd);
-}
-
-/**
- * Get error prefix based on error type
- */
-static char	*get_error_prefix(int error_type)
-{
-    if (error_type == ERROR_SYNTAX)
-        return (BOLD_RED "✘ Syntax Error" RESET ": ");
-    else if (error_type == ERROR_COMMAND)
-        return (BOLD_YELLOW "⚠ Command Error" RESET ": ");
-    else if (error_type == ERROR_PERMISSION)
-        return (BOLD_MAGENTA "🔒 Permission Denied" RESET ": ");
-    else if (error_type == ERR_REDIR)
-        return (BOLD_CYAN "⤵ Redirection Error" RESET ": ");
-    else if (error_type == ERROR_MEMORY)
-        return (BOLD_RED "🧠 Memory Error" RESET ": ");
-    else if (error_type == ERR_PIPE)
-        return (BOLD_BLUE "📤 Pipe Error" RESET ": ");
-    else if (error_type == ERR_FORK)
-        return (BOLD_YELLOW "🔀 Fork Error" RESET ": ");
-    else if (error_type == ERR_EXEC)
-        return (BOLD_RED "⚙️ Execution Error" RESET ": ");
-    else if (error_type == ERROR_CD)
-        return (BOLD_CYAN "📁 Directory Error" RESET ": ");
-    else
-        return (BOLD_RED "Error" RESET ": ");
-}
-
-/**
- * Get command style based on command name
- */
-static void	get_cmd_style(char *cmd, char **color, char **icon)
-{
-    *color = BOLD_YELLOW;
-    *icon = "📦";
-    
-    if (!cmd)
-        return;
-        
-    if (ft_strcmp(cmd, "cd") == 0)
+    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+    if (cmd)
     {
-        *color = BOLD_CYAN;
-        *icon = "📂";
+        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+        ft_putstr_fd(cmd, STDERR_FILENO);
+        ft_putstr_fd(RESET ": ", STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "echo") == 0)
+    if (error_item)
     {
-        *color = BOLD_GREEN;
-        *icon = "📢";
+        ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
+        ft_putstr_fd(error_item, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
+        if (msg)
+            ft_putstr_fd(": ", STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "export") == 0)
+    if (msg)
     {
-        *color = BOLD_BLUE;
-        *icon = "🔄";
+        ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+        ft_putstr_fd((char *)msg, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "unset") == 0)
+    ft_putchar_fd('\n', STDERR_FILENO);
+}
+
+/**
+ * error_quoted - Display error message with quoted item and color highlighting
+ * @cmd: Command that caused the error (can be NULL)
+ * @error_item: Item causing the error to be displayed in quotes (can be NULL)
+ * @msg: Error message to display
+ *
+ * Similar to error() but puts the error_item in quotes for better visibility
+ * of whitespace or special characters in the problematic item.
+ */
+void	error_quoted(const char *cmd, const char *error_item, const char *msg)
+{
+    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+    if (cmd)
     {
-        *color = BOLD_MAGENTA;
-        *icon = "🗑️";
+        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+        ft_putstr_fd(cmd, STDERR_FILENO);
+        ft_putstr_fd(RESET ": ", STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "env") == 0)
+    if (error_item)
     {
-        *color = BOLD_CYAN;
-        *icon = "🌍";
+        ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
+        ft_putchar_fd('\'', STDERR_FILENO);
+        ft_putstr_fd(error_item, STDERR_FILENO);
+        ft_putchar_fd('\'', STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
+        if (msg)
+            ft_putstr_fd(": ", STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "exit") == 0)
+    if (msg)
     {
-        *color = BOLD_RED;
-        *icon = "🚪";
+        ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+        ft_putstr_fd((char *)msg, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
     }
-    else if (ft_strcmp(cmd, "pwd") == 0)
+    ft_putchar_fd('\n', STDERR_FILENO);
+}
+
+/**
+ * warning - Display warning message with color formatting
+ * @cmd: Command related to the warning (can be NULL)
+ * @warning_item: Item that triggered the warning (can be NULL)
+ * @msg: Warning message to display
+ *
+ * Displays a formatted warning message with yellow highlighting
+ * to indicate non-critical issues.
+ */
+void	warning(const char *cmd, const char *warning_item, const char *msg)
+{
+    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+    if (cmd)
     {
-        *color = BOLD_BLUE;
-        *icon = "📂";
+        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+        ft_putstr_fd(cmd, STDERR_FILENO);
+        ft_putstr_fd(RESET ": ", STDERR_FILENO);
     }
-}
-
-/**
- * Display builtin command error with styling
- */
-static void	display_builtin_error(char *cmd, char *arg, char *message)
-{
-    char	*color;
-    char	*icon;
-    char	*clean_arg;
-
-    clean_arg = clean_command_name(arg);
-    get_cmd_style(cmd, &color, &icon);
-    ft_putstr_fd(color, 2);
-    ft_putstr_fd(icon, 2);
-    ft_putstr_fd(" minishell" RESET ": ", 2);
-    ft_putstr_fd(color, 2);
-    ft_putstr_fd(cmd, 2);
-    ft_putstr_fd(RESET, 2);
-    if (clean_arg && clean_arg[0] != '\0')
+    ft_putstr_fd(YELLOW "warning: " RESET, STDERR_FILENO);
+    if (warning_item)
     {
-        ft_putstr_fd(": " BOLD_WHITE, 2);
-        ft_putstr_fd(clean_arg, 2);
-        ft_putstr_fd(RESET ": ", 2);
+        ft_putstr_fd(YELLOW, STDERR_FILENO);
+        ft_putstr_fd(warning_item, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
+        if (msg)
+            ft_putstr_fd(": ", STDERR_FILENO);
     }
-    else
-        ft_putstr_fd(": ", 2);
-    if (message)
+    if (msg)
     {
-        ft_putstr_fd(BOLD_RED, 2);
-        ft_putstr_fd(message, 2);
-        ft_putstr_fd(RESET, 2);
+        ft_putstr_fd(YELLOW, STDERR_FILENO);
+        ft_putstr_fd((char *)msg, STDERR_FILENO);
+        ft_putstr_fd(RESET, STDERR_FILENO);
     }
-    ft_putstr_fd("\n", 2);
+    ft_putchar_fd('\n', STDERR_FILENO);
 }
 
-/**
- * Display command not found error
- */
-static void	display_not_found_error(char *command)
+void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
+	int exit_code)
 {
-    char	*display_cmd;
-
-    if (!command)
-    {
-        ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET 
-            ": command not found\n", 2);
-        return;
-    }
-    
-    display_cmd = command;
-    while (*display_cmd && (*display_cmd == ':' || *display_cmd == '"' 
-        || *display_cmd == '\''))
-        display_cmd++;
-        
-    ft_putstr_fd(BOLD_RED "🔍 Command Not Found" RESET ": ", 2);
-    ft_putstr_fd(display_cmd, 2);
-    ft_putstr_fd(": command not found\n", 2);
+	error(NULL, cmd, msg);
+	clean_and_exit_shell(shell, exit_code);
 }
 
-/**
- * Display error message with formatting
- */
-void	display_error(int error_type, char *command, char *message)
+int	writable(int fd, const char *cmd_name)
 {
-    char	*prefix;
-    char	*clean_cmd;
-
-    clean_cmd = clean_command_name(command);
-    if (error_type == ERROR_CD)
-        return (display_builtin_error("cd", clean_cmd, message));
-    else if (error_type == ERROR_ECHO)
-        return (display_builtin_error("echo", clean_cmd, message));
-    else if (error_type == ERROR_EXPORT)
-        return (display_builtin_error("export", clean_cmd, message));
-    else if (error_type == ERROR_UNSET)
-        return (display_builtin_error("unset", clean_cmd, message));
-    else if (error_type == ERROR_ENV)
-        return (display_builtin_error("env", clean_cmd, message));
-    else if (error_type == ERROR_EXIT)
-        return (display_builtin_error("exit", clean_cmd, message));
-    else if (error_type == ERROR_PWD)
-        return (display_builtin_error("pwd", clean_cmd, message));
-    if (error_type == ERROR_NOT_FOUND || error_type == ERR_NOT_FOUND)
-        return (display_not_found_error(clean_cmd));
-    prefix = get_error_prefix(error_type);
-    ft_putstr_fd(prefix, 2);
-    if (clean_cmd && clean_cmd[0] != '\0')
-    {
-        ft_putstr_fd(clean_cmd, 2);
-        ft_putstr_fd(": ", 2);
-    }
-    if (message)
-        ft_putstr_fd(message, 2);
-    ft_putstr_fd("\n", 2);
+	if (write(fd, "", 0) == -1)
+	{
+		error(cmd_name, NULL, strerror(errno));
+		return (0);
+	}
+	return (1);
 }
 
-/**
- * Print error message with automatic error type detection
- */
-void	print_error(char *cmd, char *msg)
-{
-    int	error_type;
-
-    if (!cmd || !msg)
-        return;
-    error_type = 0;
-    if (ft_strstr(msg, "not found"))
-        error_type = ERROR_COMMAND;
-    else if (ft_strstr(msg, "permission"))
-        error_type = ERROR_PERMISSION;
-    else if (ft_strstr(msg, "syntax"))
-        error_type = ERROR_SYNTAX;
-    else if (ft_strstr(msg, "cannot allocate") || 
-            ft_strstr(msg, "memory") || 
-            ft_strstr(msg, "malloc"))
-        error_type = ERROR_MEMORY;
-    else if (ft_strstr(msg, "redirect") ||
-            ft_strstr(msg, "file") || 
-            ft_strstr(msg, "directory"))
-        error_type = ERR_REDIR;
-    display_error(error_type, cmd, msg);
-}
-
-/**
- * Get appropriate exit status based on error type
- */
-int	get_error_exit_status(int error_type)
-{
-    if (error_type == ERROR_COMMAND || error_type == ERR_NOT_FOUND)
-        return (127);
-    else if (error_type == ERROR_PERMISSION)
-        return (126);
-    else if (error_type == ERROR_SYNTAX)
-        return (2);
-    else if (error_type == ERR_REDIR)
-        return (1);
-    else if (error_type == ERROR_MEMORY)
-        return (12);
-    else if (error_type == ERR_EXEC)
-        return (126);
-    else if (error_type == ERR_PIPE || error_type == ERR_FORK)
-        return (1);
-    else
-        return (1);
-}
-
-/**
- * Free array of strings
- */
-void	free_str_array(char **array)
-{
-    int	i;
-
-    if (!array)
-        return;
-    i = 0;
-    while (array[i])
-    {
-        free(array[i]);
-        i++;
-    }
-    free(array);
-}
-
-/**
- * Print syntax error for tokens
- */
-void	print_syntax_error(char *token_value, int token_type)
-{
-    char	*prefix;
-    char	*suffix;
-
-    prefix = "unexpected ";
-    if (!token_value)
-        token_value = "unexpected token";
-    if (token_type == TOKEN_PIPE)
-        suffix = "pipe operator '";
-    else if (token_type == TOKEN_REDIR_IN || token_type == TOKEN_REDIR_OUT
-        || token_type == TOKEN_REDIR_APPEND || token_type == TOKEN_HEREDOC)
-        suffix = "redirection '";
-    else
-        suffix = "token '";
-    display_error(ERROR_SYNTAX, "syntax error", NULL);
-    ft_putstr_fd(prefix, 2);
-    ft_putstr_fd(suffix, 2);
-    ft_putstr_fd(token_value, 2);
-    ft_putstr_fd("'\n", 2);
-}
-
-/**
- * Get error message based on errno
- */
-static char	*get_errno_message(void)
-{
-    if (errno == ENOENT)
-        return ("No such file or directory");
-    else if (errno == EACCES)
-        return ("Permission denied");
-    else if (errno == EISDIR)
-        return ("Is a directory");
-    else
-        return (strerror(errno));
-}
-
-/**
- * Handle execution errors and set appropriate exit status
- */
-int	handle_execution_error(t_shell *shell, char *cmd, char *message,
-        int error_type)
-{
-    display_error(error_type, cmd, message);
-    if (shell)
-        shell->exit_status = get_error_exit_status(error_type);
-    return (get_error_exit_status(error_type));
-}
-
-/**
- * Handle redirection errors specifically
- */
-int	handle_redirection_error(t_shell *shell, char *filename, char *message)
-{
-    if (!message)
-        message = get_errno_message();
-    if (filename && message)
-        display_error(ERR_REDIR, filename, message);
-    if (shell)
-        shell->exit_status = 1;
-    return (1);
-}
-
-/**
- * Handle memory allocation errors
- */
-void	handle_memory_error(t_shell *shell, char *location)
-{
-    if (location)
-        display_error(ERROR_MEMORY, location, "Memory allocation failed");
-    else
-        display_error(ERROR_MEMORY, "malloc", "Memory allocation failed");
-    if (shell)
-        shell->exit_status = 12;
-    exit(12);
-}
-
-/**
- * Print error and exit with appropriate status
- */
-void	print_error_and_exit(t_shell *shell, int error_type, char *cmd,
-        char *message)
-{
-    int	exit_status;
-
-    display_error(error_type, cmd, message);
-    exit_status = get_error_exit_status(error_type);
-    if (shell)
-        shell->exit_status = exit_status;
-    exit(exit_status);
-}
 
 /**
  * Display heredoc EOF warning
  */
-void	display_heredoc_eof_warning(char *delimiter)
+
+void	free_redirs(t_redir **redirs)
 {
-    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET 
-        ": here-document delimited by end-of-file (wanted `", STDERR_FILENO);
-    ft_putstr_fd(BOLD_WHITE, STDERR_FILENO);
-    ft_putstr_fd(delimiter, STDERR_FILENO);
-    ft_putstr_fd(RESET "')\n", STDERR_FILENO);
+	t_redir	*current;
+	t_redir	*next;
+
+	current = *redirs;
+	while (current)
+	{
+		next = current->next;
+		if (current->file_or_del)
+			free(current->file_or_del);
+		if (current->heredoc_content)
+			free(current->heredoc_content);
+		free(current);
+		current = next;
+	}
+	*redirs = NULL;
 }
 
-/**
- * Display SHLVL warning when value gets too high
- */
-void	display_shlvl_warning(int level)
+void	free_tokens_list(t_token **head)
 {
-    char	*level_str;
-    
-    ft_putstr_fd(BOLD_YELLOW "⚠ Warning" RESET ": shell level (", STDERR_FILENO);
-    
-    level_str = ft_itoa(level);
-    if (level_str)
-    {
-        ft_putstr_fd(BOLD_WHITE, STDERR_FILENO);
-        ft_putstr_fd(level_str, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-        free(level_str);
-    }
-    else
-        ft_putstr_fd("???", STDERR_FILENO);
-    
-    ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
+	t_token	*current;
+	t_token	*next;
+
+	current = *head;
+	while (current)
+	{
+		next = current->next;
+		if (current->value)
+			free(current->value);
+		free(current);
+		current = next;
+	}
+	*head = NULL;
+}
+
+void	free_array(void *ptr)
+{
+	int		i;
+	char	**tab;
+
+	if (!ptr)
+		return ;
+	tab = (char **)ptr;
+	i = 0;
+	while (tab[i])
+	{
+		free(tab[i]);
+		i++;
+	}
+	free(tab);
+}
+
+void	free_command(t_command **cmds)
+{
+	t_command	*cmd;
+	t_command	*next;
+
+	if (!cmds || !*cmds)
+		return ;
+	cmd = *cmds;
+	while (cmd)
+	{
+		next = cmd->next;
+		if (cmd->args)
+			free_array(cmd->args);
+		if (cmd->redirs)
+			free_redirs(&cmd->redirs);
+		free(cmd);
+		cmd = next;
+	}
+	*cmds = NULL;
+}
+char	*gc_strdup(t_gc **gc, const char *s1)
+{
+	char	*dest;
+	size_t	len;
+
+	if (!s1)
+		return (NULL);
+	len = ft_strlen(s1) + 1;
+	dest = gc_malloc(gc, len, GC_SOFT, NULL);
+	if (!dest)
+		return (NULL);
+	ft_memcpy(dest, s1, len);
+	return (dest);
+}
+
+char	*gc_strjoin(t_gc **gc, const char *s1, const char *s2)
+{
+	size_t	i;
+	size_t	y;
+	char	*result;
+
+	i = 0;
+	y = 0;
+	if (!s1 || !s2)
+		return (NULL);
+	result = gc_malloc(gc, ft_strlen(s1) + ft_strlen(s2) + 1, GC_SOFT, NULL);
+	if (!result)
+		return (NULL);
+	while (s1[i])
+	{
+		result[i] = s1[i];
+		i++;
+	}
+	while (s2[y])
+	{
+		result[i] = s2[y];
+		i++;
+		y++;
+	}
+	result[i] = '\0';
+	return (result);
+}
+
+char	*gc_substr(t_gc **gc, const char *s, unsigned int start, size_t len)
+{
+	size_t	i;
+	size_t	y;
+	char	*sub;
+
+	i = 0;
+	if (!s)
+		return (NULL);
+	if (start >= ft_strlen(s))
+		return (gc_strdup(gc, ""));
+	y = ft_strlen(s + start);
+	if (y < len)
+		len = y;
+	sub = gc_malloc(gc, len + 1, GC_SOFT, NULL);
+	if (!sub)
+		return (NULL);
+	while (i < len && s[start])
+	{
+		sub[i] = s[start];
+		i++;
+		start++;
+	}
+	sub[i] = '\0';
+	return (sub);
+}
+
+char	**gc_split(t_gc **gc, char *str, char c)
+{
+	char	**arr;
+
+	arr = ft_split(str, c);
+	if (!arr)
+		return (NULL);
+	if (gc_add(gc, arr, GC_SOFT, free_array))
+		return (NULL);
+	return (arr);
+}
+void	*gc_malloc(t_gc **gc_list, size_t size, int fatal,
+	void (*free_array)(void *))
+{
+	void	*ptr;
+
+	ptr = malloc(size);
+	if (!ptr)
+	{
+		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		if (fatal == GC_FATAL)
+		{
+			gc_free_all(gc_list);
+			exit(EXIT_FAILURE);
+		}
+		return (NULL);
+	}
+	if (gc_add(gc_list, ptr, fatal, free_array))
+	{
+		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		if (fatal == GC_FATAL)
+		{
+			free(ptr);
+			gc_free_all(gc_list);
+			exit(EXIT_FAILURE);
+		}
+		return (free(ptr), NULL);
+	}
+	return (ptr);
+}
+
+int	gc_add(t_gc **gc_list, void *ptr, int fatal,
+	void (*free_array)(void *))
+{
+	t_gc	*new_node;
+
+	if (!ptr)
+		return (1);
+	new_node = malloc(sizeof(t_gc));
+	if (!new_node)
+	{
+		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		if (fatal == GC_FATAL)
+		{
+			gc_free_all(gc_list);
+			exit(EXIT_FAILURE);
+		}
+		return (1);
+	}
+	new_node->data = ptr;
+	new_node->flag = fatal;
+	new_node->free_array = free_array;
+	new_node->next = *gc_list;
+	*gc_list = new_node;
+	return (0);
+}
+
+void	gc_free_all(t_gc **gc_list)
+{
+	t_gc	*current_node;
+	t_gc	*next_node;
+
+	if (!gc_list || !*gc_list)
+		return ;
+	current_node = *gc_list;
+	while (current_node)
+	{
+		next_node = current_node->next;
+		if (current_node->free_array)
+			current_node->free_array(current_node->data);
+		else
+			free(current_node->data);
+		free(current_node);
+		current_node = next_node;
+	}
+	*gc_list = NULL;
+}
+static int	int_len(long nb)
+{
+	int	len;
+
+	len = 0;
+	if (nb == 0)
+		return (1);
+	if (nb < 0)
+	{
+		nb = -nb;
+		len++;
+	}
+	while (nb > 0)
+	{
+		nb /= 10;
+		len++;
+	}
+	return (len);
+}
+
+char	*gc_itoa(t_gc **gc, int n)
+{
+	long	nb;
+	int		len;
+	char	*str;
+
+	nb = (long)n;
+	len = int_len(nb);
+	str = gc_malloc(gc, sizeof(char) * (len + 1), GC_SOFT, NULL);
+	if (!str)
+		return (NULL);
+	str[len--] = '\0';
+	if (nb == 0)
+		str[0] = '0';
+	if (nb < 0)
+	{
+		str[0] = '-';
+		nb = -nb;
+	}
+	while (nb > 0)
+	{
+		str[len--] = (nb % 10) + '0';
+		nb /= 10;
+	}
+	return (str);
 }

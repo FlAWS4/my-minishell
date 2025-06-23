@@ -3,91 +3,73 @@
 /*                                                        :::      ::::::::   */
 /*   unset.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:34:36 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 02:04:53 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 04:48:17 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Free environment node
- * Handles NULL pointers safely
- */
-static void	free_env_node(t_env *node)
+static int	env_size(char **env)
 {
-    if (node)
-    {
-        if (node->key)
-            free(node->key);
-        if (node->value)
-            free(node->value);
-        free(node);
-    }
+	int	count;
+
+	count = 0;
+	while (env && env[count])
+		count++;
+	return (count);
 }
 
-/**
- * Remove variable from environment
- * Handles list manipulation and memory cleanup
- */
-static void	remove_env_var(t_shell *shell, char *key)
+static char	**duplicate_env_without_pos(t_shell *shell, int skip_pos)
 {
-    t_env	*curr;
-    t_env	*prev;
+	int		size;
+	char	**new_env;
+	int		i;
+	int		j;
 
-    if (!shell || !key)
-        return ;
-    curr = shell->env;
-    prev = NULL;
-    while (curr)
-    {
-        if (ft_strcmp(curr->key, key) == 0)
-        {
-            if (prev)
-                prev->next = curr->next;
-            else
-                shell->env = curr->next;
-            free_env_node(curr);
-            return ;
-        }
-        prev = curr;
-        curr = curr->next;
-    }
+	i = 0;
+	j = 0;
+	size = env_size(shell->env);
+	new_env = gc_malloc(&shell->gc, sizeof(char *) * size, GC_SOFT, NULL);
+	if (!new_env)
+		return (NULL);
+	while (i < size)
+	{
+		if (i != skip_pos)
+			new_env[j++] = gc_strdup(&shell->gc, shell->env[i]);
+		i++;
+	}
+	new_env[j] = NULL;
+	return (new_env);
 }
 
-/**
- * Handle invalid identifier for unset command
- */
-static int	handle_invalid_id(char *arg)
+static void	remove_env_var(t_shell *shell, char *var_name)
 {
-    display_error(ERROR_UNSET, arg, "not a valid identifier");
-    return (1);
+	int	pos;
+
+	if (!shell || !shell->env || !var_name || !*var_name)
+		return ;
+	pos = find_var_pos(var_name, shell);
+	if (pos == -1)
+		return ;
+	shell->env = duplicate_env_without_pos(shell, pos);
 }
 
-/**
- * Built-in unset command
- * Removes variables from the environment
- */
-int	builtin_unset(t_shell *shell, t_cmd *cmd)
+int		builtin_unset(t_shell *shell, t_command *cmd)
 {
-    int	i;
-    int	status;
+	int	i;
 
-    if (!shell || !cmd || !cmd->args)
-        return (1);
-    status = 0;
-    i = 1;
-    if (!cmd->args[i])
-        return (0);
-    while (cmd->args[i])
-    {
-        if (!is_valid_identifier(cmd->args[i]))
-            status = handle_invalid_id(cmd->args[i]);
-        else
-            remove_env_var(shell, cmd->args[i]);
-        i++;
-    }
-    return (status);
+	i = 1;
+	if (!shell || !cmd || !cmd->args)
+		return (error("unset", NULL, "internal error"), 1);
+	if (!cmd->args[1])
+		return (0);
+	while (cmd->args[i])
+	{
+		remove_env_var(shell, cmd->args[i]);
+		i++;
+	}
+	return (0);
 }

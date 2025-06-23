@@ -3,96 +3,80 @@
 /*                                                        :::      ::::::::   */
 /*   prompt.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 18:49:23 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 00:43:08 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 19:44:11 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Get shortened path by replacing home directory with ~
+ * generate_dynamic_prompt - Create a single-line prompt with user info and status
+ * @shell: Shell structure containing environment and status information
+ *
+ * Creates a colorful single-line prompt containing:
+ * - Username (from environment)
+ * - Current directory (shortened path with ~ for home)
+ * - Exit status indicator (colored based on success/failure)
+ *
+ * Return: Allocated string with formatted prompt (must be freed by caller)
  */
-static void get_shortened_path(char *result, size_t size, t_shell *shell)
+char	*format_shell_prompt(t_shell *shell)
 {
-    char cwd[PATH_MAX];
-    char *home;
+    char	*cwd;
+    char	*user;
+    char	*prompt;
+    char	*home_dir;
+    char	*dir_display;
+    char	*temp;
 
-    if (!getcwd(cwd, sizeof(cwd)))
-    {
-        ft_strlcpy(result, "unknown", size);
-        return;
-    }
+    // Get username from environment or default
+    user = get_env_value(shell, "USER");
+    if (!user)
+        user = "user";
     
-    // Use shell's environment instead of getenv
-    home = get_env_value(shell->env, "HOME");
-    if (home && ft_strncmp(cwd, home, ft_strlen(home)) == 0)
+    // Get current directory
+    cwd = getcwd(NULL, 0);
+    if (!cwd)
+        cwd = ft_strdup("unknown");
+    
+    // Replace home directory path with ~
+    home_dir = get_env_value(shell, "HOME");
+    if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
     {
-        ft_strlcpy(result, "~", size);
-        ft_strlcat(result, cwd + ft_strlen(home), size);
-        free(home); // Free allocated memory
+        dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
+        free(cwd);
     }
     else
-    {
-        ft_strlcpy(result, cwd, size);
-        if (home)
-            free(home);
-    }
+        dir_display = cwd;
+    
+    // Build prompt with colors based on exit status
+    if (g_exit_status == 0)
+        prompt = ft_strjoin(BOLD_GREEN "[", user);
+    else
+        prompt = ft_strjoin(BOLD_RED "[", user);
+    
+    temp = prompt;
+    prompt = ft_strjoin(prompt, "@minishell ");
+    free(temp);
+    
+    temp = prompt;
+    prompt = ft_strjoin(prompt, BOLD_BLUE);
+    free(temp);
+    
+    temp = prompt;
+    prompt = ft_strjoin(prompt, dir_display);
+    free(temp);
+    
+    temp = prompt;
+    prompt = ft_strjoin(prompt, RESET BOLD_GREEN "] $ " RESET);
+    free(temp);
+    
+    free(dir_display);
+    return (prompt);
 }
-
-/**
- * Create shell prompt string with colors
- */
-void create_prompt(char *prompt, int exit_status, t_shell *shell)
-{
-    char *username;
-    char path[PATH_MAX];
-    
-    if (!prompt)
-        return;
-        
-    // Use safer string operations instead of sprintf
-    ft_strlcpy(prompt, BOLD_WHITE, PROMPT_SIZE);
-    ft_strlcat(prompt, "[", PROMPT_SIZE);
-    
-    // Use shell's environment instead of getenv for consistency
-    username = get_env_value(shell->env, "USER");
-    
-    // Add color based on exit status
-    if (exit_status == 0)
-        ft_strlcat(prompt, BOLD_GREEN, PROMPT_SIZE);
-    else
-        ft_strlcat(prompt, BOLD_RED, PROMPT_SIZE);
-        
-    // Use username or default
-    if (!username)
-        ft_strlcat(prompt, "user", PROMPT_SIZE);
-    else
-    {
-        ft_strlcat(prompt, username, PROMPT_SIZE);
-        free(username); // Free allocated memory
-    }
-    
-    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
-    ft_strlcat(prompt, "]", PROMPT_SIZE);
-    ft_strlcat(prompt, RESET, PROMPT_SIZE);
-    ft_strlcat(prompt, ":", PROMPT_SIZE);
-    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
-    ft_strlcat(prompt, "[", PROMPT_SIZE);
-    ft_strlcat(prompt, BOLD_BLUE, PROMPT_SIZE);
-    
-    // Pass shell parameter to the function
-    get_shortened_path(path, sizeof(path), shell);
-    ft_strlcat(prompt, path, PROMPT_SIZE);
-    
-    ft_strlcat(prompt, BOLD_WHITE, PROMPT_SIZE);
-    ft_strlcat(prompt, "]", PROMPT_SIZE);
-    ft_strlcat(prompt, RESET, PROMPT_SIZE);
-    ft_strlcat(prompt, "$ ", PROMPT_SIZE);
-}
-
 /**
  * Display commands usage with nice formatting
  */

@@ -3,402 +3,254 @@
 /*                                                        :::      ::::::::   */
 /*   tokens.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 01:52:07 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 03:10:18 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 
 #include "minishell.h"
 
-/**
- * Create a new command structure
- */
-t_cmd	*create_cmd(void)
+int	is_operator(char *str, int i)
 {
-    t_cmd	*cmd;
-
-    cmd = (t_cmd *)malloc(sizeof(t_cmd));
-    if (!cmd)
-        return (NULL);
-    cmd->args = NULL;
-    cmd->input_file = NULL;
-    cmd->output_file = NULL;
-    cmd->heredocs_processed = 0;
-    cmd->heredoc_delim = NULL;
-    cmd->heredoc_file = NULL;
-    cmd->input_fd = -1;
-    cmd->output_fd = -1;
-    cmd->append_mode = 0;
-    cmd->redirections = NULL;
-    cmd->next = NULL;
-    return (cmd);
+	if (str[i] == '<' && str[i + 1] && str[i + 1] == '<')
+		return (HEREDOC);
+	else if (str[i] == '>' && str[i + 1] && str[i + 1] == '>')
+		return (APPEND);
+	else if (str[i] == '|')
+		return (PIPE);
+	else if (str[i] == '>')
+		return (REDIR_OUT);
+	else if (str[i] == '<')
+		return (REDIR_IN);
+	return (-1);
 }
 
-/**
- * Initialize arguments array with the first argument
- */
-int	init_args(t_cmd *cmd, char *arg)
+void	add_token(t_token **head, t_token *new_token)
 {
-    if (!cmd || !arg)
-        return (0);
-    cmd->args = (char **)malloc(sizeof(char *) * 2);
-    if (!cmd->args)
-    {
-        free(arg);
-        return (0);
-    }
-    cmd->args[0] = arg;
-    cmd->args[1] = NULL;
-    return (1);
+	t_token	*current;
+
+	if (!*head)
+	{
+		*head = new_token;
+		return ;
+	}
+	current = *head;
+	while (current->next)
+		current = current->next;
+	current->next = new_token;
+	new_token->previous = current;
+	new_token->next = NULL;
 }
 
-/**
- * Copy existing arguments to a new array
- */
-static char	**copy_args(t_cmd *cmd, int count)
+int	is_whitespace(char c)
 {
-    char	**new_args;
-    int		i;
-
-    new_args = (char **)malloc(sizeof(char *) * (count + 2));
-    if (!new_args)
-        return (NULL);
-    i = 0;
-    while (cmd->args[i])
-    {
-        new_args[i] = cmd->args[i];
-        i++;
-    }
-    new_args[i] = NULL;
-    return (new_args);
+	if (c == ' ' || (c >= 9 && c <= 13))
+		return (1);
+	return (0);
 }
 
-/**
- * Add an argument to the command's args array
- */
-void	add_arg(t_cmd *cmd, char *arg)
+int	is_quote(char c)
 {
-    int		i;
-    char	**new_args;
-
-    if (!cmd || !arg)
-        return ;
-    if (!cmd->args)
-    {
-        if (!init_args(cmd, arg))
-            free(arg);
-        return ;
-    }
-    i = 0;
-    while (cmd->args[i])
-        i++;
-    new_args = copy_args(cmd, i);
-    if (!new_args)
-    {
-        free(arg);
-        return ;
-    }
-    new_args[i] = arg;
-    new_args[i + 1] = NULL;
-    free(cmd->args);
-    cmd->args = new_args;
+	if (c == '\'')
+		return (1);
+	else if (c == '"')
+		return (2);
+	return (0);
 }
 
-/**
- * Free a command list
- */
-void	free_cmd_list(t_cmd *cmd)
+t_token	*create_token(t_token_type type, char *value)
 {
-    t_cmd	*current;
-    t_cmd	*next;
+	t_token	*token;
 
-    current = cmd;
-    while (current)
-    {
-        next = current->next;
-        free_cmd(current);
-        current = next;
-    }
+	token = malloc(sizeof(t_token));
+	if (!token)
+		return (NULL);
+	ft_memset(token, 0, sizeof(t_token));
+	token->type = type;
+	if (value)
+	{
+		token->value = ft_strdup(value);
+		if (!token->value)
+		{
+			free(token);
+			return (NULL);
+		}
+	}
+	token->previous = NULL;
+	token->next = NULL;
+	return (token);
 }
 
-/**
- * Free redirections in a command
- */
-static void	free_redirections(t_redirection *redir)
-{
-    t_redirection	*next_redir;
 
-    while (redir)
-    {
-        next_redir = redir->next;
-        if (redir->word)
-            free(redir->word);
-        if (redir->temp_file)
-            free(redir->temp_file);
-        free(redir);
-        redir = next_redir;
-    }
+int	handle_in_quote(int start_quote, char *input, int *i, t_token **tokens)
+{
+	t_token	*token;
+
+	token = create_token(WORD, NULL);
+	if (!token)
+		return (-1);
+	if (is_quote(input[*i]) == 1)
+		token->single_quote = 1;
+	else if (is_quote(input[*i]) == 2)
+		token->double_quote = 2;
+	add_token(tokens, token);
+	token->value = ft_substr(input, start_quote, *i - start_quote);
+	if (!token->value)
+		return (-1);
+	(*i)++;
+	if (start_quote >= 2 && input[start_quote - 2]
+		&& is_whitespace(input[start_quote - 2]))
+		token->space_before = 1;
+	if (input[*i] && is_whitespace(input[*i]))
+		token->space_after = 1;
+	return (*i);
 }
 
-/**
- * Free a single command and its resources
- */
-void	free_cmd(t_cmd *cmd)
+int	handle_double_operator(int *i, t_token **tokens,
+	t_token_type operator)
 {
-    int	i;
+	t_token	*token;
 
-    if (!cmd)
-        return ;
-    if (cmd->args)
-    {
-        i = 0;
-        while (cmd->args[i])
-            free(cmd->args[i++]);
-        free(cmd->args);
-    }
-    if (cmd->input_file)
-        free(cmd->input_file);
-    if (cmd->output_file)
-        free(cmd->output_file);
-    if (cmd->heredoc_delim)
-        free(cmd->heredoc_delim);
-    if (cmd->heredoc_file)
-    {
-        unlink(cmd->heredoc_file);
-        free(cmd->heredoc_file);
-    }
-    free_redirections(cmd->redirections);
-    if (cmd->input_fd >= 2)
-        close(cmd->input_fd);
-    if (cmd->output_fd >= 2)
-        close(cmd->output_fd);
-    free(cmd);
+	token = NULL;
+	if (operator == APPEND)
+		token = create_token(APPEND, NULL);
+	else if (operator == HEREDOC)
+		token = create_token(HEREDOC, NULL);
+	if (!token)
+		return (-1);
+	add_token(tokens, token);
+	(*i) += 2;
+	return (*i);
 }
 
-/**
- * Join consecutive tokens without spaces
- */
-static char	*join_consecutive_tokens(char *word, t_token **current)
+int	handle_single_operator(int *i, t_token **tokens,
+	t_token_type operator)
 {
-    t_token	*next;
-    char	*temp;
-    char	*result;
+	t_token	*token;
 
-    next = (*current)->next;
-    while (next && (next->type == TOKEN_WORD || 
-            next->type == TOKEN_SINGLE_QUOTE ||
-            next->type == TOKEN_DOUBLE_QUOTE))
-    {
-        if (next->preceded_by_space)
-            break;
-        temp = word;
-        result = ft_strjoin(word, next->value);
-        if (!result)
-        {
-            free(temp);
-            return (NULL);
-        }
-        free(temp);
-        word = result;
-        *current = next;
-        next = next->next;
-    }
-    return (word);
+	token = NULL;
+	if (operator == PIPE)
+		token = create_token(PIPE, NULL);
+	else if (operator == REDIR_IN)
+		token = create_token(REDIR_IN, NULL);
+	else
+		token = create_token(REDIR_OUT, NULL);
+	if (!token)
+		return (-1);
+	add_token(tokens, token);
+	(*i)++;
+	return (*i);
+}
+static int	handle_operator(char *input, int *i, t_token **tokens)
+{
+	t_token_type	operator;
+
+	operator = is_operator(input, *i);
+	if (operator == HEREDOC || operator == APPEND)
+		return (handle_double_operator(i, tokens, operator));
+	else if ((operator == PIPE || operator == REDIR_OUT
+			|| operator == REDIR_IN))
+		return (handle_single_operator(i, tokens, operator));
+	return (*i);
 }
 
-/**
- * Process word tokens and handle token joining when no spaces
- */
-void	join_word_tokens(t_cmd *cmd, t_token **token)
+static int	handle_quote(char *input, int *i, t_token **tokens)
 {
-    char	*word;
-    t_token	*current;
+	t_token	*token;
+	char	quote;
+	int		start_quote;
 
-    word = ft_strdup((*token)->value);
-    if (!word)
-        return ;
-    current = *token;
-    word = join_consecutive_tokens(word, &current);
-    if (!word)
-        return ;
-    add_arg(cmd, word);
-    *token = current;
+	quote = input[(*i)];
+	start_quote = ++(*i);
+	while (input[(*i)] && input[(*i)] != quote)
+		(*i)++;
+	if (input[(*i)] == '\0')
+	{
+		token = create_token(ERROR, ODDQUOTE);
+		if (!token)
+			return (-1);
+		add_token(tokens, token);
+		return (*i);
+	}
+	return (handle_in_quote(start_quote, input, i, tokens));
 }
 
-/**
- * Check if a token is a valid argument token
- */
-int	is_arg_token(t_token *token)
+static int	handle_word(char *input, int *i, t_token **tokens)
 {
-    if (!token)
-        return (0);
-    return (token->type == TOKEN_WORD ||
-            token->type == TOKEN_SINGLE_QUOTE ||
-            token->type == TOKEN_DOUBLE_QUOTE);
+	t_token	*token;
+	int		start_word;
+	int		space_before;
+
+	space_before = 0;
+	if (*i > 0 && is_whitespace(input[*i - 1]))
+		space_before = 1;
+	start_word = (*i);
+	while (input[(*i)] && !is_whitespace(input[(*i)])
+		&& is_operator(input, *i) == -1 && !is_quote(input[(*i)]))
+		(*i)++;
+	token = create_token(WORD, NULL);
+	if (!token)
+		return (-1);
+	token->value = ft_substr(input, start_word, *i - start_word);
+	if (!token->value)
+		return (free(token), -1);
+	if (input[*i] && is_whitespace(input[*i]))
+		token->space_after = 1;
+	if (space_before)
+		token->space_before = 1;
+	return (add_token(tokens, token), *i);
 }
 
-/**
- * Handle quoted argument processing
- */
-static int	handle_quote_prefix(char **arg, int *is_quoted)
+static int	handle_string(char *input, int *i, t_token **tokens)
 {
-    char	*temp;
-    
-    if ((*arg)[0] == '\'' || (*arg)[0] == '"')
-    {
-        if ((*arg)[1] == ':')
-        {
-            *is_quoted = 1;
-            temp = ft_strdup(*arg + 2);
-            if (!temp)
-                return (0);
-            free(*arg);
-            *arg = temp;
-            return (1);
-        }
-    }
-    else if ((*arg)[0] == ':')
-    {
-        *is_quoted = 1;
-        temp = ft_strdup(*arg + 1);
-        if (!temp)
-            return (0);
-        free(*arg);
-        *arg = temp;
-        return (1);
-    }
-    return (1);
+	if (is_quote(input[*i]))
+	{
+		*i = handle_quote(input, i, tokens);
+		if (*i == -1)
+			return (-1);
+	}
+	else if (is_operator(input, *i) != -1)
+	{
+		*i = handle_operator(input, i, tokens);
+		if (*i == -1)
+			return (-1);
+	}
+	else
+	{
+		*i = handle_word(input, i, tokens);
+		if (*i == -1)
+			return (-1);
+	}
+	return (*i);
 }
 
-/**
- * Process and expand a single argument
- */
-static int	process_arg(t_cmd *cmd, int i, t_shell *shell, int *reset)
+t_token	*tokenize_input(char *input)
 {
-    char	*original;
-    int		is_quoted;
-    int		is_standalone;
-    char	*expanded;
+	t_token	*tokens;
+	t_token	*eof_token;
+	int		i;
 
-    original = ft_strdup(cmd->args[i]);
-    if (!original)
-        return (1);
-    is_quoted = 0;
-    if (!handle_quote_prefix(&cmd->args[i], &is_quoted))
-    {
-        free(original);
-        return (1);
-    }
-    is_standalone = (original[0] == '$' && 
-                  !ft_strchr(original, '\'') && 
-                  !ft_strchr(original, '\"'));
-    free(original);
-    expanded = expand_variables(shell, cmd->args[i]);
-    if (!expanded)
-        return (1);
-    free(cmd->args[i]);
-    cmd->args[i] = expanded;
-    *reset = (i == 0 && is_standalone && !is_quoted && 
-        expanded[0] && ft_strchr(expanded, ' '));
-    return (0);
-}
-
-/**
- * Create a new arguments array from split result
- */
-static char	**create_new_args(char **split, int count)
-{
-    char	**new_args;
-    int		j;
-
-    new_args = malloc(sizeof(char *) * (count + 1));
-    if (!new_args)
-        return (NULL);
-    j = 0;
-    while (j < count)
-    {
-        new_args[j] = ft_strdup(split[j]);
-        if (!new_args[j])
-        {
-            while (--j >= 0)
-                free(new_args[j]);
-            free(new_args);
-            return (NULL);
-        }
-        j++;
-    }
-    new_args[count] = NULL;
-    return (new_args);
-}
-
-/**
- * Handle splitting of first argument if needed
- */
-static int	handle_arg_splitting(t_cmd *cmd, int *should_reset)
-{
-    char	**split;
-    char	**new_args;
-    int		count;
-
-    *should_reset = 0;
-    split = ft_split(cmd->args[0], ' ');
-    if (!split || !split[0])
-    {
-        if (split)
-            free_env_array(split);
-        return (0);
-    }
-    count = 0;
-    while (split[count])
-        count++;
-    new_args = create_new_args(split, count);
-    if (!new_args)
-    {
-        free_env_array(split);
-        return (1);
-    }
-    free(cmd->args[0]);
-    free(cmd->args);
-    cmd->args = new_args;
-    free_env_array(split);
-    *should_reset = 1;
-    return (0);
-}
-
-/**
- * Expand command arguments and handle variable splitting
- */
-int	expand_command_args(t_cmd *cmd_list, t_shell *shell)
-{
-    t_cmd	*current;
-    int		i;
-    int		should_reset;
-    int		error;
-
-    if (!cmd_list || !shell)
-        return (1);
-    current = cmd_list;
-    while (current)
-    {
-        if (current->args)
-        {
-            i = 0;
-            while (current->args[i])
-            {
-                error = process_arg(current, i, shell, &should_reset);
-                if (error)
-                    i++;
-                else if (should_reset && handle_arg_splitting(current, &should_reset) == 0
-                    && should_reset)
-                    i = 0;
-                else
-                    i++;
-            }
-        }
-        current = current->next;
-    }
-    return (0);
+	if (!input)
+		return (NULL);
+	tokens = NULL;
+	i = 0;
+	while (input[i] != '\0')
+	{
+		while (is_whitespace(input[i]))
+			i++;
+		if (input[i] == '\0')
+			break ;
+		else
+		{
+			if (handle_string(input, &i, &tokens) == -1)
+				return (free_tokens_list(&tokens), NULL);
+		}
+	}
+	eof_token = create_token(T_EOF, NULL);
+	if (!eof_token)
+		return (free_tokens_list(&tokens), NULL);
+	return (add_token(&tokens, eof_token), free(input), tokens);
 }

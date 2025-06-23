@@ -3,159 +3,93 @@
 /*                                                        :::      ::::::::   */
 /*   exit.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 02:01:51 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 04:42:55 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Check if character is a whitespace
- */
-static int	is_space(char c)
+static int	is_numeric(const char *str)
 {
-    return (c == ' ' || (c >= 9 && c <= 13));
+	int	i;
+
+	i = 0;
+	if (!str || !str[0])
+		return (0);
+	if ((str[0] == '+' || str[0] == '-') && str[1] == '\0')
+		return (0);
+	if (str[0] == '+' || str[0] == '-')
+		i++;
+	while (str[i])
+	{
+		if (!ft_isdigit(str[i]))
+			return (0);
+		i++;
+	}
+	return (1);
 }
 
-/**
- * Skip whitespace in a string
- */
-static int	skip_whitespace(const char *str)
+static int	is_valid_long(const char *str)
 {
-    int	i;
+	int				i;
+	unsigned long	result;
+	unsigned long	limit;
 
-    i = 0;
-    while (str[i] && is_space(str[i]))
-        i++;
-    return (i);
+	i = 0;
+	result = 0;
+	limit = (unsigned long)LONG_MAX;
+	if (!str || !str[0])
+		return (0);
+	if (str[i] == '+' || str[i] == '-')
+	{
+		if (str[i] == '-')
+			limit++;
+		i++;
+	}
+	while (str[i] >= '0' && str[i] <= '9')
+	{
+		if (result > (limit - (str[i] - '0')) / 10)
+			return (0);
+		result = result * 10 + (str[i] - '0');
+		i++;
+	}
+	return (str[i] == '\0');
 }
 
-/**
- * Check if string is a valid number
- * Handles NULL input and leading/trailing spaces
- */
-static int	is_numeric(char *str)
+static int	handle_exit_args(t_shell *shell, t_command *cmd, int *arg_exit_code)
 {
-    int	i;
-
-    if (!str || !*str)
-        return (0);
-    i = skip_whitespace(str);
-    if (str[i] == '+' || str[i] == '-')
-        i++;
-    if (!str[i])
-        return (0);
-    while (str[i])
-    {
-        if (str[i] < '0' || str[i] > '9')
-            return (0);
-        i++;
-    }
-    return (1);
+	if (!cmd->args[1])
+		*arg_exit_code = 0;
+	else if (!is_numeric(cmd->args[1]) || !is_valid_long(cmd->args[1]))
+	{
+		error("exit", cmd->args[1], "numeric argument required");
+		g_exit_status = 2;
+		clean_and_exit_shell(shell, g_exit_status);
+	}
+	else if (cmd->args[2] != NULL)
+	{
+		error("exit", NULL, "too many arguments");
+		g_exit_status = 1;
+		return (1);
+	}
+	else
+		*arg_exit_code = ft_atoi(cmd->args[1]);
+	return (0);
 }
 
-/**
- * Check for integer overflow during conversion
- */
-static int	check_overflow(long result, char digit, int sign)
+int	builtin_exit(t_shell *shell, t_command *cmd)
 {
-    if ((result > LONG_MAX / 10) || 
-        (result == LONG_MAX / 10 && (digit - '0') > LONG_MAX % 10))
-    {
-        return (sign == 1) ? 1 : -1;
-    }
-    return (0);
-}
+	int	arg_exit_code;
 
-/**
- * Process digits for atol conversion
- */
-static long	process_digits(const char *str, int i, int sign)
-{
-    long	result;
-    int		overflow;
-
-    result = 0;
-    while (str[i] >= '0' && str[i] <= '9')
-    {
-        overflow = check_overflow(result, str[i], sign);
-        if (overflow == 1)
-            return (LONG_MAX);
-        if (overflow == -1)
-            return (LONG_MIN);
-        result = result * 10 + (str[i] - '0');
-        i++;
-    }
-    return (result * sign);
-}
-
-/**
- * Convert string to long integer with overflow detection
- */
-static long	ft_atol(const char *str)
-{
-    int	sign;
-    int	i;
-
-    if (!str)
-        return (0);
-    sign = 1;
-    i = skip_whitespace(str);
-    if (str[i] == '-' || str[i] == '+')
-    {
-        if (str[i] == '-')
-            sign = -1;
-        i++;
-    }
-    return (process_digits(str, i, sign));
-}
-
-/**
- * Handle numeric argument for exit
- */
-static int	handle_exit_arg(t_shell *shell, t_cmd *cmd)
-{
-    int	exit_code;
-
-    if (!is_numeric(cmd->args[1]))
-    {
-        display_error(ERROR_EXIT, cmd->args[1], "numeric argument required");
-        shell->exit_status = 2;
-        shell->should_exit = 1;
-        return (0);
-    }
-    else if (cmd->args[2])
-    {
-        display_error(ERROR_EXIT, NULL, "too many arguments");
-        return (1);
-    }
-    else
-    {
-        exit_code = (unsigned char)ft_atol(cmd->args[1]);
-        shell->exit_status = exit_code;
-        shell->should_exit = 1;
-    }
-    return (0);
-}
-
-/**
- * Built-in exit command
- * Exits the shell with specified status code
- */
-int	builtin_exit(t_shell *shell, t_cmd *cmd)
-{
-    int	exit_code;
-
-    if (!shell || !cmd || !cmd->args)
-        return (1);
-    exit_code = shell->exit_status;
-    ft_putendl_fd("exit", STDOUT_FILENO);
-    if (cmd->args[1])
-        return (handle_exit_arg(shell, cmd));
-    shell->exit_status = exit_code;
-    shell->should_exit = 1;
-    return (0);
+	if (!shell || !cmd || !cmd->args)
+		return (error("exit", NULL, "internal error"), 1);
+	ft_putstr_fd("exit\n", STDOUT_FILENO);
+	if (handle_exit_args(shell, cmd, &arg_exit_code))
+		return (1);
+	g_exit_status = arg_exit_code % 256;
+	clean_and_exit_shell(shell, g_exit_status);
+	return (0);
 }

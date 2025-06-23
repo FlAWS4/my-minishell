@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils3.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:32:52 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 00:24:12 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 18:34:16 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ void	*ft_calloc(size_t nmemb, size_t size)
  * Count words in a string
  * Words are defined as sequences of characters separated by delimiter c
  */
-static int	count_words(const char *s, char c)
+int	count_words_split(const char *s, char c)
 {
     int	count;
     int	i;
@@ -105,7 +105,7 @@ char	**ft_split(const char *s, char c)
 
     if (!s)
         return (NULL);
-    word_count = count_words(s, c);
+    word_count = count_words_split(s, c);
     result = (char **)ft_calloc(word_count + 1, sizeof(char *));
     if (!result)
         return (NULL);
@@ -154,4 +154,16 @@ int ft_strncmp(const char *s1, const char *s2, size_t n)
     while (i < n - 1 && s1[i] && s2[i] && s1[i] == s2[i])
         i++;
     return ((unsigned char)s1[i] - (unsigned char)s2[i]);
+}
+void	*ft_memcpy(void *dest, const void *src, size_t n)
+{
+	size_t	i;
+
+	i = 0;
+	while (i < n)
+	{
+		((unsigned char *)dest)[i] = ((unsigned char *)src)[i];
+		i++;
+	}
+	return (dest);
 }

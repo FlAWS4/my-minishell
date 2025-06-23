@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils2.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 20:19:29 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 00:28:16 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 17:24:24 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ char *ft_strjoin(const char *s1, const char *s2)
 /**
  * Write string to file descriptor
  */
-void	ft_putstr_fd(char *s, int fd)
+void	ft_putstr_fd(const char *s, int fd)
 {
     size_t	len;
 

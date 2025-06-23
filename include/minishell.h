@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/17 23:41:52 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 19:55:35 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,8 +32,7 @@
 # include <stdint.h> 
 
 # define PROMPT_SIZE 256
-# define BUFFER_SIZE 128
-# define MAX_FD 1024
+# define OPEN_MAX 1024
 
 // Text colors
 # define BLACK "\033[0;30m"
@@ -58,376 +57,340 @@
 # define BOLD_MAGENTA "\033[1;35m"
 # define RESET "\033[0m"
 
-/* Error types */
-# define ERROR_SYNTAX      1
-# define ERROR_COMMAND     2
-# define ERROR_PERMISSION  3
-# define ERROR_MEMORY      4
-# define ERR_EXEC          5
-# define ERROR_NOT_FOUND   100
-# define ERROR_CD          101
-# define ERROR_ECHO        102
-# define ERROR_EXPORT      103
-# define ERROR_UNSET       104
-# define ERROR_ENV         105
-# define ERROR_EXIT        106
-# define ERROR_PWD         107
 
-/* Redirection types */
-# define REDIR_IN          1
-# define REDIR_OUT         2
-# define REDIR_APPEND      3
-# define REDIR_HEREDOC     4
+# define ALLOCFAIL "Error: Memory allocation failed.\n"
+# define ARGSHELL "Error: No argument allowed."
+# define ODDQUOTE "Error: Unclosed quote.\n"
+# define ENVERROR "Error: Failed to initialize environment\n."
+# define TOKENFAIL "Error: Failed to create token list.\n"
+# define SYNTAXER "minishell: syntax error near unexpected token"
+# define SYNTAXNL "minishell: syntax error near unexpected token 'newline'\n"
+# define SYNTAXPI "minishell: syntax error near unexpected token '|'\n"
+# define HEREDOCW "minishell: warning: here-document delimited by \
+end-of-file (wanted `"
+# define UNSUPPORT "minishell: unsupported character "
+# define NONVALIDID "not a valid identifier\n"
 
-/* Global variable for signal handling (as allowed by subject) */
-extern int	g_signal;
+# define GC_FATAL 1
+# define GC_SOFT 0
+# define BUFFER_SIZE 5
 
-/* Error code enum for better error handling */
-typedef enum e_error_code
+extern int	g_exit_status;
+
+typedef struct s_gc
 {
-    ERR_NONE,
-    ERR_SYNTAX,
-    ERR_NOT_FOUND,
-    ERR_PERMISSION,
-    ERR_PIPE,
-    ERR_FORK,
-    ERR_MEMORY,
-    ERR_REDIR
-}	t_error_code;
+	void			*data;
+	int				flag;
+	void			(*free_array)(void *);
+	struct s_gc		*next;
+}	t_gc;
 
-/* Token types for lexer/parser */
 typedef enum e_token_type
 {
-    TOKEN_WORD,
-    TOKEN_PIPE,
-    TOKEN_REDIR_IN,
-    TOKEN_REDIR_OUT,
-    TOKEN_REDIR_APPEND,
-    TOKEN_HEREDOC,
-    TOKEN_WHITESPACE,
-    TOKEN_SINGLE_QUOTE,
-    TOKEN_DOUBLE_QUOTE,
+	WORD,
+	PIPE,
+	REDIR_IN,
+	REDIR_OUT,
+	APPEND,
+	HEREDOC,
+	T_EOF,
+	ERROR,
 }	t_token_type;
 
-typedef struct s_redirection
-{
-    int                     type;  // REDIR_IN, REDIR_OUT, etc.
-    int                    quoted; // Flag to indicate if the word is quoted
-    char                    *word;
-    struct s_redirection    *next;
-    int                     input_fd;  // File descriptor for input redirection
-    int                     output_fd; // File descriptor for output redirection
-    char                    *temp_file;
-} t_redirection;
-
-/* Token structure */
 typedef struct s_token
 {
-    t_token_type	type;
-    char			*value;
-    struct s_token	*next;
-    int             preceded_by_space; // For handling whitespace
+	t_token_type	type;
+	char			*value;
+	int				single_quote;
+	int				double_quote;
+	int				space_before;
+	int				space_after;
+	int				ar;
+	int				quoted_outside;
+	struct s_token	*previous;
+	struct s_token	*next;
 }	t_token;
 
-typedef struct s_cmd
+typedef struct s_redir
 {
-    char            **args;
-    char            *input_file;    // Keep for backward compatibility
-    char            *output_file;   // Keep for backward compatibility
-    int             append_mode;    // Keep for backward compatibility
-    char            *heredoc_delim; // Keep for single heredoc support
-    char            *heredoc_file ; // File for heredoc content
-    t_redirection   *redirections;  // For multiple redirections
-    int             heredocs_processed; // Flag to indicate if heredocs are processed
-    int             input_fd;       // File descriptor for input
-    int             output_fd;      // File descriptor for output
-    pid_t           pid;            // Process ID for waiting
-    
-    struct s_cmd    *next;
-}   t_cmd;
+	t_token_type	type;
+	char			*file_or_del;
+	char			*heredoc_content;
+	int				quoted;
+	int				quoted_outside;
+	int				ar;
+	struct s_redir	*next;
+}	t_redir;
 
-/* Environment structure */
-typedef struct s_env
+typedef struct s_int
 {
-    char            *key;
-    char            *value;
-    int             exported;   // 1 if marked for export
-    int             in_env;     // 1 if should appear in env output
-    struct s_env    *next;
-}    t_env;
+	int	start;
+	int	end;
+	int	i;
+}	t_int;
 
-/* Main shell structure */
+typedef struct s_char
+{
+	char	*line;
+	char	*str;
+	char	*new_line;
+}	t_char;
+
+typedef struct s_command
+{
+	char				**args;
+	t_redir				*redirs;
+	int					fd_in;
+	int					fd_out;
+	pid_t				pid;
+	struct s_command	*previous;
+	struct s_command	*next;
+}	t_command;
+
 typedef struct s_shell
 {
-    t_env	*env;
-    t_cmd	*cmd;
-    int		exit_status;
-    int		should_exit;
-    struct termios	orig_termios; // Original terminal settings
+	char		**env;
+	t_token		*tokens;
+	t_command	*commands;
+	t_gc		*gc;
+	int			saved_stdin;
+	int			saved_stdout;
+	int			heredoc_interupt;
+	int			pipe_interupt;
+	char		*default_path;
 }	t_shell;
 
-/**
- * Create a struct to track file descriptors for multiple heredocs
- */
-typedef struct s_heredoc_fds
+typedef struct s_pipe_data
 {
-    int fd;                   // File descriptor
-    char *delimiter;          // Heredoc delimiter for debugging
-    struct s_heredoc_fds *next;
-} t_heredoc_fds;
+	pid_t	*pids;
+	int		*fork_count;
+	pid_t	*last_pid;
+	int		*input_fd;
+}	t_pipe_data;
 
 
-/* Environment functions */
-t_env	*create_env_node(char *key, char *value);
-void	add_env_var(t_env **env_list, t_env *new_node);
-void	split_env_string(char *str, char **key, char **value);
-t_env	*init_env(char **envp);
-/**
- * Get environment variable value by key
- * Note: Caller must free the returned string
- */
-char	*get_env_value(t_env *env, const char *key);
-t_env	*find_env_var(t_env *env, const char *key);
-int     set_env_var(t_env **env_list, char *key, char *value);
-int     delete_env_var(t_env **env_list, char *key);
-int	    count_env_vars(t_env *env);
-void	free_env_array(char **array);
-/**
- * Convert environment linked list to string array (for execve)
- * Note: Caller must free the returned array with free_env_array
- */
-char	**env_to_array(t_env *env);
-int     mark_var_for_export(t_env **env_list, char *key);
-int     is_valid_identifier(char *name);
+// SIGNALS
+void	handle_sigint(int sig);
+void	setup_signals(void);
+void	reset_signals_to_default(void);
+int		execute_with_signal_recovery(t_shell *shell);
 
-/* String utility functions */
-char	*ft_strdup(const char *s);
+// BUILTINS
+// ...existing code...
+
+// BUILTINS
+int		builtin_cd(t_shell *shell, t_command *cmd);
+int		builtin_echo(t_command *cmd);
+int		builtin_env(t_shell *shell, t_command *cmd);
+int		builtin_exit(t_shell *shell, t_command *cmd);
+int		builtin_export(t_shell *shell, t_command *cmd);
+int		builtin_pwd(t_shell *shell);
+int		builtin_unset(t_shell *shell, t_command *cmd);
+int		builtin_help(t_shell *shell);  // Add help command
+int		is_builtin(t_command *cmd);
+int		run_builtin(t_shell *shell, t_command *cmd);
+void	apply_redirs_and_run_builtin(t_shell *shell, t_command *cmd);
+
+
+// COMMAND EXEC
+void	execute_single_command(t_shell *shell, t_command *cmd);
+void	dispatch_commands(t_shell *shell);
+
+// ENV
+char	**get_env(char **envp, t_shell *shell);
+char	*get_env_value(t_shell *shell, const char *var_name);
+char	**add_env_var(t_shell *shell, char *new_var);
+char	**init_env(char **envp, t_shell *shell);
+char	**init_minimal_env(void);
+int		env_error(const char *msg, t_gc **gc);
+int		duplicate_existing_vars(t_shell *shell, char **new_env, int size);
+int		add_to_env(t_shell *shell, char *new_var);
+int		find_var_pos(char *var_name, t_shell *shell);
+int		is_valid_identifier(const char *str);
+int		is_valid_identifier(const char *str);
+int		env_has_path(char **envp);
+void	sort_env_for_export(char **env_copy);
+void	update_env(t_shell *shell, char *var, char *new_value);
+
+// EXEC PATH
+char	*find_executable(char *cmd, t_shell *shell);
+char	*get_command_path(t_shell *shell, t_command *cmd);
+
+// HEREDOC
+char	*capture_heredoc(t_redir *redirs, t_shell *data);
+int		handle_heredoc(t_command *cmd, t_redir *redir);
+char	*get_next_line(int fd, int clear);
+char	*read_and_store(char *buffer, int fd);
+char	*update_buffer(char *buffer);
+char	*extract_line(char *buffer);
+void	init_heredoc_signals(struct sigaction *old_int,
+			struct sigaction *old_quit);
+
+// PIPE
+void	prepare_pipe_execution(t_shell *shell, t_command *cmd);
+char	*join_args(t_shell *shell, char **args);
+int		pipe_and_fork_one_cmd(t_shell *shell, t_command *cmd,
+			t_pipe_data *data);
+void	wait_for_all_children(pid_t *pids, int count, pid_t last_pid);
+void	wait_for_some_children(pid_t *pids, int count);
+void	setup_child_fds(t_command *cmd, int input_fd, int pipe_fds[2]);
+void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
+			int pipe_fds[2]);
+
+// REDIRECTIONS
+int		handle_redirections(t_command *cmd, t_shell *shell);
+void	redirect_stdio(t_command *cmd);
+int		open_error(const char *filename);
+int		open_input_file(const char *path);
+int		open_output_file(const char *path);
+int		open_append_file(const char *path);
+int		open_redir_file(t_redir *redir, t_command *cmd);
+
+// SHELL MANAGEMENT AND UTILS
+int		is_shell_command(char *cmd);
+int		writable(int fd, const char *cmd_name);
+void	clean_and_exit_shell(t_shell *shell, int exit_code);
+void	restore_std_fds(t_shell *shell);
+void	update_shell_lvl(t_shell *shell);
+void	close_fds(t_shell *shell);
+void	error(const char *cmd, const char *error_item, const char *msg);
+void	error_quoted(const char *cmd, const char *error_item, const char *msg);
+void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
+			int exit_code);
+void	close_all_fds_except_stdio(void);
+void	close_all_command_fds(t_command *all_cmds, t_command *current_cmd);
+
+// GARBAGE COLLECTOR
+char	*gc_strdup(t_gc **gc, const char *s1);
+char	*gc_strjoin(t_gc **gc, const char *s1, const char *s2);
+char	*gc_substr(t_gc **gc, const char *s, unsigned int start,
+			size_t len);
+char	**gc_split(t_gc **gc, char *str, char c);
+char	*gc_itoa(t_gc **gc, int n);
+int		gc_add(t_gc **gc_list, void *ptr, int fatal,
+			void (*free_array)(void *));
+void	gc_free_all(t_gc **gc_list);
+void	gc_free_one(t_gc *gc_list);
+void	*gc_malloc(t_gc **gc_list, size_t size, int fatal,
+			void (*free_array)(void *));
+void	free_array(void *ptr);
+void	free_redirs(t_redir **redirs);
+void	free_command(t_command **cmd);
+void	free_tokens_list(t_token **head);
+
+// TOKENIZER
+t_token	*tokenize_input(char *input);
+t_token	*create_token(t_token_type type, char *value);
+int		handle_in_quote(int start_quote, char *input, int *i, t_token **tokens);
+int		handle_double_operator(int *i, t_token **tokens,
+			t_token_type operator);
+int		handle_single_operator(int *i, t_token **tokens,
+			t_token_type operator);
+int		is_operator(char *str, int i);
+int		is_whitespace(char c);
+int		is_quote(char c);
+void	add_token(t_token **head, t_token *new_token);
+int		is_whitespace_bis(char *str);
+void	restore_signals_clear_buffer(struct sigaction *old_int,
+			struct sigaction *old_quit);
+
+// SYNTAX CHECK
+int		syntax_check(t_shell *cmd);
+int		add_token_error(t_token **tokens, t_token *token, char *str);
+int		is_token_operator(t_token_type token_type);
+int		is_operator_follow(t_token **tokens, t_token *current_token);
+int		check_unsupported_character(t_token **tokens);
+int		check_token_error(t_token **tokens);
+
+// PARSING
+t_redir	*init_redir(t_shell *data);
+int		split_cmd_with_pipe(t_shell *data);
+int		count_pipe(t_shell *data);
+int		count_words(t_shell *data);
+int		is_cmd(t_token *tokens);
+int		fill_words(t_token *tokens, char **args);
+int		expand_exit_status(char **result, char *var);
+int		join_quoted_str(t_token **tokens);
+int		join_no_space(t_token **tokens);
+int		expand_token(t_shell *data);
+int		prepare_token_str(t_shell *data);
+void	remove_useless_token(t_token **tokens, t_token *token);
+void	check_ambiguous_redirect(t_redir *cmd, t_token *tokens);
+void	add_redirs(t_redir **head, t_redir *redir);
+int		add_ambiguous_redirect(t_redir **redirs, t_token *tokens);
+
+// GET NEXT COMMAND
+int		end_with_pipe(char *input);
+int		get_next_command(t_shell *data, char **input);
+
+// EXPANSION
+char	*expand_variables(t_shell *data, char *input, t_redir *redir);
+char	*expand_and_join(t_shell *data, char *args, char *dollar);
+char	*is_exist(t_shell *data, char *args);
+char	*remove_dollar(char *args);
+char	*expand_value(char **env, char *dollar);
+char	**copy_var_name(char **tab);
+char	**copy_var_value(char **tab);
+char	*copy_name(char *str);
+char	*copy_value(char *str);
+char	*remove_and_replace(char *str, char *expanded);
+int		multiple_expand_bis(t_shell *data, char *input, char **str);
+int		expand_arguments_bis(t_shell *data, char *input, char **str);
+int		expand_status(char *args);
+int		potential_expand(char *args, int *i);
+int		count_dollars(char *args);
+int		expand_arguments(t_shell *data, t_token *tokens, char **args);
+int		add_text(char **result, char *var);
+int		add_variable(char **result, char *value, int start, int end);
+int		check_variable(t_shell *data, char **result, char *value, int *i);
+int		multiple_expand(t_shell *data, t_token *tokens, char **args);
+int		is_env_variable(t_shell *data, char *dollar);
+int		expantion(t_shell *data, t_token *tokens);
+int		find_equal(char *str);
+int		handle_local_quotes(t_token **tokens);
+void	init_for_norm(int *i, int *start);
+int		split_tokens(t_token *current, char *str);
+
+// UTILS
+
+char	*format_shell_prompt(t_shell *shell);
+char	*get_redir_file(t_token *tokens, t_redir *redir);
+int		is_heredoc(t_redir *redir, t_shell *data);
+void	remove_useless_dollars(t_token **head);
+void	clean_empty_tokens(t_token **head);
+int		ft_lstsize(t_token *lst);
+void	sigint_heredoc(int sig);
+void	write_warning(char *delim);
+int		count_words_split(const char *s, char c);
+char	*ft_strstr(const char *big, const char *little);
+void	enable_prints(void);
+void	disable_prints(void);
+void	ft_display_welcome(void);
+void	*ft_memset(void *s, int c, size_t n);
+void	display_error(int error_type, char *command, char *message);
+char	*ft_substr(char const *s, unsigned int start, size_t len);
+char    *ft_strdup(const char *s);
+char 	*ft_strjoin(const char *s1, const char *s2);
+char 	*ft_strdup(const char *s);
 int		ft_strcmp(const char *s1, const char *s2);
 size_t	ft_strlen(const char *s);
-char	*ft_substr(char const *s, unsigned int start, size_t len);
-size_t	ft_strlcpy(char *dst, const char *src, size_t size);
-char	**ft_split(const char *s, char c);
-char	*ft_strjoin(const char *s1, const char *s2);
-/**
- * Join strings and free s1
- * Note: s1 is freed regardless of success or failure
- */
-char	*ft_strjoin_free(char *s1, char *s2);
-void	ft_putstr_fd(char *s, int fd);
 void	ft_bzero(void *s, size_t n);
-void	*ft_calloc(size_t nmemb, size_t size);
+char 	*ft_itoa(int n);
 int		ft_isalnum(int c);
-int		ft_isdigit(int c);
-void	ft_putendl_fd(char *s, int fd);
-size_t	ft_strlcat(char *dst, const char *src, size_t size);
-void	ft_putchar_fd(char c, int fd);
-int		is_whitespace(char c);
-/**
- * Get line from file descriptor
- * Note: Caller must free the returned string
- */
-char	*get_next_line(int fd);
-void	gnl_cleanup(int fd);
-void	ft_putnbr_fd(int n, int fd);
-int     ft_str_is_numeric(const char *str);
-int     ft_isalpha(int c);
-char	*ft_itoa(int n);
-int	    ft_strncmp(const char *s1, const char *s2, size_t n);
 char	*ft_strchr(const char *s, int c);
-char	*ft_strstr(const char *haystack, const char *needle);
-void	*ft_memset(void *s, int c, size_t n);
-int	    ft_atoi(const char *nptr);
-int     ft_safe_size_add(size_t a, size_t b, size_t *result);
-/**
- * Read entire content from file descriptor
- * Note: Caller must free the returned string
- */
-char    *read_from_fd(int fd);
-int     is_empty_delimiter(char *word);
-
-/* Signal handling */
-void	setup_signals(void);
-void	setup_signals_noninteractive(void);
-void	setup_signals_heredoc(void);
-void    ignore_tty_signals(void);
-void    restore_terminal_settings(t_shell *shell);
-void    cleanup_readline_resources(void);
-void    prepare_terminal_for_command(void);
-void	reset_signals(void);
-void    check_pending_signals(t_shell *shell);
-
-/* Lexer functions */
-int		handle_word(char *input, int i, t_token **tokens);
-t_token	*process_tokens(char *input);
-t_token	*tokenize(char *input);
-int     is_special(char c);
-int	    handle_special(char *input, int i, t_token **tokens);
-
-/* Token management functions */
-t_token	*create_token(t_token_type type, char *value, int preceded_by_space);
-void	add_token(t_token **list, t_token *new);
-int	    handle_quote(char *input, int i, t_token **tokens);
-t_token	*get_last_token(t_token *tokens);
-
-/* Command creation and management */
-t_cmd	*create_cmd(void);
-int		init_args(t_cmd *cmd, char *arg);
-void    add_arg(t_cmd *cmd, char *arg);
-int     expand_command_args(t_cmd *cmd_list, t_shell *shell);
-
-/* Redirection handling */
-int     parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell);
-/**
- * Set up redirections for a command
- * Note: Opens file descriptors that must be closed with cleanup_redirections
- */
-int		setup_redirections(t_cmd *cmd, t_shell *shell);
-int		process_redirections(t_cmd *cmd, t_shell *shell);
-int     collect_heredoc_input(char *delimiter, int fd, int quoted, t_shell *shell);
-int     process_regular_redirections(t_cmd *cmd);
-/**
- * Expand command within $() syntax
- * Note: Caller must free the returned string
- */
-char    *expand_command_substitution(char *input, t_shell *shell);
-int	    add_redirection(t_cmd *cmd, int type, char *word, int quoted);
-int     process_input_redir(t_redirection *redir);
-int     process_output_redir(t_redirection *redir);
-int     process_heredoc_redir(t_redirection *redir, t_shell *shell);
-int     process_single_redir(t_redirection *redir, t_shell *shell);
-int	    is_redirection_token(t_token *token);
-int     is_valid_redir_target(t_token *next);
-void    free_redirection_list(t_redirection *redirections);
-int     process_heredoc(t_cmd *cmd, t_shell *shell);
-int     process_token(t_token **token, t_cmd **current, t_shell *shell);
-/**
- * Clean up file descriptors opened by redirections
- */
-void    cleanup_redirections(t_cmd *cmd);
-int     apply_redirections(t_cmd *cmd);
-int     has_heredoc_redirection(t_cmd *cmd);
-int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
-
-/* Token parsing */
-void    handle_word_token(t_cmd *cmd, t_token **token);
-t_cmd	*handle_pipe_token(t_cmd *current);
-int     process_token(t_token **token, t_cmd **current, t_shell *shell);
-t_cmd	*parse_tokens(t_token *tokens, t_shell *shell);
-int		validate_syntax(t_token *tokens);
-void    merge_adjacent_quoted_tokens(t_token **tokens);
-/**
- * Tokenize input and expand variables
- * Note: Returns allocated token list that must be freed with free_token_list
- */
-t_token *tokenize_and_expand(char *input, t_shell *shell);
-void    join_word_tokens(t_cmd *cmd, t_token **token);
-
-/* Executor functions */
-/**
- * Find executable command in PATH
- * Note: Caller must free the returned string
- */
-char	*find_command(t_shell *shell, char *cmd);
-int		execute_builtin(t_shell *shell, t_cmd *cmd);
-void	execute_child(t_shell *shell, t_cmd *cmd);
-int		execute_command(t_shell *shell, t_cmd *cmd);
-void    execute_cmd(t_shell *shell, t_cmd *cmd);
-int     process_command_args(t_shell *shell, t_cmd *cmd);
-/**
- * Create path by joining directory and command
- * Note: Caller must free the returned string
- */
-char	*create_path(char *dir, char *cmd);
-void	process_cmd_status(t_shell *shell, int status);
-int     is_executable(char *path);
-int     wait_for_children(t_shell *shell);
-int     execute(t_shell *shell, t_cmd *cmd);
-int     execute_pipeline(t_shell *shell, t_cmd *cmd);
-int     has_heredoc_redirection(t_cmd *cmd);
-int     process_and_execute_heredoc_command(t_shell *shell, t_cmd *cmd);
-
-/* Built-in command functions */
-int		builtin_echo(t_cmd *cmd);
-int		builtin_cd(t_shell *shell, t_cmd *cmd);
-int		builtin_export(t_shell *shell, t_cmd *cmd);
-int		builtin_unset(t_shell *shell, t_cmd *cmd);
-int		builtin_env(t_shell *shell);
-int		builtin_exit(t_shell *shell, t_cmd *cmd);
-int		is_builtin(char *cmd);
-void	print_sorted_env(t_shell *shell);
-int		builtin_pwd(t_shell *shell, t_cmd *cmd);
-int     builtin_help(t_shell *shell);
-int     is_builtin(char *cmd);
-void handle_builtin_child(t_shell *shell, t_cmd *cmd);
-
-/* Main.c functions */
-void    setup_terminal(t_shell *shell);
-void	process_input(t_shell *shell, char *input);
-void	shell_loop(t_shell *shell);
-t_shell	*init_shell(char **envp);
-t_cmd	*parse_input(char *input, t_shell *shell);
-void	execute_parsed_commands(t_shell *shell);
-void    free_shell(t_shell *shell);
-void    handle_pending_signals(t_shell *shell);
-char    **custom_completion(const char *text, int start, int end);
-char    *command_generator(const char *text, int state);
-void	restore_shell_terminal(t_shell *shell);
-
-/* Expander functions */
-/**
- * Expand environment variables in string
- * Note: Caller must free the returned string
- */
-char    *expand_variables(t_shell *shell, char *str);
-char	*expand_one_var(t_shell *shell, char *str, int *i);
-void	free_expansion_parts(char *name, char *value, char **parts);
-/**
- * Expand variables in tokens with word splitting
- * Note: Returns new token list that must be freed with free_token_list
- */
-t_token *expand_variables_in_tokens_with_splitting(t_token *tokens, t_shell *shell);
-char	*get_var_name(char *str);
-char	*get_var_value(t_shell *shell, char *name);
-/**
- * Expand variables in heredoc content
- * Note: Caller must free the returned string
- */
-char    *expand_heredoc_content(t_shell *shell, char *content);
-int     should_expand_heredoc(char *delimiter);
-/**
- * Process heredoc content with optional variable expansion
- * Note: Caller must free the returned string
- */
-char    *process_heredoc_content(t_shell *shell, char *content, char *delimiter);
-
-/* Free functions */
-void	free_token_list(t_token *tokens);
-void	free_cmd_list(t_cmd *cmd);
-void	free_str_array(char **array);
-void	free_cmd(t_cmd *cmd);
-
-/* Error functions */
-void	print_error(char *cmd, char *msg);
-void	display_error(int error_type, char *command, char *message);
-int     get_error_exit_status(int error_type);
-void    print_syntax_error(char *token_value, int token_type);
-int     handle_execution_error(t_shell *shell, char *cmd, char *message, int error_type);
-int     handle_redirection_error(t_shell *shell, char *filename, char *message);
-void    handle_memory_error(t_shell *shell, char *location);
-void    print_error_and_exit(t_shell *shell, int error_type, char *cmd, char *message);
-int     handle_pipe_error(t_shell *shell, char *context);
-int     handle_fork_error(t_shell *shell, char *context);
-void    display_heredoc_eof_warning(char *delimiter);
-void    display_shlvl_warning(int level);
-
-/* Extra functions */
-void	ft_display_welcome(void);
-void    create_prompt(char *prompt, int exit_status, t_shell *shell);
-
-/* History functions */
-void	init_history(void);
-void	save_history(void);
-void	add_to_history(char *cmd);
-int     builtin_history(t_shell *shell);
+int		ft_isdigit(int c);
+char	**ft_split(const char *s, char c);
+void	ft_putendl_fd(char *s, int fd);
+void	ft_putstr_fd(const char *s, int fd);
+int		ft_putchar_fd(char c, int fd);
+int 	ft_isalpha(int c);
+int 	ft_strncmp(const char *s1, const char *s2, size_t n);
+int		ft_atoi(const char *nptr);
+void	ft_putnbr_fd(int n, int fd);
+void	*ft_memcpy(void *dest, const void *src, size_t n);
+int		ft_safe_size_add(size_t a, size_t b, size_t *result);
+void	*ft_calloc(size_t nmemb, size_t size);
+size_t ft_strlcpy(char *dst, const char *src, size_t size);
+size_t	ft_strlcat(char *dst, const char *src, size_t size);
 
 #endif

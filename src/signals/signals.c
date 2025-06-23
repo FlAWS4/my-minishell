@@ -3,173 +3,150 @@
 /*                                                        :::      ::::::::   */
 /*   signals.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:08 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/18 00:47:18 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 03:20:12 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <signal.h>
+#include <string.h>
 #include "minishell.h"
 
-/**
- * Used to track signal state between processes
- */
-extern int	g_signal;
-
-/**
- * Event hook for readline - called between key presses
- */
-int	check_for_signals(void)
+void	disable_prints(void)
 {
-    if (g_signal == SIGINT)
-    {
-        rl_on_new_line();
-        rl_replace_line("", 0);
-        rl_redisplay();
-        g_signal = 0;
-        return (1);
-    }
-    return (0);
+	struct termios	term;
+
+	if (tcgetattr(STDIN_FILENO, &term) == -1)
+		return ;
+	term.c_lflag &= ~ECHOCTL;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
-/**
- * Signal handler for interactive mode
- */
-void	sigint_handler(int signum)
+void	enable_prints(void)
 {
-    if (signum == SIGINT)
-    {
-        g_signal = SIGINT;
-        write(1, "\n", 1);
-    }
+	struct termios	term;
+
+	if (tcgetattr(STDIN_FILENO, &term) == -1)
+		return ;
+	term.c_lflag |= ECHOCTL;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+void	sigint_heredoc(int sig)
+{
+	(void)sig;
+	g_exit_status = 19;
+	write(2, "^C\n", 3);
 }
 
-/**
- * Signal handler for heredoc input mode
- */
-void	sigint_heredoc_handler(int signum)
+void	restore_signals_clear_buffer(struct sigaction *old_int,
+					struct sigaction *old_quit)
 {
-    if (signum == SIGINT)
-    {
-        g_signal = SIGINT;
-        write(STDOUT_FILENO, "\n", 1);
-        close(STDIN_FILENO);
-        exit(130);
-    }
+	sigaction(SIGINT, old_int, NULL);
+	sigaction(SIGQUIT, old_quit, NULL);
+	get_next_line(STDIN_FILENO, 1);
 }
 
-/**
- * Configure a sigaction structure with given handler
- */
-static void	setup_signal_action(struct sigaction *sa, void (*handler)(int))
+void	write_warning(char *delim)
 {
-    ft_bzero(sa, sizeof(struct sigaction));
-    sa->sa_handler = handler;
-    sigemptyset(&sa->sa_mask);
-    sa->sa_flags = SA_RESTART;
+	if (!delim)
+		return ;
+	ft_putstr_fd(HEREDOCW, 2);
+	ft_putstr_fd(delim, 2);
+	ft_putstr_fd("')\n", 2);
 }
 
-/**
- * Setup signals for interactive shell mode
- */
+void	restore_signal(struct sigaction *old_int,
+					struct sigaction *old_quit)
+{
+	sigaction(SIGINT, old_int, NULL);
+	sigaction(SIGQUIT, old_quit, NULL);
+}
+
+void	init_heredoc_signals(struct sigaction *old_int,
+	struct sigaction *old_quit)
+{
+	struct sigaction	act_int;
+	struct sigaction	act_quit;
+
+	sigemptyset(&act_int.sa_mask);
+	act_int.sa_handler = sigint_heredoc;
+	act_int.sa_flags = 0;
+	sigaction(SIGINT, &act_int, old_int);
+	sigemptyset(&act_quit.sa_mask);
+	act_quit.sa_handler = SIG_IGN;
+	act_quit.sa_flags = 0;
+	sigaction(SIGQUIT, &act_quit, old_quit);
+}
+void	handle_sigint(int sig)
+{
+	(void)sig;
+	if (g_exit_status == 999)
+	{
+		g_exit_status = 130;
+		write(STDOUT_FILENO, "\n", 1);
+		return ;
+	}
+	g_exit_status = 130;
+	write(STDOUT_FILENO, "\n", 1);
+	rl_on_new_line();
+	rl_replace_line("", 0);
+	rl_redisplay();
+}
+
 void	setup_signals(void)
 {
-    struct sigaction	sa_int;
-    struct sigaction	sa_quit;
+	struct sigaction	sa_int;
+	struct sigaction	sa_quit;
+	struct sigaction	sa_tstp;
 
-    rl_event_hook = check_for_signals;
-    setup_signal_action(&sa_int, sigint_handler);
-    sigaction(SIGINT, &sa_int, NULL);
-    setup_signal_action(&sa_quit, SIG_IGN);
-    sigaction(SIGQUIT, &sa_quit, NULL);
+	sa_int.sa_handler = handle_sigint;
+	sigemptyset(&sa_int.sa_mask);
+	sa_int.sa_flags = SA_RESTART;
+	sigaction(SIGINT, &sa_int, NULL);
+	sa_quit.sa_handler = SIG_IGN;
+	sigemptyset(&sa_quit.sa_mask);
+	sa_quit.sa_flags = 0;
+	sigaction(SIGQUIT, &sa_quit, NULL);
+	sa_tstp.sa_handler = SIG_IGN;
+	sigemptyset(&sa_tstp.sa_mask);
+	sa_tstp.sa_flags = 0;
+	sigaction(SIGTSTP, &sa_tstp, NULL);
 }
 
-/**
- * Setup signals for child processes running commands
- */
-void	setup_signals_noninteractive(void)
+void	reset_signals_to_default(void)
 {
-    struct sigaction	sa_int;
-    struct sigaction	sa_quit;
+	struct sigaction	sa;
 
-    rl_event_hook = NULL;
-    setup_signal_action(&sa_int, SIG_DFL);
-    sigaction(SIGINT, &sa_int, NULL);
-    setup_signal_action(&sa_quit, SIG_DFL);
-    sigaction(SIGQUIT, &sa_quit, NULL);
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_DFL;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGTSTP, &sa, NULL);
 }
 
-/**
- * Setup signals for heredoc input handling
- */
-void	setup_signals_heredoc(void)
+int	execute_with_signal_recovery(t_shell *shell)
 {
-    struct sigaction	sa_int;
-    struct sigaction	sa_quit;
+	int	old_exit_status;
 
-    rl_event_hook = NULL;
-    setup_signal_action(&sa_int, sigint_heredoc_handler);
-    sigaction(SIGINT, &sa_int, NULL);
-    setup_signal_action(&sa_quit, SIG_IGN);
-    sigaction(SIGQUIT, &sa_quit, NULL);
+	old_exit_status = g_exit_status;
+	g_exit_status = 999;
+	dispatch_commands(shell);
+	if (g_exit_status == 130)
+	{
+		dup2(shell->saved_stdin, STDIN_FILENO);
+		dup2(shell->saved_stdout, STDOUT_FILENO);
+		return (1);
+	}
+	if (g_exit_status == 999)
+		g_exit_status = old_exit_status;
+	return (0);
 }
-
-/**
- * Reset all signals to default behavior
- */
-void	reset_signals(void)
+void	restore_std_fds(t_shell *shell)
 {
-    struct sigaction	sa;
-
-    setup_signal_action(&sa, SIG_DFL);
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGQUIT, &sa, NULL);
-    rl_event_hook = NULL;
-    g_signal = 0;
+	dup2(shell->saved_stdin, STDIN_FILENO);
+	dup2(shell->saved_stdout, STDOUT_FILENO);
 }
-
-/**
- * Ignore terminal control signals in child processes
- */
-void	ignore_tty_signals(void)
-{
-    struct sigaction	sa;
-
-    sa.sa_handler = SIG_IGN;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGTTIN, &sa, NULL);
-    sigaction(SIGTTOU, &sa, NULL);
-}
-
-/**
- * Restore original terminal settings
- */
-void	restore_terminal_settings(t_shell *shell)
-{
-    if (!isatty(STDIN_FILENO))
-        return ;
-    tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-}
-
-/**
- * Restore shell terminal state after heredoc interruption
- */
-void	restore_shell_terminal(t_shell *shell)
-{
-    if (!isatty(STDIN_FILENO))
-        return ;
-    tcsetattr(STDIN_FILENO, TCSANOW, &shell->orig_termios);
-    setup_signals();
-}
-
-/**
- * Clean up readline resources before exit
- */
-void	cleanup_readline_resources(void)
-{
-    save_history();
-    rl_clear_history();
-}
-

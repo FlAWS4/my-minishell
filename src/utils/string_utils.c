@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   string_utils.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:06 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/16 00:36:05 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 18:27:37 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -144,4 +144,32 @@ void	*ft_memset(void *s, int c, size_t n)
 		n--;
 	}
 	return (s);
+}
+int	end_with_pipe(char *input)
+{
+	int	i;
+
+	i = 0;
+	if (!input)
+		return (0);
+	while (input[i])
+		i++;
+	i--;
+	if (input[i] == '|')
+		return (1);
+	return (0);
+}
+
+int	is_whitespace_bis(char *str)
+{
+	int	i;
+
+	i = 0;
+	while (str[i])
+	{
+		if (!is_whitespace(str[i]))
+			return (0);
+		i++;
+	}
+	return (1);
 }

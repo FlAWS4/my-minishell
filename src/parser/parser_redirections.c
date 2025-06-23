@@ -3,74 +3,154 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/18 00:47:03 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/23 03:07:32 by my42             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- * Check if token is a redirection token
- */
-int is_redirection_token(t_token *token)
+int	add_ambiguous_redirect(t_redir **redirs, t_token *tokens)
 {
-    if (!token)
-        return (0);
-    
-    return (token->type == TOKEN_REDIR_IN || 
-            token->type == TOKEN_REDIR_OUT ||
-            token->type == TOKEN_REDIR_APPEND ||
-            token->type == TOKEN_HEREDOC);
+	t_redir	*redir;
+
+	if (tokens->type == HEREDOC)
+		return (0);
+	redir = malloc(sizeof(t_redir));
+	if (!redir)
+		return (1);
+	ft_memset(redir, 0, sizeof(t_redir));
+	redir->type = tokens->type;
+	ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+	g_exit_status = 1;
+	redir->ar = 1;
+	redir->next = NULL;
+	add_redirs(redirs, redir);
+	return (0);
 }
 
-/**
- * Parse redirections from tokens
- */
-int parse_redirections(t_token **token, t_cmd *cmd, t_shell *shell)
+void	check_ambiguous_redirect(t_redir *cmd, t_token *tokens)
 {
-    int type;
-    int quoted;
-    char *word;
-    
-    (void)shell; // shell is not used in this function, but kept for consistency
-    if (!token || !*token || !cmd)
-        return (0);
-    type = (*token)->type;
-    if (!(*token)->next || !is_valid_redir_target((*token)->next))
-    {
-        display_error(ERR_SYNTAX, "syntax error near unexpected token", NULL);
-        return (1);
-    }
-    *token = (*token)->next;
-    
-    // Special handling for heredoc quoting
-    quoted = 0;
-    if (type == TOKEN_HEREDOC)
-    {
-        if ((*token)->preceded_by_space == 2)
-            quoted = 1;
-    }
-    else
-    {
-        if ((*token)->type == TOKEN_SINGLE_QUOTE || 
-            (*token)->type == TOKEN_DOUBLE_QUOTE)
-            quoted = 1;
-    }
-                 
-    word = ft_strdup((*token)->value);
-    if (!word)
-    {
-        display_error(ERROR_MEMORY, "redirection", "Memory allocation failed");
-        return (1);
-    }
-    if (!add_redirection(cmd, type, word, quoted))
-    {
-        free(word);
-        return (1);
-    }
-    return (0);
+	t_token	*token;
+
+	token = tokens;
+	if (token->type == HEREDOC)
+		return ;
+	if (token->type == REDIR_IN || token->type == REDIR_OUT
+		|| token->type == APPEND)
+	{
+		if (token->next && token->next->type != WORD)
+		{
+			ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+			g_exit_status = 1;
+			cmd->ar = 1;
+			return ;
+		}
+	}
+	if (token->next && token->next->type == WORD && token->next->ar)
+	{
+		ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+		g_exit_status = 1;
+		cmd->ar = 1;
+		return ;
+	}
+}
+static int	concatane_string(char **str, char *line)
+{
+	char	*tmp;
+
+	if (!*str)
+	{
+		*str = ft_strdup("");
+		if (!*str)
+			return (1);
+	}
+	tmp = ft_strjoin(*str, line);
+	free(line);
+	if (!tmp)
+		return (free(*str), 1);
+	free(*str);
+	*str = tmp;
+	tmp = ft_strjoin(*str, "\n");
+	if (!tmp)
+		return (free(*str), 1);
+	free(*str);
+	*str = tmp;
+	return (0);
 }
 
+static char	*have_to_expand(t_shell *data, char *line, t_redir *redir)
+{
+	char	*str;
+
+	if (!line)
+		return (NULL);
+	if (redir->quoted || redir->quoted_outside)
+		return (line);
+	str = expand_variables(data, line, redir);
+	free(line);
+	if (!str)
+		return (NULL);
+	return (str);
+}
+
+static char	*get_line(t_shell *data)
+{
+	char	*str;
+
+	write(STDOUT_FILENO, "> ", 2);
+	str = get_next_line(STDIN_FILENO, 0);
+	if (g_exit_status == 19)
+	{
+		data->heredoc_interupt = 1;
+		g_exit_status = 130;
+	}
+	return (str);
+}
+
+static char	*read_and_store_heredoc(t_redir *redir, t_shell *data,
+	t_char *strings)
+{
+	while (1)
+	{
+		strings->line = get_line(data);
+		if (data->heredoc_interupt)
+			return (free(strings->line), free(strings->str), NULL);
+		if (!strings->line)
+		{
+			write_warning(redir->file_or_del);
+			break ;
+		}
+		if (strings->line[ft_strlen(strings->line) - 1] == '\n')
+			strings->line[ft_strlen(strings->line) - 1] = '\0';
+		if (!ft_strcmp(strings->line, redir->file_or_del))
+			return (free(strings->line), strings->str);
+		strings->new_line = have_to_expand(data, strings->line, redir);
+		if (!strings->new_line)
+			return (free(strings->str), NULL);
+		if (concatane_string(&strings->str, strings->new_line))
+			return (free(strings->str), NULL);
+	}
+	return (free(strings->line), strings->str);
+}
+
+char	*capture_heredoc(t_redir *redir, t_shell *data)
+{
+	char				*str;
+	struct sigaction	old_int;
+	struct sigaction	old_quit;
+	t_char				strings;
+
+	strings.str = NULL;
+	data->heredoc_interupt = 0;
+	init_heredoc_signals(&old_int, &old_quit);
+	disable_prints();
+	str = read_and_store_heredoc(redir, data, &strings);
+	sigaction(SIGINT, &old_int, NULL);
+	sigaction(SIGQUIT, &old_quit, NULL);
+	get_next_line(STDIN_FILENO, 1);
+	enable_prints();
+	return (str);
+}
