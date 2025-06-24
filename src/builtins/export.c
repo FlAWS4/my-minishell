@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   export.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:51 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 04:43:03 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:05:40 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,12 +19,12 @@ static int	export_without_value(char *arg, t_shell *shell)
 
 	if (!arg || arg[0] == '\0')
 	{
-		error_quoted("export", arg, NONVALIDID);
+		error_quoted("export", arg, ERROR_IDENTIFIER );
 		return (0);
 	}
 	if (!is_valid_identifier(arg))
 	{
-		error_quoted("export", arg, NONVALIDID);
+		error_quoted("export", arg, ERROR_IDENTIFIER );
 		return (1);
 	}
 	var_pos = find_var_pos(arg, shell);
@@ -33,7 +33,7 @@ static int	export_without_value(char *arg, t_shell *shell)
 		new_var = gc_strdup(&shell->gc, arg);
 		if (!new_var)
 		{
-			error(NULL, NULL, ALLOCFAIL);
+			error(NULL, NULL, ERROR_MALLOC);
 			return (1);
 		}
 		add_to_env(shell, new_var);
@@ -54,15 +54,15 @@ static int	export_with_value(char *arg, t_shell *shell)
 		return (1);
 	var_name = ft_substr(arg, 0, equal_sign - arg);
 	if (!var_name)
-		return (error(NULL, NULL, ALLOCFAIL), 1);
+		return (error(NULL, NULL, ERROR_MALLOC), 1);
 	if (!is_valid_identifier(var_name))
-		return (error_quoted("export", arg, NONVALIDID), free(var_name), 1);
+		return (error_quoted("export", arg, ERROR_IDENTIFIER ), free(var_name), 1);
 	var_pos = find_var_pos(var_name, shell);
 	if (var_pos >= 0)
 	{
 		shell->env[var_pos] = gc_strdup(&shell->gc, arg);
 		if (!shell->env[var_pos])
-			return (error(NULL, NULL, ALLOCFAIL), free(var_name), 1);
+			return (error(NULL, NULL, ERROR_MALLOC), free(var_name), 1);
 	}
 	else
 		add_to_env(shell, arg);
@@ -107,12 +107,12 @@ static void	print_export(t_shell *shell)
 	env_copy = gc_malloc(&shell->gc, sizeof(char *) * (var_count + 1),
 			GC_SOFT, NULL);
 	if (!env_copy)
-		return (error(NULL, NULL, ALLOCFAIL));
+		return (error(NULL, NULL, ERROR_MALLOC));
 	while (i < var_count)
 	{
 		env_copy[i] = gc_strdup(&shell->gc, shell->env[i]);
 		if (!env_copy[i])
-			return (error(NULL, NULL, ALLOCFAIL));
+			return (error(NULL, NULL, ERROR_MALLOC));
 		i++;
 	}
 	env_copy[i] = NULL;

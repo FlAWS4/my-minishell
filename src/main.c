@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:37:15 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 19:44:50 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:28:10 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ void	dispatch_commands(t_shell *shell)
     if (cmd->next)
         prepare_pipe_execution(shell, cmd);
     else
-        execute_single_command(shell, cmd);
+        execute_non_piped_command(shell, cmd);
         
     free_command(&shell->commands);
 }
@@ -55,7 +55,7 @@ static int	parse_input(t_shell *shell, char *input)
 {
 	if (end_with_pipe(input))
 	{
-		if (get_next_command(shell, &input))
+		if (read_complete_command(shell, &input))
 			return (1);
 	}
 	add_history(input);
@@ -98,9 +98,9 @@ static int	shell_loop(t_shell *shell)
 			continue ;
 		if (parse_input(shell, input))
 			continue ;
-		if (execute_with_signal_recovery(shell))
+		if (safely_execute_command(shell))
 			continue ;
-		restore_std_fds(shell);
+		restore_standard_fds(shell);
 	}
 	return (0);
 }

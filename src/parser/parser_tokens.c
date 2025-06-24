@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_tokens.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:39:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:02:20 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:04:45 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ static int	symbols_error(t_token **tokens, char *symbol)
 	token = create_token(ERROR, NULL);
 	if (!token)
 		return (-1);
-	str = ft_strjoin(UNSUPPORT, symbol);
+	str = ft_strjoin(ERROR_UNSUPPORTED, symbol);
 	if (!str)
 		return (free(token), -1);
 	error = ft_strjoin(str, "\n");
@@ -126,7 +126,7 @@ int	add_token_error(t_token **tokens, t_token *error, char *str)
 	error_token = create_token(ERROR, NULL);
 	if (!error_token)
 		return (-1);
-	if (ft_strcmp(str, SYNTAXNL))
+	if (ft_strcmp(str, ERROR_SYNTAX_NL ))
 		error_token->value = ft_strjoin(str, token_type);
 	else
 		error_token->value = ft_strdup(str);
@@ -155,7 +155,7 @@ int	is_operator_follow(t_token **tokens, t_token *current_token)
 		if (is_token_operator(current_token->type)
 			&& is_token_operator(current_token->next->type))
 		{
-			if (add_token_error(tokens, current_token->next, SYNTAXER)
+			if (add_token_error(tokens, current_token->next, ERROR_SYNTAX)
 				== -1)
 				free_tokens_list(tokens);
 			return (1);
@@ -165,7 +165,7 @@ int	is_operator_follow(t_token **tokens, t_token *current_token)
 			if (current_token->type == PIPE
 				&& current_token->next->type == PIPE)
 			{
-				if (add_token_error(tokens, current_token->next, SYNTAXER)
+				if (add_token_error(tokens, current_token->next, ERROR_SYNTAX)
 					== -1)
 					free_tokens_list(tokens);
 				return (1);
@@ -181,7 +181,7 @@ int	check_token_error(t_token **tokens)
 	token = *tokens;
 	if (token->type == PIPE)
 	{
-		ft_putstr_fd(SYNTAXPI, 2);
+		ft_putstr_fd(ERROR_SYNTAX_PIPE, 2);
 		return (1);
 	}
 	while (token)
@@ -210,13 +210,13 @@ static int	check_inside_pipe(t_token **tokens)
 				&& token->next->next
 				&& token->next->next->type == PIPE)
 			{
-				add_token_error(tokens, token, SYNTAXER);
+				add_token_error(tokens, token, ERROR_SYNTAX);
 				return (check_token_error(tokens));
 			}
 			else if (is_token_operator(token->type)
 				&& token->next->type == PIPE)
 			{
-				add_token_error(tokens, token->next, SYNTAXER);
+				add_token_error(tokens, token->next, ERROR_SYNTAX);
 				return (check_token_error(tokens));
 			}
 		}
@@ -240,13 +240,13 @@ static void	check_operator(t_token **tokens)
 			else if (is_token_operator(token->type)
 				&& token->next->type == T_EOF)
 			{
-				if (add_token_error(tokens, token, SYNTAXNL) == -1)
+				if (add_token_error(tokens, token, ERROR_SYNTAX_NL ) == -1)
 					free_tokens_list(tokens);
 			}
 			else if (token->type == PIPE && token->next->type
 				== PIPE)
 			{
-				if (add_token_error(tokens, token, SYNTAXER) == -1)
+				if (add_token_error(tokens, token, ERROR_SYNTAX) == -1)
 					free_tokens_list(tokens);
 			}
 		}
@@ -258,7 +258,7 @@ int	syntax_check(t_shell *cmd)
 {
 	cmd->heredoc_interupt = 0;
 	if (!cmd->tokens)
-		return (ft_putstr_fd(TOKENFAIL, 2), 1);
+		return (ft_putstr_fd(ERROR_TOKENIZE, 2), 1);
 	if (check_token_error(&cmd->tokens))
 		return (free_tokens_list(&cmd->tokens), 1);
 	check_operator(&cmd->tokens);

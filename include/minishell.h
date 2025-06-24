@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 19:55:35 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:34:20 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,18 +58,23 @@
 # define RESET "\033[0m"
 
 
-# define ALLOCFAIL "Error: Memory allocation failed.\n"
-# define ARGSHELL "Error: No argument allowed."
-# define ODDQUOTE "Error: Unclosed quote.\n"
-# define ENVERROR "Error: Failed to initialize environment\n."
-# define TOKENFAIL "Error: Failed to create token list.\n"
-# define SYNTAXER "minishell: syntax error near unexpected token"
-# define SYNTAXNL "minishell: syntax error near unexpected token 'newline'\n"
-# define SYNTAXPI "minishell: syntax error near unexpected token '|'\n"
-# define HEREDOCW "minishell: warning: here-document delimited by \
+# define GC_FATAL 1
+# define GC_SOFT 0
+# define BUFFER_SIZE 5
+
+# define ERROR_MALLOC      "minishell: error: memory allocation failed"
+# define ERROR_ARGS        "minishell: error: no arguments allowed"
+# define ERROR_QUOTES      "minishell: syntax error: unclosed quote"
+# define ERROR_ENV_INIT    "minishell: error: failed to initialize environment"
+# define ERROR_TOKENIZE    "minishell: error: failed to create token list"
+# define ERROR_SYNTAX      "minishell: syntax error near unexpected token"
+# define ERROR_SYNTAX_NL   "minishell: syntax error near \
+unexpected token 'newline'"
+# define ERROR_SYNTAX_PIPE "minishell: syntax error near unexpected token '|'"
+# define ERROR_HEREDOC_EOF "minishell: warning: here-document delimited by \
 end-of-file (wanted `"
-# define UNSUPPORT "minishell: unsupported character "
-# define NONVALIDID "not a valid identifier\n"
+# define ERROR_UNSUPPORTED "minishell: error: unsupported character"
+# define ERROR_IDENTIFIER  "minishell: error: not a valid identifier"
 
 # define GC_FATAL 1
 # define GC_SOFT 0
@@ -168,15 +173,21 @@ typedef struct s_pipe_data
 	int		*input_fd;
 }	t_pipe_data;
 
-
-// SIGNALS
-void	handle_sigint(int sig);
 void	setup_signals(void);
+void	handle_interrupt(int sig);
 void	reset_signals_to_default(void);
-int		execute_with_signal_recovery(t_shell *shell);
-
-// BUILTINS
-// ...existing code...
+int		safely_execute_command(t_shell *shell);
+void	disable_control_char_echo(void);
+void	enable_control_char_echo(void);
+void	handle_heredoc_interrupt(int sig);
+void	setup_heredoc_signal_handlers(struct sigaction *old_int,\
+		 struct sigaction *old_quit);
+void	restore_signal_handlers(struct sigaction *old_int,\
+		 struct sigaction *old_quit);
+void	restore_signals_clear_buffer(struct sigaction *old_int, \
+		struct sigaction *old_quit);
+void	display_heredoc_eof_warning(char *delim);
+void	restore_standard_fds(t_shell *shell);
 
 // BUILTINS
 int		builtin_cd(t_shell *shell, t_command *cmd);
@@ -189,11 +200,11 @@ int		builtin_unset(t_shell *shell, t_command *cmd);
 int		builtin_help(t_shell *shell);  // Add help command
 int		is_builtin(t_command *cmd);
 int		run_builtin(t_shell *shell, t_command *cmd);
-void	apply_redirs_and_run_builtin(t_shell *shell, t_command *cmd);
+void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd);
 
 
 // COMMAND EXEC
-void	execute_single_command(t_shell *shell, t_command *cmd);
+void	execute_non_piped_command(t_shell *shell, t_command *cmd);
 void	dispatch_commands(t_shell *shell);
 
 // ENV
@@ -213,7 +224,7 @@ void	sort_env_for_export(char **env_copy);
 void	update_env(t_shell *shell, char *var, char *new_value);
 
 // EXEC PATH
-char	*find_executable(char *cmd, t_shell *shell);
+char	*search_path_for_exec(char *cmd, t_shell *shell);
 char	*get_command_path(t_shell *shell, t_command *cmd);
 
 // HEREDOC
@@ -223,8 +234,7 @@ char	*get_next_line(int fd, int clear);
 char	*read_and_store(char *buffer, int fd);
 char	*update_buffer(char *buffer);
 char	*extract_line(char *buffer);
-void	init_heredoc_signals(struct sigaction *old_int,
-			struct sigaction *old_quit);
+
 
 // PIPE
 void	prepare_pipe_execution(t_shell *shell, t_command *cmd);
@@ -250,7 +260,6 @@ int		open_redir_file(t_redir *redir, t_command *cmd);
 int		is_shell_command(char *cmd);
 int		writable(int fd, const char *cmd_name);
 void	clean_and_exit_shell(t_shell *shell, int exit_code);
-void	restore_std_fds(t_shell *shell);
 void	update_shell_lvl(t_shell *shell);
 void	close_fds(t_shell *shell);
 void	error(const char *cmd, const char *error_item, const char *msg);
@@ -321,7 +330,7 @@ int		add_ambiguous_redirect(t_redir **redirs, t_token *tokens);
 
 // GET NEXT COMMAND
 int		end_with_pipe(char *input);
-int		get_next_command(t_shell *data, char **input);
+int		read_complete_command(t_shell *data, char **input);
 
 // EXPANSION
 char	*expand_variables(t_shell *data, char *input, t_redir *redir);
@@ -358,13 +367,8 @@ char	*get_redir_file(t_token *tokens, t_redir *redir);
 int		is_heredoc(t_redir *redir, t_shell *data);
 void	remove_useless_dollars(t_token **head);
 void	clean_empty_tokens(t_token **head);
-int		ft_lstsize(t_token *lst);
-void	sigint_heredoc(int sig);
-void	write_warning(char *delim);
 int		count_words_split(const char *s, char c);
 char	*ft_strstr(const char *big, const char *little);
-void	enable_prints(void);
-void	disable_prints(void);
 void	ft_display_welcome(void);
 void	*ft_memset(void *s, int c, size_t n);
 void	display_error(int error_type, char *command, char *message);

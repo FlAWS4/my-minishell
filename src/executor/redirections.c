@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   redirections.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:21 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:20:47 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:43:24 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -118,6 +118,12 @@ int	open_redir_file(t_redir *redir, t_command *cmd)
 {
 	if (redir->ar)
 		return (-1);
+	 if (redir->type == HEREDOC)
+    {
+        if (handle_heredoc(cmd, redir) == -1)
+            return (-1);
+        return (0);
+    }
 	if (!redir->file_or_del || !*redir->file_or_del)
 	{
 		error(NULL, "", "No such file or directory\n");

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokens.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:30:53 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:10:18 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 00:47:01 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,7 +169,7 @@ static int	handle_quote(char *input, int *i, t_token **tokens)
 		(*i)++;
 	if (input[(*i)] == '\0')
 	{
-		token = create_token(ERROR, ODDQUOTE);
+		token = create_token(ERROR, ERROR_QUOTES);
 		if (!token)
 			return (-1);
 		add_token(tokens, token);

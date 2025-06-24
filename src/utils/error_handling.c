@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   error_handling.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:12 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 19:29:53 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 00:41:32 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -305,7 +305,7 @@ void	*gc_malloc(t_gc **gc_list, size_t size, int fatal,
 	ptr = malloc(size);
 	if (!ptr)
 	{
-		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		ft_putstr_fd(ERROR_MALLOC, STDERR_FILENO);
 		if (fatal == GC_FATAL)
 		{
 			gc_free_all(gc_list);
@@ -315,7 +315,7 @@ void	*gc_malloc(t_gc **gc_list, size_t size, int fatal,
 	}
 	if (gc_add(gc_list, ptr, fatal, free_array))
 	{
-		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		ft_putstr_fd(ERROR_MALLOC, STDERR_FILENO);
 		if (fatal == GC_FATAL)
 		{
 			free(ptr);
@@ -337,7 +337,7 @@ int	gc_add(t_gc **gc_list, void *ptr, int fatal,
 	new_node = malloc(sizeof(t_gc));
 	if (!new_node)
 	{
-		ft_putstr_fd(ALLOCFAIL, STDERR_FILENO);
+		ft_putstr_fd(ERROR_MALLOC, STDERR_FILENO);
 		if (fatal == GC_FATAL)
 		{
 			gc_free_all(gc_list);

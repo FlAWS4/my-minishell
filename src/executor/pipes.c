@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   pipes.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:32:43 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:18:57 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/23 22:04:15 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ static void	run_execve_or_exit(t_shell *shell, t_command *cmd)
 
 	if (!cmd->args || !cmd->args[0])
 		clean_and_exit_shell(shell, EXIT_SUCCESS);
-	full_path = find_executable(cmd->args[0], shell);
+	full_path = search_path_for_exec(cmd->args[0], shell);
 	if (!full_path)
 	{
 		full_cmd = join_args(shell, cmd->args);

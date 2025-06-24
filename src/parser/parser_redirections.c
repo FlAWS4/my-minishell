@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parser_redirections.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 20:38:44 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:07:32 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/24 01:31:10 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,7 +120,7 @@ static char	*read_and_store_heredoc(t_redir *redir, t_shell *data,
 			return (free(strings->line), free(strings->str), NULL);
 		if (!strings->line)
 		{
-			write_warning(redir->file_or_del);
+			display_heredoc_eof_warning(redir->file_or_del);
 			break ;
 		}
 		if (strings->line[ft_strlen(strings->line) - 1] == '\n')
@@ -145,12 +145,12 @@ char	*capture_heredoc(t_redir *redir, t_shell *data)
 
 	strings.str = NULL;
 	data->heredoc_interupt = 0;
-	init_heredoc_signals(&old_int, &old_quit);
-	disable_prints();
+	setup_heredoc_signal_handlers(&old_int, &old_quit);
+	disable_control_char_echo();
 	str = read_and_store_heredoc(redir, data, &strings);
 	sigaction(SIGINT, &old_int, NULL);
 	sigaction(SIGQUIT, &old_quit, NULL);
 	get_next_line(STDIN_FILENO, 1);
-	enable_prints();
+	enable_control_char_echo();
 	return (str);
 }
