@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/26 01:15:11 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/26 20:00:45 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -206,6 +206,8 @@ void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd);
 // COMMAND EXEC
 void	execute_non_piped_command(t_shell *shell, t_command *cmd);
 void	dispatch_commands(t_shell *shell);
+void	ignore_sigint_and_wait(pid_t child_pid);
+void	setup_and_execute_child_process(t_shell *shell, t_command *cmd);
 
 // ENV
 char	**get_env(char **envp, t_shell *shell);

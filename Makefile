@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+         #
+#    By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/11 02:39:27 by mshariar          #+#    #+#              #
-#    Updated: 2025/06/26 01:34:41 by mshariar         ###   ########.fr        #
+#    Updated: 2025/06/26 19:52:25 by hchowdhu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -43,6 +43,7 @@ SRC_FILES	=	main.c \
 				parser/expander.c parser/check_for_expand.c parser/create_expander.c\
 				parser/expand_tokens.c parser/init_expand.c parser/multiple_expand.c\
 				parser/parser_expand.c parser/add_env.c \
+				executor/builtin_executor.c executor/command_path.c executor/process_utils.c\
 				executor/executor.c executor/redirections.c executor/pipes.c \
 				executor/commands.c executor/redirection_list.c executor/process_redir.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
