@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   lexer_token.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/26 21:39:18 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:05:16 by my42             ###   ########.fr       */
+/*   Updated: 2025/06/26 00:22:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,19 +130,4 @@ int	prepare_token_str(t_shell *data)
 		return (1);
 	return (0);
 }
-int	is_cmd(t_token *tokens)
-{
-	if (!tokens->previous)
-		return (1);
-	else if (!is_token_operator(tokens->previous->type))
-		return (1);
-	return (0);
-}
 
-int	fill_words(t_token *tokens, char **args)
-{
-	*args = ft_strdup(tokens->value);
-	if (!*args)
-		return (1);
-	return (0);
-}

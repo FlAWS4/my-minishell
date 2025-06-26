@@ -6,7 +6,7 @@
 /*   By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/11 02:38:31 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/24 01:34:20 by mshariar         ###   ########.fr       */
+/*   Updated: 2025/06/26 01:15:11 by mshariar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,19 +62,19 @@
 # define GC_SOFT 0
 # define BUFFER_SIZE 5
 
-# define ERROR_MALLOC      "minishell: error: memory allocation failed"
-# define ERROR_ARGS        "minishell: error: no arguments allowed"
-# define ERROR_QUOTES      "minishell: syntax error: unclosed quote"
-# define ERROR_ENV_INIT    "minishell: error: failed to initialize environment"
-# define ERROR_TOKENIZE    "minishell: error: failed to create token list"
-# define ERROR_SYNTAX      "minishell: syntax error near unexpected token"
+# define ERROR_MALLOC      "minishell: error: memory allocation failed\n"
+# define ERROR_ARGS        "minishell: error: no arguments allowed\n"
+# define ERROR_QUOTES      "minishell: syntax error: unclosed quote\n"
+# define ERROR_ENV_INIT    "minishell: error: failed to initialize environment\n"
+# define ERROR_TOKENIZE    "minishell: error: failed to create token list\n"
+# define ERROR_SYNTAX      "minishell: syntax error near unexpected token\n"
 # define ERROR_SYNTAX_NL   "minishell: syntax error near \
-unexpected token 'newline'"
+unexpected token 'newline'\n"
 # define ERROR_SYNTAX_PIPE "minishell: syntax error near unexpected token '|'"
 # define ERROR_HEREDOC_EOF "minishell: warning: here-document delimited by \
 end-of-file (wanted `"
-# define ERROR_UNSUPPORTED "minishell: error: unsupported character"
-# define ERROR_IDENTIFIER  "minishell: error: not a valid identifier"
+# define ERROR_UNSUPPORTED "minishell: error: unsupported character\n"
+# define ERROR_IDENTIFIER  "minishell: error: not a valid identifier\n"
 
 # define GC_FATAL 1
 # define GC_SOFT 0
@@ -310,6 +310,7 @@ int		is_token_operator(t_token_type token_type);
 int		is_operator_follow(t_token **tokens, t_token *current_token);
 int		check_unsupported_character(t_token **tokens);
 int		check_token_error(t_token **tokens);
+int		check_unsupported_character(t_token **tokens);
 
 // PARSING
 t_redir	*init_redir(t_shell *data);
@@ -359,6 +360,7 @@ int		find_equal(char *str);
 int		handle_local_quotes(t_token **tokens);
 void	init_for_norm(int *i, int *start);
 int		split_tokens(t_token *current, char *str);
+int		expand_token(t_shell *data);
 
 // UTILS
 

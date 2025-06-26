@@ -6,7 +6,7 @@
 #    By: mshariar <mshariar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/11 02:39:27 by mshariar          #+#    #+#              #
-#    Updated: 2025/06/15 23:59:24 by mshariar         ###   ########.fr        #
+#    Updated: 2025/06/26 01:34:41 by mshariar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,19 +37,22 @@ INC_DIR = include
 
 # ---------------------------------- FILES ----------------------------------- #
 SRC_FILES	=	main.c \
+				parser/init_tokens.c parser/create_token.c parser/parser_utils.c\
 				parser/lexer.c parser/parser.c parser/tokens.c parser/parser_tokens.c \
 				parser/parser_redirections.c parser/lexer_token.c parser/lexer_process.c \
-				parser/expander.c \
+				parser/expander.c parser/check_for_expand.c parser/create_expander.c\
+				parser/expand_tokens.c parser/init_expand.c parser/multiple_expand.c\
+				parser/parser_expand.c parser/add_env.c \
 				executor/executor.c executor/redirections.c executor/pipes.c \
 				executor/commands.c executor/redirection_list.c executor/process_redir.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
 				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
-				utils/expander_utils.c utils/export_utils.c utils/libft.c \
+				utils/expander_utils.c utils/export_utils.c utils/libft.c utils/init_env.c \
 				utils/env_utils.c utils/error_handling.c utils/string_utils.c \
 				utils/string_utils2.c utils/string_utils3.c utils/exec_utils.c \
 				utils/prompt.c utils/pipe_utils.c utils/init_utils.c utils/gnl.c \
-				utils/redir_utils.c \
-				signals/signals.c
+				utils/redir_utils.c utils/signal_utils.c \
+				signals/signals.c signals/signal_heredoc.c 
 
 SRCS =	$(addprefix $(SRC_DIR)/, $(SRC_FILES))
 OBJS =	$(addprefix $(OBJ_DIR)/, $(SRC_FILES:.c=.o))
