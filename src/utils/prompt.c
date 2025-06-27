@@ -23,6 +23,30 @@
  *
  * Return: Allocated string with formatted prompt (must be freed by caller)
  */
+static char	*build_prompt_segment(char *user, char *dir_display)
+{
+    char	*prompt;
+    char	*temp;
+
+    if (g_exit_status == 0)
+        prompt = ft_strjoin(BOLD_GREEN "[", user);
+    else
+        prompt = ft_strjoin(BOLD_RED "[", user);
+    temp = prompt;
+    prompt = ft_strjoin(prompt, "@minishell ");
+    free(temp);
+    temp = prompt;
+    prompt = ft_strjoin(prompt, BOLD_BLUE);
+    free(temp);
+    temp = prompt;
+    prompt = ft_strjoin(prompt, dir_display);
+    free(temp);
+	temp = prompt;
+	prompt = ft_strjoin(prompt, RESET BOLD_GREEN "] $ " RESET);
+	free(temp);
+	return (prompt);
+}
+
 char	*format_shell_prompt(t_shell *shell)
 {
     char	*cwd;
@@ -30,52 +54,24 @@ char	*format_shell_prompt(t_shell *shell)
     char	*prompt;
     char	*home_dir;
     char	*dir_display;
-    char	*temp;
 
-    // Get username from environment or default
-    user = get_env_value(shell, "USER");
-    if (!user)
-        user = "user";
-    
-    // Get current directory
-    cwd = getcwd(NULL, 0);
-    if (!cwd)
-        cwd = ft_strdup("unknown");
-    
-    // Replace home directory path with ~
-    home_dir = get_env_value(shell, "HOME");
-    if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
-    {
-        dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
-        free(cwd);
-    }
-    else
-        dir_display = cwd;
-    
-    // Build prompt with colors based on exit status
-    if (g_exit_status == 0)
-        prompt = ft_strjoin(BOLD_GREEN "[", user);
-    else
-        prompt = ft_strjoin(BOLD_RED "[", user);
-    
-    temp = prompt;
-    prompt = ft_strjoin(prompt, "@minishell ");
-    free(temp);
-    
-    temp = prompt;
-    prompt = ft_strjoin(prompt, BOLD_BLUE);
-    free(temp);
-    
-    temp = prompt;
-    prompt = ft_strjoin(prompt, dir_display);
-    free(temp);
-    
-    temp = prompt;
-    prompt = ft_strjoin(prompt, RESET BOLD_GREEN "] $ " RESET);
-    free(temp);
-    
-    free(dir_display);
-    return (prompt);
+	user = get_env_value(shell, "USER");
+	if (!user)
+		user = "user";
+	cwd = getcwd(NULL, 0);
+	if (!cwd)
+		cwd = ft_strdup("unknown");
+	home_dir = get_env_value(shell, "HOME");
+	if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
+	{
+		dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
+		free(cwd);
+	}
+	else
+	dir_display = cwd;
+	prompt = build_prompt_segment(user, dir_display);
+	free(dir_display);
+	return (prompt);
 }
 /**
  * Display commands usage with nice formatting

@@ -28,7 +28,7 @@ int	safely_execute_command(t_shell *shell)
 
     old_exit_status = g_exit_status;
     g_exit_status = 999;
-    dispatch_commands(shell);
+    execute_command_sequence(shell);
     if (g_exit_status == 130)
     {
         restore_standard_fds(shell);

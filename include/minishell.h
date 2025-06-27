@@ -202,7 +202,7 @@ void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd);
 
 // COMMAND EXEC
 void	execute_non_piped_command(t_shell *shell, t_command *cmd);
-void	dispatch_commands(t_shell *shell);
+void	execute_command_sequence(t_shell *shell);
 void	ignore_sigint_and_wait(pid_t child_pid);
 void	setup_and_execute_child_process(t_shell *shell, t_command *cmd);
 void	execute_pipe(t_shell *shell, t_command *cmd, pid_t *pids);
@@ -261,6 +261,7 @@ void	setup_child_output_fd(t_command *cmd, int pipe_fds[2]);
 void	setup_child_input_fd(t_command *cmd, int input_fd);
 
 // SHELL MANAGEMENT AND UTILS
+void	init_shell_fds(t_shell *shell);
 int		is_shell_command(char *cmd);
 int		writable(int fd, const char *cmd_name);
 void	clean_and_exit_shell(t_shell *shell, int exit_code);
@@ -361,7 +362,6 @@ int		multiple_expand(t_shell *data, t_token *tokens, char **args);
 int		is_env_variable(t_shell *data, char *dollar);
 int		expantion(t_shell *data, t_token *tokens);
 int		find_equal(char *str);
-int		handle_local_quotes(t_token **tokens);
 void	init_for_norm(int *i, int *start);
 int		split_tokens(t_token *current, char *str);
 int		expand_token(t_shell *data);

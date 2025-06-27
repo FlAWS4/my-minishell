@@ -91,6 +91,7 @@ char	*get_redir_file(t_token *tokens, t_redir *redir)
 		redir->quoted_outside = 1;
 	return (str);
 }
+
 int	is_shell_command(char *cmd)
 {
 	if (!cmd)

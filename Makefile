@@ -55,7 +55,7 @@ SRC_FILES	=	main.c \
 				utils/env_utils.c utils/string_utils.c utils/shell_lifecycle.c \
 				utils/string_helpers.c utils/string_tools.c utils/string_extras.c\
 				utils/prompt.c utils/token_utils.c utils/gnl.c \
-				utils/redir_utils.c utils/signal_utils.c \
+				utils/redir_utils.c utils/signal_utils.c utils/init_shell.c\
 				signals/signals.c signals/signal_heredoc.c 
 
 SRCS =	$(addprefix $(SRC_DIR)/, $(SRC_FILES))
