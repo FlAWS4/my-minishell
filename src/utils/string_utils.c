@@ -39,28 +39,6 @@ char *ft_strdup(const char *s)
 }
 
 /**
- * Compare two strings
- */
-int	ft_strcmp(const char *s1, const char *s2)
-{
-    int	i;
-
-    if (!s1)
-    {
-        if (!s2)
-            return (0);
-        return (-1);
-    }
-    if (!s2)
-        return (1);
-        
-    i = 0;
-    while (s1[i] && s2[i] && s1[i] == s2[i])
-        i++;
-    return ((unsigned char)s1[i] - (unsigned char)s2[i]);
-}
-
-/**
  * Get string length
  */
 size_t ft_strlen(const char *s)
@@ -101,50 +79,7 @@ size_t ft_strlcpy(char *dst, const char *src, size_t size)
     return (src_len);
 }
 
-/**
- * Extract substring from string
- */
-char	*ft_substr(char const *s, unsigned int start, size_t len)
-{
-    unsigned int	i;
-    char			*str;
 
-    if (!s)
-        return (NULL);
-    if (start >= ft_strlen(s))
-    {
-        str = ft_calloc(1, sizeof(char));
-        if (!str)
-            return (NULL);
-        return (str);
-    }
-    if (ft_strlen(s) - start < len)
-        len = ft_strlen(s) - start;
-    str = ft_calloc(sizeof(char), len + 1);
-    if (!str)
-        return (NULL);
-    i = 0;
-    while (s[start + i] && i < len)
-    {
-        str[i] = s[start + i];
-        i++;
-    }
-    return (str);
-}
-
-void	*ft_memset(void *s, int c, size_t n)
-{
-	unsigned char	*dst;
-
-	dst = (unsigned char *) s;
-	while (n > 0)
-	{
-		*dst = (unsigned char)c;
-		dst++;
-		n--;
-	}
-	return (s);
-}
 int	end_with_pipe(char *input)
 {
 	int	i;

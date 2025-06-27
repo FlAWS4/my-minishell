@@ -13,6 +13,23 @@
 #include "minishell.h"
 
 /**
+ * Check if character is alphabetic
+ */
+int ft_isalpha(int c)
+{
+    return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+}
+
+/**
+ * Check if character is a digit (0-9)
+ * Returns 1 if true, 0 if false
+ */
+int	ft_isdigit(int c)
+{
+    return (c >= '0' && c <= '9');
+}
+
+/**
  * Output integer to file descriptor
  * Handles negative numbers correctly
  */
@@ -38,3 +55,45 @@ void	ft_putnbr_fd(int n, int fd)
 }
 
 
+int	slen(int n)
+{
+	size_t	size;
+
+	if (n > 0)
+		size = 0;
+	else
+		size = 1;
+	while (n)
+	{
+		n = n / 10;
+		size++;
+	}
+	return (size);
+}
+
+char *ft_itoa(int n)
+{
+    long    num;
+    size_t  len;
+    char    *str;
+
+    num = (long)n;
+    len = slen(n);
+    str = (char *)malloc(len + 1);
+    if (!str)
+        return (NULL);
+    str[len] = '\0';
+    if (n == 0)
+        str[0] = '0';
+    if (n < 0)
+    {
+        str[0] = '-';
+        num *= -1;
+    }
+    while (num > 0)
+    {
+        str[--len] = (num % 10) + '0';
+        num /= 10;
+    }
+    return (str);
+}

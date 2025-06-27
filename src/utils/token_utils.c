@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   init_utils.c                                       :+:      :+:    :+:   */
+/*   token_utils.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/24 19:56:48 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 03:21:41 by my42             ###   ########.fr       */
+/*   Created: 2025/06/27 16:30:18 by hchowdhu          #+#    #+#             */
+/*   Updated: 2025/06/27 16:30:18 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,46 +96,4 @@ int	is_shell_command(char *cmd)
 	if (!cmd)
 		return (0);
 	return (!ft_strcmp(cmd, "./minishell"));
-}
-
-void	update_shell_lvl(t_shell *shell)
-{
-	char	*current_shlvl;
-	int		shlvl;
-	char	*new_shlvl;
-
-	current_shlvl = get_env_value(shell, "SHLVL");
-	shlvl = 1;
-	if (current_shlvl)
-	{
-		shlvl = ft_atoi(current_shlvl);
-		if (shlvl < 0)
-			shlvl = 0;
-		else
-			shlvl++;
-	}
-	if (shlvl > 999)
-	{
-		ft_putstr_fd("minishell: warning: shell level (", STDERR_FILENO);
-		ft_putnbr_fd(shlvl, STDERR_FILENO);
-		ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
-		shlvl = 1;
-	}
-	new_shlvl = gc_itoa(&shell->gc, shlvl);
-	if (!new_shlvl)
-		clean_and_exit_shell(shell, EXIT_FAILURE);
-	update_env(shell, "SHLVL", new_shlvl);
-}
-
-void	clean_and_exit_shell(t_shell *shell, int exit_code)
-{
-	rl_clear_history();
-	if (!shell)
-		exit(exit_code);
-	if (shell->gc)
-		gc_free_all(&shell->gc);
-	if (shell->commands)
-		free_command(&shell->commands);
-	close_fds(shell);
-	exit(exit_code);
 }

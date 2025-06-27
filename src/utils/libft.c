@@ -13,15 +13,6 @@
 #include "minishell.h"
 
 /**
- * Check if character is a digit (0-9)
- * Returns 1 if true, 0 if false
- */
-int	ft_isdigit(int c)
-{
-    return (c >= '0' && c <= '9');
-}
-
-/**
  * Output string followed by newline to file descriptor
  * Safely handles NULL strings
  */

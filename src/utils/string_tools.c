@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   string_utils3.c                                    :+:      :+:    :+:   */
+/*   string_tools.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: my42 <my42@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: hchowdhu <hchowdhu@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/17 20:32:52 by mshariar          #+#    #+#             */
-/*   Updated: 2025/06/23 18:34:16 by my42             ###   ########.fr       */
+/*   Created: 2025/06/27 16:37:26 by hchowdhu          #+#    #+#             */
+/*   Updated: 2025/06/27 16:37:26 by hchowdhu         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,45 +125,3 @@ char	**ft_split(const char *s, char c)
     return (result);
 }
 
-/**
- * Check if string is composed of digits only
- * Returns 1 if true, 0 if false
- */
-int	ft_str_is_numeric(const char *str)
-{
-    int	i;
-
-    if (!str || !*str)
-        return (0);
-    i = 0;
-    while (str[i])
-    {
-        if (!ft_isdigit(str[i]))
-            return (0);
-        i++;
-    }
-    return (1);
-}
-int ft_strncmp(const char *s1, const char *s2, size_t n)
-{
-    size_t i;
-
-    i = 0;
-    if (n == 0)
-        return (0);
-    while (i < n - 1 && s1[i] && s2[i] && s1[i] == s2[i])
-        i++;
-    return ((unsigned char)s1[i] - (unsigned char)s2[i]);
-}
-void	*ft_memcpy(void *dest, const void *src, size_t n)
-{
-	size_t	i;
-
-	i = 0;
-	while (i < n)
-	{
-		((unsigned char *)dest)[i] = ((unsigned char *)src)[i];
-		i++;
-	}
-	return (dest);
-}
