@@ -54,7 +54,7 @@ SRC_FILES	=	main.c \
 				utils/expander_utils.c utils/export_utils.c utils/libft.c utils/init_env.c \
 				utils/env_utils.c utils/string_utils.c utils/shell_lifecycle.c \
 				utils/string_helpers.c utils/string_tools.c utils/string_extras.c\
-				utils/prompt.c utils/pipe_utils.c utils/token_utils.c utils/gnl.c \
+				utils/prompt.c utils/token_utils.c utils/gnl.c \
 				utils/redir_utils.c utils/signal_utils.c \
 				signals/signals.c signals/signal_heredoc.c 
 
