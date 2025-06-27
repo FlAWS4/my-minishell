@@ -208,6 +208,10 @@ void	execute_non_piped_command(t_shell *shell, t_command *cmd);
 void	dispatch_commands(t_shell *shell);
 void	ignore_sigint_and_wait(pid_t child_pid);
 void	setup_and_execute_child_process(t_shell *shell, t_command *cmd);
+void	execute_pipe(t_shell *shell, t_command *cmd, pid_t *pids);
+int		create_pipe_if_needed(t_command *cmd, int pipe_fds[2]);
+int		fork_pipe_child(t_shell *shell, t_command *cmd, int input_fd, int pipe_fds[2]);
+
 
 // ENV
 char	**get_env(char **envp, t_shell *shell);
@@ -257,6 +261,9 @@ int		open_input_file(const char *path);
 int		open_output_file(const char *path);
 int		open_append_file(const char *path);
 int		open_redir_file(t_redir *redir, t_command *cmd);
+void	set_redir_fds(t_command *cmd, int type, int fd);
+void	setup_child_output_fd(t_command *cmd, int pipe_fds[2]);
+void	setup_child_input_fd(t_command *cmd, int input_fd);
 
 // SHELL MANAGEMENT AND UTILS
 int		is_shell_command(char *cmd);
