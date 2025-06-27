@@ -69,7 +69,7 @@ static char	*get_cd_destination(t_shell *shell, char *arg)
 	return (arg);
 }
 
-int		builtin_cd(t_shell *shell, t_command *cmd)
+int	builtin_cd(t_shell *shell, t_command *cmd)
 {
 	char	*target;
 	int		count_args;

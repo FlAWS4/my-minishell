@@ -12,7 +12,6 @@
 
 #include "minishell.h"
 
-
 int	env_has_path(char **envp)
 {
 	int	i;

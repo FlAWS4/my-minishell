@@ -43,7 +43,7 @@ static int	print_echo_args(char **args, int i)
 	return (0);
 }
 
-int		builtin_echo(t_command *cmd)
+int	builtin_echo(t_command *cmd)
 {
 	int	i;
 	int	print_newline;

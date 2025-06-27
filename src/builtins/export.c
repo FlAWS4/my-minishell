@@ -19,12 +19,12 @@ static int	export_without_value(char *arg, t_shell *shell)
 
 	if (!arg || arg[0] == '\0')
 	{
-		error_quoted("export", arg, ERROR_IDENTIFIER );
+		error_quoted ("export", arg, ERROR_IDENTIFIER);
 		return (0);
 	}
 	if (!is_valid_identifier(arg))
 	{
-		error_quoted("export", arg, ERROR_IDENTIFIER );
+		error_quoted("export", arg, ERROR_IDENTIFIER);
 		return (1);
 	}
 	var_pos = find_var_pos(arg, shell);
@@ -56,7 +56,8 @@ static int	export_with_value(char *arg, t_shell *shell)
 	if (!var_name)
 		return (error(NULL, NULL, ERROR_MALLOC), 1);
 	if (!is_valid_identifier(var_name))
-		return (error_quoted("export", arg, ERROR_IDENTIFIER ), free(var_name), 1);
+		return (error_quoted("export", arg, ERROR_IDENTIFIER),
+			free(var_name), 1);
 	var_pos = find_var_pos(var_name, shell);
 	if (var_pos >= 0)
 	{
@@ -149,4 +150,3 @@ int	builtin_export(t_shell *shell, t_command *cmd)
 	}
 	return (g_exit_status);
 }
-

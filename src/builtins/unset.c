@@ -57,7 +57,7 @@ static void	remove_env_var(t_shell *shell, char *var_name)
 	shell->env = duplicate_env_without_pos(shell, pos);
 }
 
-int		builtin_unset(t_shell *shell, t_command *cmd)
+int	builtin_unset(t_shell *shell, t_command *cmd)
 {
 	int	i;
 
