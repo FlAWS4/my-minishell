@@ -49,8 +49,10 @@ SRC_FILES	=	main.c \
 				executor/commands.c executor/redirection_list.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
 				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
+				error_handling/error_display.c error_handling/error_free.c \
+				error_handling/error_gc_utils.c  error_handling/error_gc.c\
 				utils/expander_utils.c utils/export_utils.c utils/libft.c utils/init_env.c \
-				utils/env_utils.c utils/error_handling.c utils/string_utils.c \
+				utils/env_utils.c utils/string_utils.c \
 				utils/string_utils2.c utils/string_utils3.c utils/exec_utils.c \
 				utils/prompt.c utils/pipe_utils.c utils/init_utils.c utils/gnl.c \
 				utils/redir_utils.c utils/signal_utils.c \

@@ -278,7 +278,7 @@ void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
 void	close_all_fds_except_stdio(void);
 void	close_all_command_fds(t_command *all_cmds, t_command *current_cmd);
 
-// GARBAGE COLLECTOR
+// GARBAGE COLLECTOR / ERROR HANDLING
 char	*gc_strdup(t_gc **gc, const char *s1);
 char	*gc_strjoin(t_gc **gc, const char *s1, const char *s2);
 char	*gc_substr(t_gc **gc, const char *s, unsigned int start,
