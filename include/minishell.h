@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #ifndef MINISHELL_H
 # define MINISHELL_H
 
@@ -57,18 +56,17 @@
 # define BOLD_MAGENTA "\033[1;35m"
 # define RESET "\033[0m"
 
-
 # define GC_FATAL 1
 # define GC_SOFT 0
 # define BUFFER_SIZE 5
 
-# define ERROR_MALLOC      "minishell: error: memory allocation failed\n"
-# define ERROR_ARGS        "minishell: error: no arguments allowed\n"
-# define ERROR_QUOTES      "minishell: syntax error: unclosed quote\n"
-# define ERROR_ENV_INIT    "minishell: error: failed to initialize environment\n"
-# define ERROR_TOKENIZE    "minishell: error: failed to create token list\n"
-# define ERROR_SYNTAX      "minishell: syntax error near unexpected token\n"
-# define ERROR_SYNTAX_NL   "minishell: syntax error near \
+# define ERROR_MALLOC    "minishell: error: memory allocation failed\n"
+# define ERROR_ARGS      "minishell: error: no arguments allowed\n"
+# define ERROR_QUOTES    "minishell: syntax error: unclosed quote\n"
+# define ERROR_ENV_INIT  "minishell: error: failed to initialize environment\n"
+# define ERROR_TOKENIZE  "minishell: error: failed to create token list\n"
+# define ERROR_SYNTAX    "minishell: syntax error near unexpected token\n"
+# define ERROR_SYNTAX_NL "minishell: syntax error near \
 unexpected token 'newline'\n"
 # define ERROR_SYNTAX_PIPE "minishell: syntax error near unexpected token '|'"
 # define ERROR_HEREDOC_EOF "minishell: warning: here-document delimited by \
@@ -181,11 +179,11 @@ void	disable_control_char_echo(void);
 void	enable_control_char_echo(void);
 void	handle_heredoc_interrupt(int sig);
 void	setup_heredoc_signal_handlers(struct sigaction *old_int,\
-		 struct sigaction *old_quit);
+	struct sigaction *old_quit);
 void	restore_signal_handlers(struct sigaction *old_int,\
-		 struct sigaction *old_quit);
-void	restore_signals_clear_buffer(struct sigaction *old_int, \
-		struct sigaction *old_quit);
+	struct sigaction *old_quit);
+void	restore_signals_clear_buffer(struct sigaction *old_int,\
+	struct sigaction *old_quit);
 void	display_heredoc_eof_warning(char *delim);
 void	restore_standard_fds(t_shell *shell);
 
@@ -197,11 +195,10 @@ int		builtin_exit(t_shell *shell, t_command *cmd);
 int		builtin_export(t_shell *shell, t_command *cmd);
 int		builtin_pwd(t_shell *shell);
 int		builtin_unset(t_shell *shell, t_command *cmd);
-int		builtin_help(t_shell *shell);  // Add help command
+int		builtin_help(t_shell *shell);//Add help command
 int		is_builtin(t_command *cmd);
 int		run_builtin(t_shell *shell, t_command *cmd);
 void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd);
-
 
 // COMMAND EXEC
 void	execute_non_piped_command(t_shell *shell, t_command *cmd);
@@ -210,8 +207,8 @@ void	ignore_sigint_and_wait(pid_t child_pid);
 void	setup_and_execute_child_process(t_shell *shell, t_command *cmd);
 void	execute_pipe(t_shell *shell, t_command *cmd, pid_t *pids);
 int		create_pipe_if_needed(t_command *cmd, int pipe_fds[2]);
-int		fork_pipe_child(t_shell *shell, t_command *cmd, int input_fd, int pipe_fds[2]);
-
+int		fork_pipe_child(t_shell *shell, t_command *cmd,\
+	int input_fd, int pipe_fds[2]);
 
 // ENV
 char	**get_env(char **envp, t_shell *shell);
@@ -223,7 +220,6 @@ int		env_error(const char *msg, t_gc **gc);
 int		duplicate_existing_vars(t_shell *shell, char **new_env, int size);
 int		add_to_env(t_shell *shell, char *new_var);
 int		find_var_pos(char *var_name, t_shell *shell);
-int		is_valid_identifier(const char *str);
 int		is_valid_identifier(const char *str);
 int		env_has_path(char **envp);
 void	sort_env_for_export(char **env_copy);
@@ -240,7 +236,6 @@ char	*get_next_line(int fd, int clear);
 char	*read_and_store(char *buffer, int fd);
 char	*update_buffer(char *buffer);
 char	*extract_line(char *buffer);
-
 
 // PIPE
 void	prepare_pipe_execution(t_shell *shell, t_command *cmd);
@@ -384,13 +379,12 @@ void	ft_display_welcome(void);
 void	*ft_memset(void *s, int c, size_t n);
 void	display_error(int error_type, char *command, char *message);
 char	*ft_substr(char const *s, unsigned int start, size_t len);
-char    *ft_strdup(const char *s);
-char 	*ft_strjoin(const char *s1, const char *s2);
-char 	*ft_strdup(const char *s);
+char	*ft_strjoin(const char *s1, const char *s2);
+char	*ft_strdup(const char *s);
 int		ft_strcmp(const char *s1, const char *s2);
 size_t	ft_strlen(const char *s);
 void	ft_bzero(void *s, size_t n);
-char 	*ft_itoa(int n);
+char	*ft_itoa(int n);
 int		ft_isalnum(int c);
 char	*ft_strchr(const char *s, int c);
 int		ft_isdigit(int c);
@@ -398,14 +392,14 @@ char	**ft_split(const char *s, char c);
 void	ft_putendl_fd(char *s, int fd);
 void	ft_putstr_fd(const char *s, int fd);
 int		ft_putchar_fd(char c, int fd);
-int 	ft_isalpha(int c);
-int 	ft_strncmp(const char *s1, const char *s2, size_t n);
+int		ft_isalpha(int c);
+int		ft_strncmp(const char *s1, const char *s2, size_t n);
 int		ft_atoi(const char *nptr);
 void	ft_putnbr_fd(int n, int fd);
 void	*ft_memcpy(void *dest, const void *src, size_t n);
 int		ft_safe_size_add(size_t a, size_t b, size_t *result);
 void	*ft_calloc(size_t nmemb, size_t size);
-size_t ft_strlcpy(char *dst, const char *src, size_t size);
+size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
 
 #endif
