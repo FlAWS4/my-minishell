@@ -113,15 +113,16 @@ static int	read_user_command(char **input, const char *prompt)
  */
 static int	run_command_loop(t_shell *shell)
 {
-    const char	*prompt;
+    char	    *prompt;
     char		*input;
     int			status;
 
-    prompt = format_shell_prompt(shell);
     while (1)
     {
+        prompt = format_shell_prompt(shell);
         setup_signals();
         status = read_user_command(&input, prompt);
+        free (prompt);
         if (status == 1)
             break ;
         if (status == 2)

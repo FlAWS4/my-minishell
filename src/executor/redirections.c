@@ -41,6 +41,7 @@ int	open_error(const char *filename)
 		error(NULL, filename, strerror(errno));
 	return (-1);
 }
+
 int	open_redir_file(t_redir *redir, t_command *cmd)
 {
 	if (redir->ar)

@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 
-
 #include "minishell.h"
 
 static void	parent_setup_next_input_fd(int *input_fd, int pipe_fds[2],
@@ -106,6 +105,7 @@ void	prepare_pipe_execution(t_shell *shell, t_command *cmd)
 	pid_t		*pids;
 	size_t		size;
 
+	signal(SIGPIPE, SIG_IGN);
 	cmd_count = 0;
 	tmp = cmd;
 	while (tmp != NULL)

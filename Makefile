@@ -51,7 +51,7 @@ SRC_FILES	=	main.c \
 				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
 				error_handling/error_display.c error_handling/error_free.c \
 				error_handling/error_gc_utils.c  error_handling/error_gc.c\
-				utils/expander_utils.c utils/export_utils.c utils/libft.c utils/init_env.c \
+				utils/expander_utils.c utils/libft.c utils/init_env.c \
 				utils/env_utils.c utils/string_utils.c utils/shell_lifecycle.c \
 				utils/string_helpers.c utils/string_tools.c utils/string_extras.c\
 				utils/prompt.c utils/token_utils.c utils/gnl.c \

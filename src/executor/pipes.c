@@ -13,8 +13,6 @@
 
 #include "minishell.h"
 
-#include "minishell.h"
-
 static void	run_execve_or_exit(t_shell *shell, t_command *cmd)
 {
 	char	*full_path;

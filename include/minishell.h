@@ -65,7 +65,7 @@
 # define ERROR_QUOTES    "minishell: syntax error: unclosed quote\n"
 # define ERROR_ENV_INIT  "minishell: error: failed to initialize environment\n"
 # define ERROR_TOKENIZE  "minishell: error: failed to create token list\n"
-# define ERROR_SYNTAX    "minishell: syntax error near unexpected token\n"
+# define ERROR_SYNTAX    "minishell: syntax error near unexpected token"
 # define ERROR_SYNTAX_NL "minishell: syntax error near \
 unexpected token 'newline'\n"
 # define ERROR_SYNTAX_PIPE "minishell: syntax error near unexpected token '|'"
