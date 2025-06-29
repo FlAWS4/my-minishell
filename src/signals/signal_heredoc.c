@@ -49,7 +49,7 @@ void	handle_heredoc_interrupt(int sig)
 {
     (void)sig;
     g_exit_status = 19;
-    write(2, "^C\n", 3);
+    write(2, "\n", 1);
 }
 
 /**

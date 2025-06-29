@@ -35,7 +35,7 @@ static void	process_command_exit_status(pid_t pid)
 		if (sig == SIGINT)
 			ft_putendl_fd("", STDOUT_FILENO);
 		else if (sig == SIGQUIT)
-			ft_putendl_fd("^\\Quit", STDOUT_FILENO);
+			ft_putendl_fd("Quit", STDOUT_FILENO);
 		g_exit_status = 128 + sig;
 	}
 }

@@ -82,17 +82,14 @@ size_t ft_strlcpy(char *dst, const char *src, size_t size)
 
 int	end_with_pipe(char *input)
 {
-	int	i;
+    int	i;
 
-	i = 0;
-	if (!input)
-		return (0);
-	while (input[i])
-		i++;
-	i--;
-	if (input[i] == '|')
-		return (1);
-	return (0);
+    if (!input)
+        return (0);
+    i = ft_strlen(input) - 1;
+    while (i >= 0 && (input[i] == ' ' || input[i] == '\t'))
+        i--;
+    return (i >= 0 && input[i] == '|');
 }
 
 int	is_whitespace_bis(char *str)

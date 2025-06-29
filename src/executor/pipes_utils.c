@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
 
 static void	parent_setup_next_input_fd(int *input_fd, int pipe_fds[2],

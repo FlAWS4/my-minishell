@@ -77,6 +77,7 @@ void	setup_signals(void)
 	sigemptyset(&sa_tstp.sa_mask);
 	sa_tstp.sa_flags = 0;
 	sigaction(SIGTSTP, &sa_tstp, NULL);
+    
 }
 /**
  * Resets all signal handlers to system defaults
@@ -88,7 +89,7 @@ void	reset_signals_to_default(void)
 {
     struct sigaction	sa;
 
-    memset(&sa, 0, sizeof(sa));
+    ft_memset(&sa, 0, sizeof(sa));
     sa.sa_handler = SIG_DFL;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;

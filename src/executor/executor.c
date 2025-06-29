@@ -123,6 +123,7 @@ void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd)
 	check_device_full_error(cmd);
 	restore_standard_fds(shell);
 }
+
 /**
  * Sets up child process environment and executes command
  * 
