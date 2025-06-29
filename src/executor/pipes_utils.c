@@ -48,7 +48,7 @@ int	pipe_and_fork_one_cmd(t_shell *shell, t_command *cmd,
 				*(data->last_pid));
 		return (0);
 	}
-	if (*(data->fork_count) > 0 && *(data->fork_count) % 100 == 0)
+	if (*(data->fork_count) > 0 && *(data->fork_count) % 10 == 0)
 		wait_for_some_children(data->pids, *(data->fork_count));
 	pid = fork_pipe_child(shell, cmd, *(data->input_fd), pipe_fds);
 	if (pid == -1)

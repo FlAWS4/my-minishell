@@ -53,7 +53,6 @@ void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
 		clean_and_exit_shell(shell, 1);
 	if (is_builtin(cmd))
 	{
-		signal(SIGPIPE, SIG_IGN);
 		exit_code = run_builtin(shell, cmd);
 		clean_and_exit_shell(shell, exit_code);
 	}

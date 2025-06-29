@@ -95,6 +95,7 @@ void	reset_signals_to_default(void)
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
+    sigaction(SIGPIPE, &sa, NULL);
 }
 
 
