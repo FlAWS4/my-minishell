@@ -41,7 +41,7 @@ static int	export_without_value(char *arg, t_shell *shell)
 	return (0);
 }
 
-static int	export_with_value(char *arg, t_shell *shell)
+static	int	export_with_value(char *arg, t_shell *shell)
 {
 	char	*var_name;
 	int		var_pos;
@@ -61,7 +61,8 @@ static int	export_with_value(char *arg, t_shell *shell)
 	var_pos = find_var_pos(var_name, shell);
 	if (var_pos >= 0)
 	{
-		shell->env[var_pos] = create_managed_string_copy(&shell->memory_manager, arg);
+		shell->env[var_pos] = create_managed_string_copy \
+		(&shell->memory_manager, arg);
 		if (!shell->env[var_pos])
 			return (error(NULL, NULL, ERROR_MALLOC), free(var_name), 1);
 	}
@@ -95,7 +96,7 @@ static void	print_single_export_line(const char *var)
 	}
 }
 
-static void	print_export(t_shell *shell)
+static	void	print_export(t_shell *shell)
 {
 	char	**env_copy;
 	int		var_count;
@@ -105,13 +106,15 @@ static void	print_export(t_shell *shell)
 	var_count = 0;
 	while (shell->env[var_count])
 		var_count++;
-	env_copy = allocate_managed_memory(&shell->memory_manager, sizeof(char *) * (var_count + 1),
+	env_copy = allocate_managed_memory(&shell->memory_manager, \
+		sizeof(char *) * (var_count + 1),
 			MEM_ERROR_RECOVERABLE, NULL);
 	if (!env_copy)
 		return (error(NULL, NULL, ERROR_MALLOC));
 	while (i < var_count)
 	{
-		env_copy[i] = create_managed_string_copy(&shell->memory_manager, shell->env[i]);
+		env_copy[i] = create_managed_string_copy \
+		(&shell->memory_manager, shell->env[i]);
 		if (!env_copy[i])
 			return (error(NULL, NULL, ERROR_MALLOC));
 		i++;

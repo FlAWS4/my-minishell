@@ -32,13 +32,15 @@ static char	**duplicate_env_without_pos(t_shell *shell, int skip_pos)
 	i = 0;
 	j = 0;
 	size = env_size(shell->env);
-	new_env = allocate_managed_memory(&shell->memory_manager, sizeof(char *) * size, MEM_ERROR_RECOVERABLE, NULL);
+	new_env = allocate_managed_memory(&shell->memory_manager, \
+		sizeof(char *) * size, MEM_ERROR_RECOVERABLE, NULL);
 	if (!new_env)
 		return (NULL);
 	while (i < size)
 	{
 		if (i != skip_pos)
-			new_env[j++] = create_managed_string_copy(&shell->memory_manager, shell->env[i]);
+			new_env[j++] = create_managed_string_copy \
+			(&shell->memory_manager, shell->env[i]);
 		i++;
 	}
 	new_env[j] = NULL;
