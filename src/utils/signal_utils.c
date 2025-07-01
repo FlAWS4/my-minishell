@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
 
 /**
@@ -21,7 +20,7 @@
  * Handles both normal exit status and signals that terminated the process.
  * For signals, adds special handling for SIGINT and SIGQUIT.
  */
-static void	process_command_exit_status(pid_t pid)
+static	void	process_command_exit_status(pid_t pid)
 {
 	int	status;
 	int	sig;
@@ -69,19 +68,19 @@ void	ignore_sigint_and_wait(pid_t child_pid)
  */
 int	safely_execute_command(t_shell *shell)
 {
-    int	old_exit_status;
+	int	old_exit_status;
 
-    old_exit_status = g_exit_status;
-    g_exit_status = 999;
-    execute_command_sequence(shell);
-    if (g_exit_status == 130)
-    {
-        restore_standard_fds(shell);
-        return (1);
-    }
-    if (g_exit_status == 999)
-        g_exit_status = old_exit_status;
-    return (0);
+	old_exit_status = g_exit_status;
+	g_exit_status = 999;
+	execute_command_sequence(shell);
+	if (g_exit_status == 130)
+	{
+		restore_standard_fds(shell);
+		return (1);
+	}
+	if (g_exit_status == 999)
+		g_exit_status = old_exit_status;
+	return (0);
 }
 
 /**
@@ -92,12 +91,12 @@ int	safely_execute_command(t_shell *shell)
  */
 void	disable_control_char_echo(void)
 {
-    struct termios	term;
+	struct termios	term;
 
-    if (tcgetattr(STDIN_FILENO, &term) == -1)
-        return ;
-    term.c_lflag &= ~ECHOCTL;
-    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+	if (tcgetattr(STDIN_FILENO, &term) == -1)
+		return ;
+	term.c_lflag &= ~ECHOCTL;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
 /**
@@ -108,11 +107,10 @@ void	disable_control_char_echo(void)
  */
 void	enable_control_char_echo(void)
 {
-    struct termios	term;
+	struct termios	term;
 
-    if (tcgetattr(STDIN_FILENO, &term) == -1)
-        return ;
-    term.c_lflag |= ECHOCTL;
-    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+	if (tcgetattr(STDIN_FILENO, &term) == -1)
+		return ;
+	term.c_lflag |= ECHOCTL;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
-

@@ -60,30 +60,30 @@ void	clean_and_exit_shell(t_shell *shell, int exit_code)
  */
 int	ft_str_is_numeric(const char *str)
 {
-    int	i;
+	int	i;
 
-    if (!str || !*str)
-        return (0);
-    i = 0;
-    while (str[i])
-    {
-        if (!ft_isdigit(str[i]))
-            return (0);
-        i++;
-    }
-    return (1);
+	if (!str || !*str)
+		return (0);
+	i = 0;
+	while (str[i])
+	{
+		if (!ft_isdigit(str[i]))
+			return (0);
+		i++;
+	}
+	return (1);
 }
 
-int ft_strncmp(const char *s1, const char *s2, size_t n)
+int	ft_strncmp(const char *s1, const char *s2, size_t n)
 {
-    size_t i;
+	size_t	i;
 
-    i = 0;
-    if (n == 0)
-        return (0);
-    while (i < n - 1 && s1[i] && s2[i] && s1[i] == s2[i])
-        i++;
-    return ((unsigned char)s1[i] - (unsigned char)s2[i]);
+	i = 0;
+	if (n == 0)
+		return (0);
+	while (i < n - 1 && s1[i] && s2[i] && s1[i] == s2[i])
+		i++;
+	return ((unsigned char)s1[i] - (unsigned char)s2[i]);
 }
 
 void	*ft_memcpy(void *dest, const void *src, size_t n)
