@@ -63,6 +63,7 @@ static char	*validate_executable_path(t_shell *shell, char *cmd_path)
  * Prioritizes PATH from environment, falls back to default path if needed.
  * Returns NULL if command not found in any PATH directory.
  */
+
 char	*search_path_for_exec(char *cmd, t_shell *shell)
 {
 	char	**paths;
@@ -82,8 +83,8 @@ char	*search_path_for_exec(char *cmd, t_shell *shell)
 		return (NULL);
 	while (paths[i])
 	{
-		temp = gc_strjoin(&shell->gc, paths[i], "/");
-		full_path = gc_strjoin(&shell->gc, temp, cmd);
+		temp = join_managed_strings(&shell->memory_manager, paths[i], "/");
+		full_path = join_managed_strings(&shell->memory_manager, temp, cmd);
 		if (access(full_path, X_OK) == 0)
 			return (free_array(paths), full_path);
 		i++;
@@ -111,6 +112,7 @@ static char	*resolve_command_path(t_shell *shell, char *cmd_name)
 		handle_cmd_error(shell, cmd_name, "command not found", 127);
 	return (executable_path);
 }
+
 /**
  * Resolves full command path for execution
  * 
@@ -123,12 +125,13 @@ static char	*resolve_command_path(t_shell *shell, char *cmd_name)
  * Validates command arguments and output writability before resolution.
  * Exits the shell on validation failure or if command not found.
  */
+
 char	*get_command_path(t_shell *shell, t_command *cmd)
 {
 	char	*executable_path;
 
 	validate_command_exists(shell, cmd);
-	redirect_stdio(cmd);
+	apply_command_redirections(cmd);
 	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (ft_strchr(cmd->args[0], '/'))

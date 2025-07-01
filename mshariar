@@ -1,0 +1,6 @@
+hello
+[?2004h[1;32m[mshariar@minishell [1;34m~/my-minishell[0m[1;32m] $ [0m^C[?2004l
+[1;32m[mshariar@minishell [1;34m~/my-minishell[0m[1;32m] $ [0m[?2004h^C[?2004l
+[1;32m[mshariar@minishell [1;34m~/my-minishell[0m[1;32m] $ [0m[?2004h^C[?2004l
+[1;32m[mshariar@minishell [1;34m~/my-minishell[0m[1;32m] $ [0m[?2004h[?2004l
+exit

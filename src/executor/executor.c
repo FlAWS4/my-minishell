@@ -62,7 +62,7 @@ static void	check_device_full_error(t_command *cmd)
 		error(NULL, exec_path, "Is a directory");
 		clean_and_exit_shell(shell, 126);
 	}
-	close_fds(shell);
+	cleanup_shell_file_descriptors(shell);
 	execve(exec_path, cmd->args, shell->env);
 	error(NULL, exec_path, strerror(errno));
 	clean_and_exit_shell(shell, 126);
@@ -85,7 +85,7 @@ static void	check_device_full_error(t_command *cmd)
 
 	if (is_builtin(cmd))
 	{
-		execute_builtin_with_redirections(shell, cmd);
+		run_builtin_command(shell, cmd);
 		return ;
 	}
 	child_pid = fork();
@@ -101,7 +101,7 @@ static void	check_device_full_error(t_command *cmd)
 		ignore_sigint_and_wait(child_pid);
 }
 /**
- * Applies redirections and executes builtin commands
+ * run_builtin_command - Applies redirections and executes builtin commands
  * 
  * @param shell  Shell context
  * @param cmd    Command to execute
@@ -110,11 +110,11 @@ static void	check_device_full_error(t_command *cmd)
  * and restores standard file descriptors after execution.
  * Special handling for 'exit' command to clean up properly.
  */
-void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd)
+void	run_builtin_command(t_shell *shell, t_command *cmd)
 {
-	if (handle_redirections(cmd, shell) == -1)
+	if (process_command_redirections(cmd, shell) == -1)
 		return ;
-	redirect_stdio(cmd);
+	apply_command_redirections(cmd);
 	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
 		return (restore_standard_fds(shell), g_exit_status = 1, (void)0);
 	if (!ft_strcmp(cmd->args[0], "exit"))
@@ -137,9 +137,9 @@ void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd)
 void	setup_and_execute_child_process(t_shell *shell, t_command *cmd)
 {
 	reset_signals_to_default();
-	if (handle_redirections(cmd, shell) == -1)
+	if (process_command_redirections(cmd, shell) == -1)
 		clean_and_exit_shell(shell, 1);
-	redirect_stdio(cmd);
+	apply_command_redirections(cmd);
 	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (cmd->args && is_shell_command(cmd->args[0]))

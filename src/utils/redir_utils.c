@@ -54,7 +54,6 @@ void	ft_putnbr_fd(int n, int fd)
     ft_putchar_fd((char)(nb % 10 + '0'), fd);
 }
 
-
 int	slen(int n)
 {
 	size_t	size;

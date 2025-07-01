@@ -43,14 +43,14 @@ SRC_FILES	=	main.c \
 				parser/expander.c parser/check_for_expand.c parser/create_expander.c\
 				parser/expand_tokens.c parser/init_expand.c parser/multiple_expand.c\
 				parser/parser_expand.c parser/add_env.c \
-				executor/builtin_executor.c executor/command_path.c executor/process_utils.c executor/pipes_utils.c\
+				executor/builtin_executor.c executor/command_path.c executor/pipes_utils.c\
 				executor/executor.c executor/redirections.c executor/pipes.c \
-				executor/redir_files.c executor/redir_fds.c executor/redir_close.c \
-				executor/commands.c executor/redirection_list.c \
+				executor/redir_fds.c executor/redir_close.c \
+				executor/commands.c executor/ambiguous_redirection.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
 				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
 				error_handling/error_display.c error_handling/error_free.c \
-				error_handling/error_gc_utils.c  error_handling/error_gc.c\
+				error_handling/gerbage_collector.c\
 				utils/expander_utils.c utils/libft.c utils/init_env.c \
 				utils/env_utils.c utils/string_utils.c utils/shell_lifecycle.c \
 				utils/string_helpers.c utils/string_tools.c utils/string_extras.c\

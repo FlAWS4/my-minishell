@@ -36,7 +36,7 @@ void	execute_command_sequence(t_shell *shell)
         return ;
     if (!cmd->args && cmd->redirs && !cmd->next)
     {
-        redir_status = handle_redirections(cmd, shell);
+        redir_status = process_command_redirections(cmd, shell);
         if (redir_status == -1)
             g_exit_status = 1;
         else
@@ -45,7 +45,7 @@ void	execute_command_sequence(t_shell *shell)
         return ;
     }
     if (cmd->next)
-        prepare_pipe_execution(shell, cmd);
+        setup_pipeline_execution(shell, cmd);
     else
         execute_non_piped_command(shell, cmd);
     free_command(&shell->commands);

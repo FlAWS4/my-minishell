@@ -35,7 +35,7 @@ void	update_shell_lvl(t_shell *shell)
 		ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
 		shlvl = 1;
 	}
-	new_shlvl = gc_itoa(&shell->gc, shlvl);
+	new_shlvl = gc_itoa(&shell->memory_manager, shlvl);
 	if (!new_shlvl)
 		clean_and_exit_shell(shell, EXIT_FAILURE);
 	update_env(shell, "SHLVL", new_shlvl);
@@ -46,11 +46,11 @@ void	clean_and_exit_shell(t_shell *shell, int exit_code)
 	rl_clear_history();
 	if (!shell)
 		exit(exit_code);
-	if (shell->gc)
-		gc_free_all(&shell->gc);
+	if (shell->memory_manager)
+		release_all_memory(&shell->memory_manager);
 	if (shell->commands)
 		free_command(&shell->commands);
-	close_fds(shell);
+	cleanup_shell_file_descriptors(shell);
 	exit(exit_code);
 }
 

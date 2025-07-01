@@ -84,7 +84,7 @@ static int	create_redir(t_redir **redirs, t_token *tokens, t_shell *data)
 			return (1);
 		if (is_heredoc(redir, data))
 			return (free_redirs(&redir), 1);
-		check_ambiguous_redirect(redir, tokens);
+		detect_ambiguous_redirect(redir, tokens);
 		redir->next = NULL;
 	}
 	add_redirs(redirs, redir);
@@ -111,7 +111,7 @@ t_redir	*init_redir(t_shell *data)
 		else if (is_token_operator(token->type) && token->next
 			&& token->next->type != WORD)
 		{
-			if (add_ambiguous_redirect(&redir, token))
+			if (create_ambiguous_redirect_error(&redir, token))
 				return (free_redirs(&redir), NULL);
 		}
 		token = token->next;

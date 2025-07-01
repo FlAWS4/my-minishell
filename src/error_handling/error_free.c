@@ -12,9 +12,33 @@
 
 #include "minishell.h"
 
-/**
- * Display heredoc EOF warning
- */
+char	*gc_itoa(t_memory_node **gc, int n)
+{
+	long	nb;
+	int		len;
+	char	*str;
+
+	nb = (long)n;
+	len = slen(nb);
+	str = allocate_managed_memory(gc, sizeof(char) * (len + 1),
+	 MEM_ERROR_RECOVERABLE, NULL);
+	if (!str)
+		return (NULL);
+	str[len--] = '\0';
+	if (nb == 0)
+		str[0] = '0';
+	if (nb < 0)
+	{
+		str[0] = '-';
+		nb = -nb;
+	}
+	while (nb > 0)
+	{
+		str[len--] = (nb % 10) + '0';
+		nb /= 10;
+	}
+	return (str);
+}
 
 void	free_redirs(t_redir **redirs)
 {

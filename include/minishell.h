@@ -56,10 +56,6 @@
 # define BOLD_MAGENTA "\033[1;35m"
 # define RESET "\033[0m"
 
-# define GC_FATAL 1
-# define GC_SOFT 0
-# define BUFFER_SIZE 5
-
 # define ERROR_MALLOC    "minishell: error: memory allocation failed\n"
 # define ERROR_ARGS      "minishell: error: no arguments allowed\n"
 # define ERROR_QUOTES    "minishell: syntax error: unclosed quote\n"
@@ -73,20 +69,19 @@ unexpected token 'newline'\n"
 end-of-file (wanted `"
 # define ERROR_UNSUPPORTED "minishell: error: unsupported character\n"
 # define ERROR_IDENTIFIER  "minishell: error: not a valid identifier\n"
-
-# define GC_FATAL 1
-# define GC_SOFT 0
+# define MEM_ERROR_FATAL 1
+# define MEM_ERROR_RECOVERABLE 0
 # define BUFFER_SIZE 5
 
 extern int	g_exit_status;
 
-typedef struct s_gc
+typedef struct s_memory_node
 {
-	void			*data;
-	int				flag;
-	void			(*free_array)(void *);
-	struct s_gc		*next;
-}	t_gc;
+    void                *ptr;
+    int                 cleanup_mode;
+    void                (*free_func)(void *);
+    struct s_memory_node *next;
+}   t_memory_node;
 
 typedef enum e_token_type
 {
@@ -125,13 +120,6 @@ typedef struct s_redir
 	struct s_redir	*next;
 }	t_redir;
 
-typedef struct s_int
-{
-	int	start;
-	int	end;
-	int	i;
-}	t_int;
-
 typedef struct s_char
 {
 	char	*line;
@@ -152,15 +140,15 @@ typedef struct s_command
 
 typedef struct s_shell
 {
-	char		**env;
-	t_token		*tokens;
-	t_command	*commands;
-	t_gc		*gc;
-	int			saved_stdin;
-	int			saved_stdout;
-	int			heredoc_interupt;
-	int			pipe_interupt;
-	char		*default_path;
+	char				**env;
+	t_token				*tokens;
+	t_command			*commands;
+	t_memory_node		*memory_manager;
+	int					saved_stdin;
+	int					saved_stdout;
+	int					heredoc_interupt;
+	int					pipe_interupt;
+	char				*default_path;
 }	t_shell;
 
 typedef struct s_pipe_data
@@ -198,7 +186,7 @@ int		builtin_unset(t_shell *shell, t_command *cmd);
 int		builtin_help(t_shell *shell);//Add help command
 int		is_builtin(t_command *cmd);
 int		run_builtin(t_shell *shell, t_command *cmd);
-void	execute_builtin_with_redirections(t_shell *shell, t_command *cmd);
+void	run_builtin_command(t_shell *shell, t_command *cmd);
 
 // COMMAND EXEC
 void	execute_non_piped_command(t_shell *shell, t_command *cmd);
@@ -216,7 +204,7 @@ char	*get_env_value(t_shell *shell, const char *var_name);
 char	**add_env_var(t_shell *shell, char *new_var);
 char	**init_env(char **envp, t_shell *shell);
 char	**init_minimal_env(void);
-int		env_error(const char *msg, t_gc **gc);
+int		env_error(const char *msg, t_memory_node **gc);
 int		duplicate_existing_vars(t_shell *shell, char **new_env, int size);
 int		add_to_env(t_shell *shell, char *new_var);
 int		find_var_pos(char *var_name, t_shell *shell);
@@ -231,34 +219,34 @@ char	*get_command_path(t_shell *shell, t_command *cmd);
 
 // HEREDOC
 char	*capture_heredoc(t_redir *redirs, t_shell *data);
-int		handle_heredoc(t_command *cmd, t_redir *redir);
+int		setup_heredoc_pipe(t_command *cmd, t_redir *redir);
 char	*get_next_line(int fd, int clear);
 char	*read_and_store(char *buffer, int fd);
 char	*update_buffer(char *buffer);
 char	*extract_line(char *buffer);
 
 // PIPE
-void	prepare_pipe_execution(t_shell *shell, t_command *cmd);
-char	*join_args(t_shell *shell, char **args);
-int		pipe_and_fork_one_cmd(t_shell *shell, t_command *cmd,
+void	setup_pipeline_execution(t_shell *shell, t_command *cmd);
+char	*combine_command_arguments(t_shell *shell, char **args);
+int		process_single_piped_command(t_shell *shell, t_command *cmd,
 			t_pipe_data *data);
-void	wait_for_all_children(pid_t *pids, int count, pid_t last_pid);
-void	wait_for_some_children(pid_t *pids, int count);
-void	setup_child_fds(t_command *cmd, int input_fd, int pipe_fds[2]);
+void	collect_pipeline_exit_status(pid_t *pids, int count, pid_t last_pid);
+void	cleanup_finished_processes(pid_t *pids, int count);
 void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
 			int pipe_fds[2]);
 
 // REDIRECTIONS
-int		handle_redirections(t_command *cmd, t_shell *shell);
-void	redirect_stdio(t_command *cmd);
-int		open_error(const char *filename);
-int		open_input_file(const char *path);
-int		open_output_file(const char *path);
-int		open_append_file(const char *path);
+int		process_command_redirections(t_command *cmd, t_shell *shell);
+void	update_command_redirections(t_command *cmd, int type, int fd);
+int		report_file_error(const char *filename);
+int		open_file_for_input(const char *path);
+int		open_file_for_output(const char *path);
+int		open_file_for_append(const char *path);
 int		open_redir_file(t_redir *redir, t_command *cmd);
-void	set_redir_fds(t_command *cmd, int type, int fd);
-void	setup_child_output_fd(t_command *cmd, int pipe_fds[2]);
-void	setup_child_input_fd(t_command *cmd, int input_fd);
+void	setup_command_io(t_command *cmd, int input_fd, int pipe_fds[2]);
+void	setup_command_output(t_command *cmd, int pipe_fds[2]);
+void	setup_command_input(t_command *cmd, int input_fd);
+void	apply_command_redirections(t_command *cmd);
 
 // SHELL MANAGEMENT AND UTILS
 void	init_shell_fds(t_shell *shell);
@@ -266,27 +254,24 @@ int		is_shell_command(char *cmd);
 int		writable(int fd, const char *cmd_name);
 void	clean_and_exit_shell(t_shell *shell, int exit_code);
 void	update_shell_lvl(t_shell *shell);
-void	close_fds(t_shell *shell);
+void	cleanup_shell_file_descriptors(t_shell *shell);
 void	error(const char *cmd, const char *error_item, const char *msg);
 void	error_quoted(const char *cmd, const char *error_item, const char *msg);
 void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
 			int exit_code);
-void	close_all_fds_except_stdio(void);
-void	close_all_command_fds(t_command *all_cmds, t_command *current_cmd);
+void	close_all_non_standard_fds(void);
+void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd);
 
 // GARBAGE COLLECTOR / ERROR HANDLING
-char	*gc_strdup(t_gc **gc, const char *s1);
-char	*gc_strjoin(t_gc **gc, const char *s1, const char *s2);
-char	*gc_substr(t_gc **gc, const char *s, unsigned int start,
-			size_t len);
-char	**gc_split(t_gc **gc, char *str, char c);
-char	*gc_itoa(t_gc **gc, int n);
-int		gc_add(t_gc **gc_list, void *ptr, int fatal,
-			void (*free_array)(void *));
-void	gc_free_all(t_gc **gc_list);
-void	gc_free_one(t_gc *gc_list);
-void	*gc_malloc(t_gc **gc_list, size_t size, int fatal,
-			void (*free_array)(void *));
+char	*create_managed_string_copy(t_memory_node **memory_manager, const char *s1);
+char	*join_managed_strings(t_memory_node **memory_manager, const char *s1,
+		 const char *s2);
+char	*gc_itoa(t_memory_node **memory_manager, int n);
+int		track_memory_allocation(t_memory_node **memory_manager, void *ptr, int cleanup_mode,
+          void (*free_func)(void *));
+void	release_all_memory(t_memory_node **memory_manager);
+void	*allocate_managed_memory(t_memory_node **memory_manager, size_t size, int cleanup_mode,
+          void (*free_func)(void *));
 void	free_array(void *ptr);
 void	free_redirs(t_redir **redirs);
 void	free_command(t_command **cmd);
@@ -330,9 +315,9 @@ int		join_no_space(t_token **tokens);
 int		expand_token(t_shell *data);
 int		prepare_token_str(t_shell *data);
 void	remove_useless_token(t_token **tokens, t_token *token);
-void	check_ambiguous_redirect(t_redir *cmd, t_token *tokens);
+void	detect_ambiguous_redirect(t_redir *cmd, t_token *tokens);
 void	add_redirs(t_redir **head, t_redir *redir);
-int		add_ambiguous_redirect(t_redir **redirs, t_token *tokens);
+int		create_ambiguous_redirect_error(t_redir **redirs, t_token *tokens);
 
 // GET NEXT COMMAND
 int		end_with_pipe(char *input);
@@ -384,6 +369,7 @@ char	*ft_strdup(const char *s);
 int		ft_strcmp(const char *s1, const char *s2);
 size_t	ft_strlen(const char *s);
 void	ft_bzero(void *s, size_t n);
+int		slen(int n);
 char	*ft_itoa(int n);
 int		ft_isalnum(int c);
 char	*ft_strchr(const char *s, int c);
