@@ -25,12 +25,12 @@
  */
 int	open_file_for_input(const char *path)
 {
-    int	fd;
+	int	fd;
 
-    fd = open(path, O_RDONLY);
-    if (fd == -1)
-        return (report_file_error(path));
-    return (fd);
+	fd = open(path, O_RDONLY);
+	if (fd == -1)
+		return (report_file_error(path));
+	return (fd);
 }
 
 /**
@@ -46,12 +46,12 @@ int	open_file_for_input(const char *path)
  */
 int	open_file_for_output(const char *path)
 {
-    int	fd;
+	int	fd;
 
-    fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-    if (fd == -1)
-        return (report_file_error(path));
-    return (fd);
+	fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0666);
+	if (fd == -1)
+		return (report_file_error(path));
+	return (fd);
 }
 
 /**
@@ -67,15 +67,16 @@ int	open_file_for_output(const char *path)
  */
 int	open_file_for_append(const char *path)
 {
-    int	fd;
+	int	fd;
 
-    fd = open(path, O_CREAT | O_WRONLY | O_APPEND, 0644);
-    if (fd == -1)
-        return (report_file_error(path));
-    return (fd);
+	fd = open(path, O_CREAT | O_WRONLY | O_APPEND, 0644);
+	if (fd == -1)
+		return (report_file_error(path));
+	return (fd);
 }
 /**
- * create_ambiguous_redirect_error - Creates a redirection node for ambiguous redirect
+ * create_ambiguous_redirect_error - 
+ * Creates a redirection node for ambiguous redirect
  * @redirs: Pointer to redirection list where the error node will be added
  * @tokens: Token that triggered the ambiguous redirect error
  * 
@@ -86,27 +87,30 @@ int	open_file_for_append(const char *path)
  * 
  * Return: 0 on success, 1 on memory allocation failure
  */
-int	create_ambiguous_redirect_error(t_redir **redirs, t_token *tokens)
-{
-    t_redir	*redir;
 
-    if (tokens->type == HEREDOC)
-        return (0);
-    redir = malloc(sizeof(t_redir));
-    if (!redir)
-        return (1);
-    ft_memset(redir, 0, sizeof(t_redir));
-    redir->type = tokens->type;
-    ft_putstr_fd("minishell: ambiguous redirect\n", 2);
-    g_exit_status = 1;
-    redir->ar = 1;
-    redir->next = NULL;
-    add_redirs(redirs, redir);
-    return (0);
+int	create_ambiguous_redirect_error(t_redir \
+	**redirs, t_token *tokens)
+{
+	t_redir	*redir;
+
+	if (tokens->type == HEREDOC)
+		return (0);
+	redir = malloc(sizeof(t_redir));
+	if (!redir)
+		return (1);
+	ft_memset(redir, 0, sizeof(t_redir));
+	redir->type = tokens->type;
+	ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+	g_exit_status = 1;
+	redir->ar = 1;
+	redir->next = NULL;
+	add_redirs(redirs, redir);
+	return (0);
 }
 
 /**
- * detect_ambiguous_redirect - Checks if a redirection token has an ambiguous target
+ * detect_ambiguous_redirect - 
+ * Checks if a redirection token has an ambiguous target
  * @cmd: Redirection structure to mark as ambiguous if needed
  * @tokens: Token sequence to analyze for ambiguity
  * 
@@ -120,27 +124,27 @@ int	create_ambiguous_redirect_error(t_redir **redirs, t_token *tokens)
  */
 void	detect_ambiguous_redirect(t_redir *cmd, t_token *tokens)
 {
-    t_token	*token;
+	t_token	*token;
 
-    token = tokens;
-    if (token->type == HEREDOC)
-        return ;
-    if (token->type == REDIR_IN || token->type == REDIR_OUT
-        || token->type == APPEND)
-    {
-        if (token->next && token->next->type != WORD)
-        {
-            ft_putstr_fd("minishell: ambiguous redirect\n", 2);
-            g_exit_status = 1;
-            cmd->ar = 1;
-            return ;
-        }
-    }
-    if (token->next && token->next->type == WORD && token->next->ar)
-    {
-        ft_putstr_fd("minishell: ambiguous redirect\n", 2);
-        g_exit_status = 1;
-        cmd->ar = 1;
-        return ;
-    }
+	token = tokens;
+	if (token->type == HEREDOC)
+		return ;
+	if (token->type == REDIR_IN || token->type == REDIR_OUT
+		|| token->type == APPEND)
+	{
+		if (token->next && token->next->type != WORD)
+		{
+			ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+			g_exit_status = 1;
+			cmd->ar = 1;
+			return ;
+		}
+	}
+	if (token->next && token->next->type == WORD && token->next->ar)
+	{
+		ft_putstr_fd("minishell: ambiguous redirect\n", 2);
+		g_exit_status = 1;
+		cmd->ar = 1;
+		return ;
+	}
 }

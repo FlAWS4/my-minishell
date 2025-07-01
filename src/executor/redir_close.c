@@ -12,7 +12,6 @@
 
 #include "minishell.h"
 
-
 /**
  * cleanup_shell_file_descriptors - Close all non-standard file descriptors
  * @shell: Shell structure containing saved standard descriptors
@@ -26,25 +25,25 @@
  */
 void	cleanup_shell_file_descriptors(t_shell *shell)
 {
-    int	fd;
+	int	fd;
 
-    fd = 3;
-    while (fd < OPEN_MAX)
-    {
-        if (fd != shell->saved_stdin && fd != shell->saved_stdout)
-            close(fd);
-        fd++;
-    }
-    if (shell->saved_stdin >= 0)
-    {
-        close(shell->saved_stdin);
-        shell->saved_stdin = -1;
-    }
-    if (shell->saved_stdout >= 0)
-    {
-        close(shell->saved_stdout);
-        shell->saved_stdout = -1;
-    }
+	fd = 3;
+	while (fd < OPEN_MAX)
+	{
+		if (fd != shell->saved_stdin && fd != shell->saved_stdout)
+			close(fd);
+		fd++;
+	}
+	if (shell->saved_stdin >= 0)
+	{
+		close(shell->saved_stdin);
+		shell->saved_stdin = -1;
+	}
+	if (shell->saved_stdout >= 0)
+	{
+		close(shell->saved_stdout);
+		shell->saved_stdout = -1;
+	}
 }
 
 /**
@@ -58,14 +57,14 @@ void	cleanup_shell_file_descriptors(t_shell *shell)
  */
 void	close_all_non_standard_fds(void)
 {
-    int	fd;
+	int	fd;
 
-    fd = 3;
-    while (fd < OPEN_MAX)
-    {
-        close(fd);
-        fd++;
-    }
+	fd = 3;
+	while (fd < OPEN_MAX)
+	{
+		close(fd);
+		fd++;
+	}
 }
 
 /**
@@ -83,21 +82,22 @@ void	close_all_non_standard_fds(void)
  */
 void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd)
 {
-    t_command	*cmd;
+	t_command	*cmd;
 
-    cmd = all_cmds;
-    while (cmd)
-    {
-        if (cmd != current_cmd)
-        {
-            if (cmd->fd_in != -1 && cmd->fd_in > 2)
-                close(cmd->fd_in);
-            if (cmd->fd_out != -1 && cmd->fd_out > 2)
-                close(cmd->fd_out);
-        }
-        cmd = cmd->next;
-    }
+	cmd = all_cmds;
+	while (cmd)
+	{
+		if (cmd != current_cmd)
+		{
+			if (cmd->fd_in != -1 && cmd->fd_in > 2)
+				close(cmd->fd_in);
+			if (cmd->fd_out != -1 && cmd->fd_out > 2)
+				close(cmd->fd_out);
+		}
+		cmd = cmd->next;
+	}
 }
+
 /**
  * setup_heredoc_pipe - Creates a pipe containing heredoc content
  * @cmd: Command structure to attach the heredoc input to
@@ -112,15 +112,15 @@ void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd)
  */
 int	setup_heredoc_pipe(t_command *cmd, t_redir *redir)
 {
-    int	pipe_fd[2];
+	int	pipe_fd[2];
 
-    if (pipe(pipe_fd) == -1)
-        return (-1);
-    write(pipe_fd[1], redir->heredoc_content,
-        ft_strlen(redir->heredoc_content));
-    close(pipe_fd[1]);
-    if (cmd->fd_in != STDIN_FILENO)
-        close(cmd->fd_in);
-    cmd->fd_in = pipe_fd[0];
-    return (0);
+	if (pipe(pipe_fd) == -1)
+		return (-1);
+	write(pipe_fd[1], redir->heredoc_content,
+		ft_strlen(redir->heredoc_content));
+	close(pipe_fd[1]);
+	if (cmd->fd_in != STDIN_FILENO)
+		close(cmd->fd_in);
+	cmd->fd_in = pipe_fd[0];
+	return (0);
 }

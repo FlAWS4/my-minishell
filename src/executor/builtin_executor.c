@@ -23,18 +23,18 @@
  */
 int	is_builtin(t_command *cmd)
 {
-    if (!cmd || !cmd->args || !cmd->args[0])
-        return (0);
-    if (ft_strcmp(cmd->args[0], "cd") == 0 ||
-        ft_strcmp(cmd->args[0], "echo") == 0 ||
-        ft_strcmp(cmd->args[0], "env") == 0 ||
-        ft_strcmp(cmd->args[0], "exit") == 0 ||
-        ft_strcmp(cmd->args[0], "export") == 0 ||
-        ft_strcmp(cmd->args[0], "pwd") == 0 ||
-        ft_strcmp(cmd->args[0], "unset") == 0 ||
-        ft_strcmp(cmd->args[0], "help") == 0)  // Add help command
-        return (1);
-    return (0);
+	if (!cmd || !cmd->args || !cmd->args[0])
+		return (0);
+	if (ft_strcmp(cmd->args[0], "cd") == 0 || \
+		ft_strcmp(cmd->args[0], "echo") == 0 || \
+		ft_strcmp(cmd->args[0], "env") == 0 || \
+		ft_strcmp(cmd->args[0], "exit") == 0 || \
+		ft_strcmp(cmd->args[0], "export") == 0 || \
+		ft_strcmp(cmd->args[0], "pwd") == 0 || \
+		ft_strcmp(cmd->args[0], "unset") == 0 || \
+		ft_strcmp(cmd->args[0], "help") == 0)
+		return (1);
+	return (0);
 }
 
 /**
@@ -50,22 +50,21 @@ int	is_builtin(t_command *cmd)
  */
 int	run_builtin(t_shell *shell, t_command *cmd)
 {
-    if (ft_strcmp(cmd->args[0], "cd") == 0)
-        return (builtin_cd(shell, cmd));
-    else if (ft_strcmp(cmd->args[0], "echo") == 0)
-        return (builtin_echo(cmd));
-    else if (ft_strcmp(cmd->args[0], "env") == 0)
-        return (builtin_env(shell, cmd));
-    else if (ft_strcmp(cmd->args[0], "exit") == 0)
-        return (builtin_exit(shell, cmd));
-    else if (ft_strcmp(cmd->args[0], "export") == 0)
-        return (builtin_export(shell, cmd));
-    else if (ft_strcmp(cmd->args[0], "pwd") == 0)
-        return (builtin_pwd(shell));
-    else if (ft_strcmp(cmd->args[0], "unset") == 0)
-        return (builtin_unset(shell, cmd));
-    else if (ft_strcmp(cmd->args[0], "help") == 0)
-        return (builtin_help(shell));  // Add help command handler
-    return (1);
+	if (ft_strcmp(cmd->args[0], "cd") == 0)
+		return (builtin_cd(shell, cmd));
+	else if (ft_strcmp(cmd->args[0], "echo") == 0)
+		return (builtin_echo(cmd));
+	else if (ft_strcmp(cmd->args[0], "env") == 0)
+		return (builtin_env(shell, cmd));
+	else if (ft_strcmp(cmd->args[0], "exit") == 0)
+		return (builtin_exit(shell, cmd));
+	else if (ft_strcmp(cmd->args[0], "export") == 0)
+		return (builtin_export(shell, cmd));
+	else if (ft_strcmp(cmd->args[0], "pwd") == 0)
+		return (builtin_pwd(shell));
+	else if (ft_strcmp(cmd->args[0], "unset") == 0)
+		return (builtin_unset(shell, cmd));
+	else if (ft_strcmp(cmd->args[0], "help") == 0)
+		return (builtin_help(shell));
+	return (1);
 }
-
