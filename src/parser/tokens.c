@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
 
 static int	handle_operator(char *input, int *i, t_token **tokens)

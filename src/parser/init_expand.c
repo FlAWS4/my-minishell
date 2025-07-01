@@ -90,7 +90,6 @@ char	*expand_variables(t_shell *data, char *input, t_redir *redir)
 	return (str);
 }
 
-
 int	expand_status(char *args)
 {
 	int	i;

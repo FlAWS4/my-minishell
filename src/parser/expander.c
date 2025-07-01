@@ -55,7 +55,6 @@ char	*expand_value(char **env, char *dollar)
 	return (free_array(copy_env), free_array(copy_value), NULL);
 }
 
-
 static char	*remove_useless_space(char *str)
 {
 	char	*new_line;

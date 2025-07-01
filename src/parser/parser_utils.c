@@ -42,7 +42,7 @@ int	add_token_error(t_token **tokens, t_token *error, char *str)
 	error_token = create_token(ERROR, NULL);
 	if (!error_token)
 		return (-1);
-	if (ft_strcmp(str, ERROR_SYNTAX_NL ))
+	if (ft_strcmp(str, ERROR_SYNTAX_NL))
 		error_token->value = ft_strjoin(str, token_type);
 	else
 		error_token->value = ft_strdup(str);
@@ -90,6 +90,7 @@ int	is_operator_follow(t_token **tokens, t_token *current_token)
 	}
 	return (0);
 }
+
 int	check_token_error(t_token **tokens)
 {
 	t_token	*token;

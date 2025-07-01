@@ -49,8 +49,8 @@ int	add_to_env(t_shell *shell, char *new_var)
 		return (env_error("minishell: invalid variable\n", NULL));
 	while (shell->env && shell->env[size])
 		size++;
-	new_env = allocate_managed_memory(&shell->memory_manager,
-		 sizeof(char *) * (size + 2), MEM_ERROR_RECOVERABLE, NULL);
+	new_env = allocate_managed_memory(&shell->memory_manager, \
+		sizeof(char *) * (size + 2), MEM_ERROR_RECOVERABLE, NULL);
 	if (!new_env || !duplicate_existing_vars(shell, new_env, size))
 		return (1);
 	new_env[size] = create_managed_string_copy(&shell->memory_manager, new_var);
@@ -68,14 +68,14 @@ static char	**duplicate_env(t_shell *shell, int new_size)
 	int		i;
 
 	i = 0;
-	new_env = allocate_managed_memory(&shell->memory_manager,
-		 sizeof(char *) * new_size, MEM_ERROR_RECOVERABLE, NULL);
+	new_env = allocate_managed_memory(&shell->memory_manager, \
+		sizeof(char *) * new_size, MEM_ERROR_RECOVERABLE, NULL);
 	if (!new_env)
 		return (NULL);
 	while (shell->env[i] && i < new_size - 1)
 	{
-		new_env[i] = create_managed_string_copy(&shell->memory_manager,
-			 shell->env[i]);
+		new_env[i] = create_managed_string_copy(&shell->memory_manager, \
+			shell->env[i]);
 		if (!new_env[i])
 			return (NULL);
 		i++;

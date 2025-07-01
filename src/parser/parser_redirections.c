@@ -12,7 +12,6 @@
 
 #include "minishell.h"
 
-
 static int	concatane_string(char **str, char *line)
 {
 	char	*tmp;
@@ -66,8 +65,8 @@ static char	*get_line(t_shell *data)
 	return (str);
 }
 
-static char	*read_and_store_heredoc(t_redir *redir, t_shell *data,
-	t_char *strings)
+static char	*read_and_store_heredoc(t_redir *redir, \
+	t_shell *data, t_char *strings)
 {
 	while (1)
 	{

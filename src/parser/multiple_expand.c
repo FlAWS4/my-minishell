@@ -12,7 +12,6 @@
 
 #include "minishell.h"
 
-
 int	multiple_expand_bis(t_shell *data, char *input, char **str)
 {
 	char	*result;
