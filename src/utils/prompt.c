@@ -131,3 +131,20 @@ static void	display_operators(void)
 	printf("%s└────────────────────────────────────────┘%s\n", \
 		BOLD_WHITE, RESET);
 }
+
+/**
+ * Built-in help command with beautiful formatted output
+ */
+int	builtin_help(t_shell *shell)
+{
+	(void)shell;
+	printf("\n%s✨ %sMINISHELL HELP%s ✨%s\n\n", \
+		BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
+	display_commands();
+	printf("\n");
+	display_env_commands();
+	printf("\n");
+	display_operators();
+	printf("\n");
+	return (0);
+}
