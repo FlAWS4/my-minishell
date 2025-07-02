@@ -28,27 +28,27 @@ int	g_exit_status = 0;
  */
 void	execute_command_sequence(t_shell *shell)
 {
-    t_command	*cmd;
-    int			redir_status;
+	t_command	*cmd;
+	int			redir_status;
 
-    cmd = shell->commands;
-    if (!cmd)
-        return ;
-    if (!cmd->args && cmd->redirs && !cmd->next)
-    {
-        redir_status = process_command_redirections(cmd, shell);
-        if (redir_status == -1)
-            g_exit_status = 1;
-        else
-            g_exit_status = 0;
-        free_command(&shell->commands);
-        return ;
-    }
-    if (cmd->next)
-        setup_pipeline_execution(shell, cmd);
-    else
-        execute_non_piped_command(shell, cmd);
-    free_command(&shell->commands);
+	cmd = shell->commands;
+	if (!cmd)
+		return ;
+	if (!cmd->args && cmd->redirs && !cmd->next)
+	{
+		redir_status = process_command_redirections(cmd, shell);
+		if (redir_status == -1)
+			g_exit_status = 1;
+		else
+			g_exit_status = 0;
+		free_command(&shell->commands);
+		return ;
+	}
+	if (cmd->next)
+		setup_pipeline_execution(shell, cmd);
+	else
+		execute_non_piped_command(shell, cmd);
+	free_command(&shell->commands);
 }
 
 /**
@@ -63,18 +63,17 @@ void	execute_command_sequence(t_shell *shell)
  */
 static int	tokenize_and_validate_input(t_shell *shell, char *input)
 {
-    if (end_with_pipe(input))
-    {
-        if (read_complete_command(shell, &input))
-            return (1);
-    }
-    add_history(input);
-    shell->tokens = tokenize_input(input);
-    if (syntax_check(shell))
-        return (free_command(&shell->commands), 1);
-    return (0);
+	if (end_with_pipe(input))
+	{
+		if (read_complete_command(shell, &input))
+			return (1);
+	}
+	add_history(input);
+	shell->tokens = tokenize_input(input);
+	if (syntax_check(shell))
+		return (free_command(&shell->commands), 1);
+	return (0);
 }
-
 
 /**
  * read_user_command - Read command input from the user
@@ -87,18 +86,18 @@ static int	tokenize_and_validate_input(t_shell *shell, char *input)
  */
 static int	read_user_command(char **input, const char *prompt)
 {
-    *input = readline(prompt);
-    if (*input == NULL)
-    {
-        ft_putstr_fd("exit\n", STDOUT_FILENO);
-        return (1);
-    }
-    if (**input == '\0')
-    {
-        free(*input);
-        return (2);
-    }
-    return (0);
+	*input = readline(prompt);
+	if (*input == NULL)
+	{
+		ft_putstr_fd("exit\n", STDOUT_FILENO);
+		return (1);
+	}
+	if (**input == '\0')
+	{
+		free(*input);
+		return (2);
+	}
+	return (0);
 }
 
 /**
@@ -113,27 +112,27 @@ static int	read_user_command(char **input, const char *prompt)
  */
 static int	run_command_loop(t_shell *shell)
 {
-    char	    *prompt;
-    char		*input;
-    int			status;
+	char	*prompt;
+	char	*input;
+	int		status;
 
-    while (1)
-    {
-        prompt = format_shell_prompt(shell);
-        setup_signals();
-        status = read_user_command(&input, prompt);
-        free (prompt);
-        if (status == 1)
-            break ;
-        if (status == 2)
-            continue ;
-        if (tokenize_and_validate_input(shell, input))
-            continue ;
-        if (safely_execute_command(shell))
-            continue ;
-        restore_standard_fds(shell);
-    }
-    return (0);
+	while (1)
+	{
+		prompt = format_shell_prompt(shell);
+		setup_signals();
+		status = read_user_command(&input, prompt);
+		free (prompt);
+		if (status == 1)
+			break ;
+		if (status == 2)
+			continue ;
+		if (tokenize_and_validate_input(shell, input))
+			continue ;
+		if (safely_execute_command(shell))
+			continue ;
+		restore_standard_fds(shell);
+	}
+	return (0);
 }
 
 /**
@@ -150,27 +149,27 @@ static int	run_command_loop(t_shell *shell)
  */
 int	main(int argc, char **argv, char **envp)
 {
-    t_shell	shell;
+	t_shell	shell;
 
-    (void)argv;
-    if (argc != 1)
-    {
-        ft_putstr_fd(BOLD_RED "Usage: ./minishell\n" RESET, STDERR_FILENO);
-        return (1);
-    }
-    ft_memset(&shell, 0, sizeof(t_shell));
-    shell.env = init_env(envp, &shell);
-    if (!shell.env)
-        clean_and_exit_shell(&shell, 1);
-    init_shell_fds(&shell);
-    if (!isatty(STDIN_FILENO))
-    {
-        ft_putstr_fd(BOLD_YELLOW "dont pipe minishell into minishell.\n" RESET,
-            STDERR_FILENO);
-        return (0);
-    }
-    ft_display_welcome();
-    run_command_loop(&shell);
-    clean_and_exit_shell(&shell, g_exit_status);
-    return (g_exit_status);
+	(void)argv;
+	if (argc != 1)
+	{
+		ft_putstr_fd(BOLD_RED "Usage: ./minishell\n" RESET, STDERR_FILENO);
+		return (1);
+	}
+	ft_memset(&shell, 0, sizeof(t_shell));
+	shell.env = init_env(envp, &shell);
+	if (!shell.env)
+		clean_and_exit_shell(&shell, 1);
+	init_shell_fds(&shell);
+	if (!isatty(STDIN_FILENO))
+	{
+		ft_putstr_fd(BOLD_YELLOW "dont pipe minishell into minishell.\n" RESET,
+			STDERR_FILENO);
+		return (0);
+	}
+	ft_display_welcome();
+	run_command_loop(&shell);
+	clean_and_exit_shell(&shell, g_exit_status);
+	return (g_exit_status);
 }

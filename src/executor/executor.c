@@ -50,8 +50,7 @@ static void	check_device_full_error(t_command *cmd)
  * closes unnecessary file descriptors, and executes the command.
  * Exits with appropriate error code on failure.
  */
-
- static void	execute_external_command(t_shell *shell, t_command *cmd)
+static	void	execute_external_command(t_shell *shell, t_command *cmd)
 {
 	char		*exec_path;
 	struct stat	path_stat;
@@ -67,10 +66,9 @@ static void	check_device_full_error(t_command *cmd)
 	error(NULL, exec_path, strerror(errno));
 	clean_and_exit_shell(shell, 126);
 }
-
 /**
  * Executes a single command (not part of a pipeline)
- * 
+ * >
  * @param shell  Shell context
  * @param cmd    Command to execute
  * 
@@ -79,7 +77,7 @@ static void	check_device_full_error(t_command *cmd)
  * Updates the global exit status based on command result.
  */
 
- void	execute_non_piped_command(t_shell *shell, t_command *cmd)
+void	execute_non_piped_command(t_shell *shell, t_command *cmd)
 {
 	pid_t	child_pid;
 
@@ -100,6 +98,7 @@ static void	check_device_full_error(t_command *cmd)
 	else
 		ignore_sigint_and_wait(child_pid);
 }
+
 /**
  * run_builtin_command - Applies redirections and executes builtin commands
  * 

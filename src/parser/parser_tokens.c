@@ -55,7 +55,7 @@ static void	check_operator(t_token **tokens)
 			else if (is_token_operator(token->type)
 				&& token->next->type == T_EOF)
 			{
-				if (add_token_error(tokens, token, ERROR_SYNTAX_NL ) == -1)
+				if (add_token_error (tokens, token, ERROR_SYNTAX_NL) == -1)
 					free_tokens_list(tokens);
 			}
 			else if (token->type == PIPE && token->next->type

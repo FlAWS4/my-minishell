@@ -22,19 +22,19 @@
  * ignores SIGQUIT during heredoc input.
  */
 void	setup_heredoc_signal_handlers(struct sigaction *old_int,
-    struct sigaction *old_quit)
+	struct sigaction *old_quit)
 {
-    struct sigaction	act_int;
-    struct sigaction	act_quit;
+	struct sigaction	act_int;
+	struct sigaction	act_quit;
 
-    sigemptyset(&act_int.sa_mask);
-    act_int.sa_handler = handle_heredoc_interrupt;
-    act_int.sa_flags = 0;
-    sigaction(SIGINT, &act_int, old_int);
-    sigemptyset(&act_quit.sa_mask);
-    act_quit.sa_handler = SIG_IGN;
-    act_quit.sa_flags = 0;
-    sigaction(SIGQUIT, &act_quit, old_quit);
+	sigemptyset(&act_int.sa_mask);
+	act_int.sa_handler = handle_heredoc_interrupt;
+	act_int.sa_flags = 0;
+	sigaction(SIGINT, &act_int, old_int);
+	sigemptyset(&act_quit.sa_mask);
+	act_quit.sa_handler = SIG_IGN;
+	act_quit.sa_flags = 0;
+	sigaction(SIGQUIT, &act_quit, old_quit);
 }
 
 /**
@@ -47,9 +47,9 @@ void	setup_heredoc_signal_handlers(struct sigaction *old_int,
  */
 void	handle_heredoc_interrupt(int sig)
 {
-    (void)sig;
-    g_exit_status = 19;
-    write(2, "\n", 1);
+	(void)sig;
+	g_exit_status = 19;
+	write(2, "\n", 1);
 }
 
 /**
@@ -62,11 +62,11 @@ void	handle_heredoc_interrupt(int sig)
  * normal signal handling and clear any buffered input.
  */
 void	restore_signals_clear_buffer(struct sigaction *old_int,
-                    struct sigaction *old_quit)
+					struct sigaction *old_quit)
 {
-    sigaction(SIGINT, old_int, NULL);
-    sigaction(SIGQUIT, old_quit, NULL);
-    get_next_line(STDIN_FILENO, 1);
+	sigaction(SIGINT, old_int, NULL);
+	sigaction(SIGQUIT, old_quit, NULL);
+	get_next_line(STDIN_FILENO, 1);
 }
 
 /**
@@ -79,9 +79,9 @@ void	restore_signals_clear_buffer(struct sigaction *old_int,
  */
 void	display_heredoc_eof_warning(char *delim)
 {
-    if (!delim)
-        return ;
-    ft_putstr_fd(ERROR_HEREDOC_EOF, 2);
-    ft_putstr_fd(delim, 2);
-    ft_putstr_fd("')\n", 2);
+	if (!delim)
+		return ;
+	ft_putstr_fd(ERROR_HEREDOC_EOF, 2);
+	ft_putstr_fd(delim, 2);
+	ft_putstr_fd("')\n", 2);
 }

@@ -28,7 +28,6 @@ int	is_quote(char c)
 	return (0);
 }
 
-
 int	handle_in_quote(int start_quote, char *input, int *i, t_token **tokens)
 {
 	t_token	*token;

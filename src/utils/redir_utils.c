@@ -15,9 +15,9 @@
 /**
  * Check if character is alphabetic
  */
-int ft_isalpha(int c)
+int	ft_isalpha(int c)
 {
-    return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+	return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
 }
 
 /**
@@ -26,7 +26,7 @@ int ft_isalpha(int c)
  */
 int	ft_isdigit(int c)
 {
-    return (c >= '0' && c <= '9');
+	return (c >= '0' && c <= '9');
 }
 
 /**
@@ -35,23 +35,20 @@ int	ft_isdigit(int c)
  */
 void	ft_putnbr_fd(int n, int fd)
 {
-    unsigned int	nb;
+	unsigned int	nb;
 
-    if (fd < 0)
-        return;
-        
-    if (n < 0)
-    {
-        ft_putchar_fd('-', fd);
-        nb = -n;
-    }
-    else
-        nb = (unsigned int)n;
-        
-    if (nb >= 10)
-        ft_putnbr_fd(nb / 10, fd);
-        
-    ft_putchar_fd((char)(nb % 10 + '0'), fd);
+	if (fd < 0)
+		return ;
+	if (n < 0)
+	{
+		ft_putchar_fd('-', fd);
+		nb = -n;
+	}
+	else
+		nb = (unsigned int)n;
+	if (nb >= 10)
+		ft_putnbr_fd(nb / 10, fd);
+	ft_putchar_fd((char)(nb % 10 + '0'), fd);
 }
 
 int	slen(int n)
@@ -70,29 +67,29 @@ int	slen(int n)
 	return (size);
 }
 
-char *ft_itoa(int n)
+char	*ft_itoa(int n)
 {
-    long    num;
-    size_t  len;
-    char    *str;
+	long	num;
+	size_t	len;
+	char	*str;
 
-    num = (long)n;
-    len = slen(n);
-    str = (char *)malloc(len + 1);
-    if (!str)
-        return (NULL);
-    str[len] = '\0';
-    if (n == 0)
-        str[0] = '0';
-    if (n < 0)
-    {
-        str[0] = '-';
-        num *= -1;
-    }
-    while (num > 0)
-    {
-        str[--len] = (num % 10) + '0';
-        num /= 10;
-    }
-    return (str);
+	num = (long)n;
+	len = slen(n);
+	str = (char *)malloc(len + 1);
+	if (!str)
+		return (NULL);
+	str[len] = '\0';
+	if (n == 0)
+		str[0] = '0';
+	if (n < 0)
+	{
+		str[0] = '-';
+		num *= -1;
+	}
+	while (num > 0)
+	{
+		str[--len] = (num % 10) + '0';
+		num /= 10;
+	}
+	return (str);
 }

@@ -25,12 +25,12 @@
  */
 static char	*join_strings_and_free_first(char *input, char *str)
 {
-    char	*s;
+	char	*s;
 
-    s = ft_strjoin(input, str);
-    if (!s)
-        return (free(input), NULL);
-    return (free(input), s);
+	s = ft_strjoin(input, str);
+	if (!s)
+		return (free(input), NULL);
+	return (free(input), s);
 }
 
 /**
@@ -47,13 +47,13 @@ static char	*join_strings_and_free_first(char *input, char *str)
  */
 static int	append_to_command_input(char **input, char *str, int code)
 {
-    char	*new_imput;
+	char	*new_imput;
 
-    new_imput = join_strings_and_free_first(*input, str);
-    if (!new_imput)
-        return (free(str), free(*input), *input = NULL, 1);
-    *input = new_imput;
-    return (free(str), code);
+	new_imput = join_strings_and_free_first(*input, str);
+	if (!new_imput)
+		return (free(str), free(*input), *input = NULL, 1);
+	*input = new_imput;
+	return (free(str), code);
 }
 
 /**
@@ -68,16 +68,16 @@ static int	append_to_command_input(char **input, char *str, int code)
  */
 static char	*read_prompt_input(t_shell *data)
 {
-    char	*str;
+	char	*str;
 
-    write(STDOUT_FILENO, "> ", 2);
-    str = get_next_line(STDIN_FILENO, 0);
-    if (g_exit_status == 19)
-    {
-        data->pipe_interupt = 1;
-        g_exit_status = 130;
-    }
-    return (str);
+	write(STDOUT_FILENO, "> ", 2);
+	str = get_next_line(STDIN_FILENO, 0);
+	if (g_exit_status == 19)
+	{
+		data->pipe_interupt = 1;
+		g_exit_status = 130;
+	}
+	return (str);
 }
 
 /**
@@ -97,25 +97,25 @@ static char	*read_prompt_input(t_shell *data)
  */
 static int	process_command_line_input(t_shell *data, char **input)
 {
-    char	*str;
+	char	*str;
 
-    if (*input && (*input)[0] == '|')
-        return (0);
-    str = read_prompt_input(data);
-    if (data->pipe_interupt)
-        return (free(str), free(*input), *input = NULL, 1);
-    if (!str)
-    {
-        write(STDOUT_FILENO, "\nCommand canceled\n", 18);
-        return (free(*input), *input = NULL, 1);
-    }
-    if (str[ft_strlen(str) - 1] == '\n')
-        str[ft_strlen(str) - 1] = '\0';
-    if (str[0] == '\0' || is_whitespace_bis(str))
-        return (free(str), 2);
-    if (end_with_pipe(str))
-        return (append_to_command_input(input, str, 3));
-    return (append_to_command_input(input, str, 0));
+	if (*input && (*input)[0] == '|')
+		return (0);
+	str = read_prompt_input(data);
+	if (data->pipe_interupt)
+		return (free(str), free(*input), *input = NULL, 1);
+	if (!str)
+	{
+		write(STDOUT_FILENO, "\nCommand canceled\n", 18);
+		return (free(*input), *input = NULL, 1);
+	}
+	if (str[ft_strlen(str) - 1] == '\n')
+		str[ft_strlen(str) - 1] = '\0';
+	if (str[0] == '\0' || is_whitespace_bis(str))
+		return (free(str), 2);
+	if (end_with_pipe(str))
+		return (append_to_command_input(input, str, 3));
+	return (append_to_command_input(input, str, 0));
 }
 
 /**
@@ -134,29 +134,29 @@ static int	process_command_line_input(t_shell *data, char **input)
  */
 int	read_complete_command(t_shell *data, char **input)
 {
-    struct sigaction	old_int;
-    struct sigaction	old_quit;
-    int					result;
+	struct sigaction	old_int;
+	struct sigaction	old_quit;
+	int					result;
 
-    data->pipe_interupt = 0;
-    setup_heredoc_signal_handlers(&old_int, &old_quit);
-    while (1)
-    {
-        result = process_command_line_input(data, input);
-        if (data->pipe_interupt)
-        {
-            restore_signals_clear_buffer(&old_int, &old_quit);
-            return (1);
-        }
-        if (result == 2 || result == 3)
-            continue ;
-        if (result != 0)
-        {
-            restore_signals_clear_buffer(&old_int, &old_quit);
-            return (result);
-        }
-        break ;
-    }
-    restore_signals_clear_buffer(&old_int, &old_quit);
-    return (0);
+	data->pipe_interupt = 0;
+	setup_heredoc_signal_handlers(&old_int, &old_quit);
+	while (1)
+	{
+		result = process_command_line_input(data, input);
+		if (data->pipe_interupt)
+		{
+			restore_signals_clear_buffer(&old_int, &old_quit);
+			return (1);
+		}
+		if (result == 2 || result == 3)
+			continue ;
+		if (result != 0)
+		{
+			restore_signals_clear_buffer(&old_int, &old_quit);
+			return (result);
+		}
+		break ;
+	}
+	restore_signals_clear_buffer(&old_int, &old_quit);
+	return (0);
 }

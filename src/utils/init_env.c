@@ -35,6 +35,7 @@ char	**init_env(char **envp, t_shell *shell)
 		return (NULL);
 	return (shell->env);
 }
+
 static void	free_tmp_env_vars(char **tmp, int count)
 {
 	int	i;

@@ -12,7 +12,6 @@
 
 #include "minishell.h"
 
-
 /**
  * Restores previous signal handlers without clearing buffer
  * 
@@ -20,12 +19,11 @@
  * @param old_quit  Previous SIGQUIT handler to restore
  */
 void	restore_signal_handlers(struct sigaction *old_int,
-                    struct sigaction *old_quit)
+					struct sigaction *old_quit)
 {
-    sigaction(SIGINT, old_int, NULL);
-    sigaction(SIGQUIT, old_quit, NULL);
+	sigaction(SIGINT, old_int, NULL);
+	sigaction(SIGQUIT, old_quit, NULL);
 }
-
 
 /**
  * Handles SIGINT (Ctrl+C) during main shell operation
@@ -38,18 +36,18 @@ void	restore_signal_handlers(struct sigaction *old_int,
  */
 void	handle_interrupt(int sig)
 {
-    (void)sig;
-    if (g_exit_status == 999)
-    {
-        g_exit_status = 130;
-        write(STDOUT_FILENO, "\n", 1);
-        return ;
-    }
-    g_exit_status = 130;
-    write(STDOUT_FILENO, "\n", 1);
-    rl_on_new_line();
-    rl_replace_line("", 0);
-    rl_redisplay();
+	(void)sig;
+	if (g_exit_status == 999)
+	{
+		g_exit_status = 130;
+		write(STDOUT_FILENO, "\n", 1);
+		return ;
+	}
+	g_exit_status = 130;
+	write(STDOUT_FILENO, "\n", 1);
+	rl_on_new_line();
+	rl_replace_line("", 0);
+	rl_redisplay();
 }
 
 /**
@@ -77,7 +75,6 @@ void	setup_signals(void)
 	sigemptyset(&sa_tstp.sa_mask);
 	sa_tstp.sa_flags = 0;
 	sigaction(SIGTSTP, &sa_tstp, NULL);
-    
 }
 /**
  * Resets all signal handlers to system defaults
@@ -85,20 +82,20 @@ void	setup_signals(void)
  * Used before executing external programs to ensure they
  * receive default signal behavior.
  */
+
 void	reset_signals_to_default(void)
 {
-    struct sigaction	sa;
+	struct sigaction	sa;
 
-    ft_memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = SIG_DFL;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGQUIT, &sa, NULL);
-    sigaction(SIGTSTP, &sa, NULL);
-    sigaction(SIGPIPE, &sa, NULL);
+	ft_memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_DFL;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGTSTP, &sa, NULL);
+	sigaction(SIGPIPE, &sa, NULL);
 }
-
 
 /**
  * Restores standard input and output file descriptors
@@ -110,6 +107,6 @@ void	reset_signals_to_default(void)
  */
 void	restore_standard_fds(t_shell *shell)
 {
-    dup2(shell->saved_stdin, STDIN_FILENO);
-    dup2(shell->saved_stdout, STDOUT_FILENO);
+	dup2(shell->saved_stdin, STDIN_FILENO);
+	dup2(shell->saved_stdout, STDOUT_FILENO);
 }

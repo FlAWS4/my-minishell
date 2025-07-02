@@ -10,11 +10,11 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-
 #include "minishell.h"
 
 /**
- * execute_external_command_or_exit - Attempts to execute external command or exits
+ * execute_external_command_or_exit - 
+ * Attempts to execute external command or exits
  * @shell: Shell context containing environment variables
  * @cmd: Command structure with arguments to execute
  * 
@@ -33,21 +33,21 @@
  */
 static void	execute_external_command_or_exit(t_shell *shell, t_command *cmd)
 {
-    char	*full_path;
-    char	*full_cmd;
+	char	*full_path;
+	char	*full_cmd;
 
-    if (!cmd->args || !cmd->args[0])
-        clean_and_exit_shell(shell, EXIT_SUCCESS);
-    full_path = search_path_for_exec(cmd->args[0], shell);
-    if (!full_path)
-    {
-        full_cmd = combine_command_arguments(shell, cmd->args);
-        error(NULL, full_cmd, "command not found");
-        clean_and_exit_shell(shell, 127);
-    }
-    execve(full_path, cmd->args, shell->env);
-    error("execve", cmd->args[0], strerror(errno));
-    clean_and_exit_shell(shell, EXIT_SUCCESS);
+	if (!cmd->args || !cmd->args[0])
+		clean_and_exit_shell(shell, EXIT_SUCCESS);
+	full_path = search_path_for_exec(cmd->args[0], shell);
+	if (!full_path)
+	{
+		full_cmd = combine_command_arguments(shell, cmd->args);
+		error(NULL, full_cmd, "command not found");
+		clean_and_exit_shell(shell, 127);
+	}
+	execve(full_path, cmd->args, shell->env);
+	error("execve", cmd->args[0], strerror(errno));
+	clean_and_exit_shell(shell, EXIT_SUCCESS);
 }
 
 /**
@@ -57,7 +57,8 @@ static void	execute_external_command_or_exit(t_shell *shell, t_command *cmd)
  * @input_fd: Input file descriptor (from previous pipe or stdin)
  * @pipe_fds: Current pipe file descriptors for output redirection
  * 
- * This function prepares a child process for command execution within a pipeline.
+ * This function prepares a child process 
+ * for command execution within a pipeline.
  * It performs all necessary setup steps in sequence:
  * 1. Resets signal handlers to default behavior
  * 2. Closes saved file descriptors from parent
@@ -69,31 +70,31 @@ static void	execute_external_command_or_exit(t_shell *shell, t_command *cmd)
  * Never returns (always exits the process with appropriate exit code).
  */
 void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
-    int pipe_fds[2])
+	int pipe_fds[2])
 {
-    int	exit_code;
+	int	exit_code;
 
-    reset_signals_to_default();
-    if (shell->saved_stdin >= 0)
-        close(shell->saved_stdin);
-    if (shell->saved_stdout >= 0)
-        close(shell->saved_stdout);
-    if (!cmd)
-        clean_and_exit_shell(shell, EXIT_SUCCESS);
-    setup_command_io(cmd, input_fd, pipe_fds);
-    close_unused_command_fds(shell->commands, cmd);
-    if (process_command_redirections(cmd, shell) == -1)
-        clean_and_exit_shell(shell, EXIT_FAILURE);
-    apply_command_redirections(cmd);
-    if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
-        clean_and_exit_shell(shell, 1);
-    if (is_builtin(cmd))
-    {
-        exit_code = run_builtin(shell, cmd);
-        clean_and_exit_shell(shell, exit_code);
-    }
-    else
-        execute_external_command_or_exit(shell, cmd);
+	reset_signals_to_default();
+	if (shell->saved_stdin >= 0)
+		close(shell->saved_stdin);
+	if (shell->saved_stdout >= 0)
+		close(shell->saved_stdout);
+	if (!cmd)
+		clean_and_exit_shell(shell, EXIT_SUCCESS);
+	setup_command_io(cmd, input_fd, pipe_fds);
+	close_unused_command_fds(shell->commands, cmd);
+	if (process_command_redirections(cmd, shell) == -1)
+		clean_and_exit_shell(shell, EXIT_FAILURE);
+	apply_command_redirections(cmd);
+	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+		clean_and_exit_shell(shell, 1);
+	if (is_builtin(cmd))
+	{
+		exit_code = run_builtin(shell, cmd);
+		clean_and_exit_shell(shell, exit_code);
+	}
+	else
+		execute_external_command_or_exit(shell, cmd);
 }
 
 /**
@@ -111,26 +112,26 @@ void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
  * - Normal exit: Uses the exit code provided by the process
  * - Signal termination: 128 + signal number
  */
-void collect_pipeline_exit_status(pid_t *pids, int count, pid_t last_pid)
+void	collect_pipeline_exit_status(pid_t *pids, int count, pid_t last_pid)
 {
-    int	i;
-    int	status;
+	int	i;
+	int	status;
 
-    i = 0;
-    while (i < count)
-    {
-        if (waitpid(pids[i], &status, 0) != -1)
-        {
-            if (pids[i] == last_pid)
-            {
-                if (WIFEXITED(status))
-                    g_exit_status = WEXITSTATUS(status);
-                else if (WIFSIGNALED(status))
-                    g_exit_status = 128 + WTERMSIG(status);
-            }
-        }
-        i++;
-    }
+	i = 0;
+	while (i < count)
+	{
+		if (waitpid(pids[i], &status, 0) != -1)
+		{
+			if (pids[i] == last_pid)
+			{
+				if (WIFEXITED(status))
+					g_exit_status = WEXITSTATUS(status);
+				else if (WIFSIGNALED(status))
+					g_exit_status = 128 + WTERMSIG(status);
+			}
+		}
+		i++;
+	}
 }
 
 /**
@@ -140,29 +141,30 @@ void collect_pipeline_exit_status(pid_t *pids, int count, pid_t last_pid)
  * 
  * This function performs a non-blocking wait on some child processes to avoid
  * accumulating too many completed-but-not-removed processes when running large
- * pipelines. It checks approximately 1/4 of the total processes, with a minimum of 1.
+ * pipelines. It checks approximately 1/4 of the total processes, 
+ * with a minimum of 1.
  * 
  * This helps manage system resources when executing complex command chains.
  */
-void cleanup_finished_processes(pid_t *pids, int count)
+void	cleanup_finished_processes(pid_t *pids, int count)
 {
-    int	i;
-    int	status;
-    int	waited;
-    int	to_wait;
+	int	i;
+	int	status;
+	int	waited;
+	int	to_wait;
 
-    i = 0;
-    status = 0;
-    waited = 0;
-    to_wait = count / 4;
-    if (to_wait < 1)
-        to_wait = 1;
-    while (i < count && waited < to_wait)
-    {
-        if (waitpid(pids[i], &status, WNOHANG) > 0)
-            waited++;
-        i++;
-    }
+	i = 0;
+	status = 0;
+	waited = 0;
+	to_wait = count / 4;
+	if (to_wait < 1)
+		to_wait = 1;
+	while (i < count && waited < to_wait)
+	{
+		if (waitpid(pids[i], &status, WNOHANG) > 0)
+			waited++;
+		i++;
+	}
 }
 
 /**
@@ -184,28 +186,28 @@ void cleanup_finished_processes(pid_t *pids, int count)
  */
 void	execute_pipe(t_shell *shell, t_command *cmd, pid_t *pids)
 {
-    int			input_fd;
-    int			fork_count;
-    pid_t		last_pid;
-    int			res;
-    t_pipe_data	data;
+	int			input_fd;
+	int			fork_count;
+	pid_t		last_pid;
+	int			res;
+	t_pipe_data	data;
 
-    input_fd = STDIN_FILENO;
-    fork_count = 0;
-    last_pid = 0;
-    res = 0;
-    data.input_fd = &input_fd;
-    data.fork_count = &fork_count;
-    data.last_pid = &last_pid;
-    data.pids = pids;
-    while (cmd != NULL)
-    {
-        res = process_single_piped_command(shell, cmd, &data);
-        if (res == 0)
-            return ;
-        cmd = cmd->next;
-    }
-    if (input_fd != STDIN_FILENO && input_fd != -1)
-        close(input_fd);
-    collect_pipeline_exit_status(pids, fork_count, last_pid);
+	input_fd = STDIN_FILENO;
+	fork_count = 0;
+	last_pid = 0;
+	res = 0;
+	data.input_fd = &input_fd;
+	data.fork_count = &fork_count;
+	data.last_pid = &last_pid;
+	data.pids = pids;
+	while (cmd != NULL)
+	{
+		res = process_single_piped_command(shell, cmd, &data);
+		if (res == 0)
+			return ;
+		cmd = cmd->next;
+	}
+	if (input_fd != STDIN_FILENO && input_fd != -1)
+		close(input_fd);
+	collect_pipeline_exit_status(pids, fork_count, last_pid);
 }

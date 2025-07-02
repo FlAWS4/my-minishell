@@ -23,28 +23,28 @@
  */
 void	error(const char *cmd, const char *error_item, const char *msg)
 {
-    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
-    if (cmd)
-    {
-        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
-        ft_putstr_fd(cmd, STDERR_FILENO);
-        ft_putstr_fd(RESET ": ", STDERR_FILENO);
-    }
-    if (error_item)
-    {
-        ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
-        ft_putstr_fd(error_item, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-        if (msg)
-            ft_putstr_fd(": ", STDERR_FILENO);
-    }
-    if (msg)
-    {
-        ft_putstr_fd(BOLD_RED, STDERR_FILENO);
-        ft_putstr_fd((char *)msg, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-    }
-    ft_putchar_fd('\n', STDERR_FILENO);
+	ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+	if (cmd)
+	{
+		ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+		ft_putstr_fd(cmd, STDERR_FILENO);
+		ft_putstr_fd(RESET ": ", STDERR_FILENO);
+	}
+	if (error_item)
+	{
+		ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
+		ft_putstr_fd(error_item, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+		if (msg)
+			ft_putstr_fd(": ", STDERR_FILENO);
+	}
+	if (msg)
+	{
+		ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+		ft_putstr_fd((char *)msg, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+	}
+	ft_putchar_fd('\n', STDERR_FILENO);
 }
 
 /**
@@ -58,32 +58,31 @@ void	error(const char *cmd, const char *error_item, const char *msg)
  */
 void	error_quoted(const char *cmd, const char *error_item, const char *msg)
 {
-    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
-    if (cmd)
-    {
-        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
-        ft_putstr_fd(cmd, STDERR_FILENO);
-        ft_putstr_fd(RESET ": ", STDERR_FILENO);
-    }
-    if (error_item)
-    {
-        ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
-        ft_putchar_fd('\'', STDERR_FILENO);
-        ft_putstr_fd(error_item, STDERR_FILENO);
-        ft_putchar_fd('\'', STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-        if (msg)
-            ft_putstr_fd(": ", STDERR_FILENO);
-    }
-    if (msg)
-    {
-        ft_putstr_fd(BOLD_RED, STDERR_FILENO);
-        ft_putstr_fd((char *)msg, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-    }
-    ft_putchar_fd('\n', STDERR_FILENO);
+	ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+	if (cmd)
+	{
+		ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+		ft_putstr_fd(cmd, STDERR_FILENO);
+		ft_putstr_fd(RESET ": ", STDERR_FILENO);
+	}
+	if (error_item)
+	{
+		ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
+		ft_putchar_fd('\'', STDERR_FILENO);
+		ft_putstr_fd(error_item, STDERR_FILENO);
+		ft_putchar_fd('\'', STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+		if (msg)
+			ft_putstr_fd(": ", STDERR_FILENO);
+	}
+	if (msg)
+	{
+		ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+		ft_putstr_fd((char *)msg, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+	}
+	ft_putchar_fd('\n', STDERR_FILENO);
 }
-
 
 /**
  * warning - Display warning message with color formatting
@@ -96,31 +95,30 @@ void	error_quoted(const char *cmd, const char *error_item, const char *msg)
  */
 void	warning(const char *cmd, const char *warning_item, const char *msg)
 {
-    ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
-    if (cmd)
-    {
-        ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
-        ft_putstr_fd(cmd, STDERR_FILENO);
-        ft_putstr_fd(RESET ": ", STDERR_FILENO);
-    }
-    ft_putstr_fd(YELLOW "warning: " RESET, STDERR_FILENO);
-    if (warning_item)
-    {
-        ft_putstr_fd(YELLOW, STDERR_FILENO);
-        ft_putstr_fd(warning_item, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-        if (msg)
-            ft_putstr_fd(": ", STDERR_FILENO);
-    }
-    if (msg)
-    {
-        ft_putstr_fd(YELLOW, STDERR_FILENO);
-        ft_putstr_fd((char *)msg, STDERR_FILENO);
-        ft_putstr_fd(RESET, STDERR_FILENO);
-    }
-    ft_putchar_fd('\n', STDERR_FILENO);
+	ft_putstr_fd(BOLD_WHITE "minishell: " RESET, STDERR_FILENO);
+	if (cmd)
+	{
+		ft_putstr_fd(BOLD_BLUE, STDERR_FILENO);
+		ft_putstr_fd(cmd, STDERR_FILENO);
+		ft_putstr_fd(RESET ": ", STDERR_FILENO);
+	}
+	ft_putstr_fd(YELLOW "warning: " RESET, STDERR_FILENO);
+	if (warning_item)
+	{
+		ft_putstr_fd(YELLOW, STDERR_FILENO);
+		ft_putstr_fd(warning_item, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+		if (msg)
+			ft_putstr_fd(": ", STDERR_FILENO);
+	}
+	if (msg)
+	{
+		ft_putstr_fd(YELLOW, STDERR_FILENO);
+		ft_putstr_fd((char *)msg, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+	}
+	ft_putchar_fd('\n', STDERR_FILENO);
 }
-
 
 void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
 	int exit_code)

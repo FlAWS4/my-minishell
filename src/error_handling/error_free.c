@@ -20,8 +20,8 @@ char	*gc_itoa(t_memory_node **gc, int n)
 
 	nb = (long)n;
 	len = slen(nb);
-	str = allocate_managed_memory(gc, sizeof(char) * (len + 1),
-	 MEM_ERROR_RECOVERABLE, NULL);
+	str = allocate_managed_memory(gc, sizeof(char) * (len + 1), \
+		MEM_ERROR_RECOVERABLE, NULL);
 	if (!str)
 		return (NULL);
 	str[len--] = '\0';

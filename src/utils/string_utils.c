@@ -15,81 +15,76 @@
 /**
  * Duplicate a string
  */
-char *ft_strdup(const char *s)
+char	*ft_strdup(const char *s)
 {
-    char    *dest;
-    size_t  len;
-    size_t  i;
+	char	*dest;
+	size_t	len;
+	size_t	i;
 
-    if (!s)
-        return (NULL);
-        
-    i = 0;
-    len = ft_strlen(s);
-    dest = (char *)malloc(sizeof(char) * (len + 1));
-    if (!dest)
-        return (NULL);
-    while (s[i] != '\0')
-    {
-        dest[i] = s[i];
-        i++;
-    }
-    dest[i] = '\0';
-    return (dest);
+	if (!s)
+		return (NULL);
+	i = 0;
+	len = ft_strlen(s);
+	dest = (char *)malloc(sizeof(char) * (len + 1));
+	if (!dest)
+		return (NULL);
+	while (s[i] != '\0')
+	{
+		dest[i] = s[i];
+		i++;
+	}
+	dest[i] = '\0';
+	return (dest);
 }
 
 /**
  * Get string length
  */
-size_t ft_strlen(const char *s)
+size_t	ft_strlen(const char *s)
 {
-    size_t  i;
+	size_t	i;
 
-    if (!s)
-        return (0);
-        
-    i = 0;
-    while (s[i])
-        i++;
-    return (i);
+	if (!s)
+		return (0);
+	i = 0;
+	while (s[i])
+		i++;
+	return (i);
 }
 /**
  * Copy string with size limit
  */
-size_t ft_strlcpy(char *dst, const char *src, size_t size)
+
+size_t	ft_strlcpy(char *dst, const char *src, size_t size)
 {
-    size_t src_len;
-    size_t i;
+	size_t	src_len;
+	size_t	i;
 
-    if (!src)
-        return (0); // Added NULL check
-        
-    src_len = ft_strlen(src); // Calculate length once
-    
-    if (!dst || size == 0)
-        return (src_len);
-        
-    i = 0;
-    while (src[i] && i < size - 1)
-    {
-        dst[i] = src[i];
-        i++;
-    }
-    dst[i] = '\0';
-    return (src_len);
+	if (!src)
+		return (0);
+	src_len = ft_strlen(src);
+	if (!dst || size == 0)
+		return (src_len);
+	i = 0;
+	while (src[i] && i < size - 1)
+	{
+		dst[i] = src[i];
+		i++;
+	}
+	dst[i] = '\0';
+	return (src_len);
 }
-
 
 int	end_with_pipe(char *input)
 {
-    int	i;
+	int	i;
 
-    if (!input)
-        return (0);
-    i = ft_strlen(input) - 1;
-    while (i >= 0 && (input[i] == ' ' || input[i] == '\t'))
-        i--;
-    return (i >= 0 && input[i] == '|');
+	if (!input)
+		return (0);
+	i = ft_strlen(input) - 1;
+	while (i >= 0 && (input[i] == ' ' || input[i] == '\t'))
+		i--;
+	return (i >= 0 && input[i] == '|');
 }
 
 int	is_whitespace_bis(char *str)

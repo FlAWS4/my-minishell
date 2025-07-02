@@ -27,18 +27,18 @@
  */
 void	setup_command_input(t_command *cmd, int input_fd)
 {
-    if (cmd->fd_in != -1 && cmd->fd_in != STDIN_FILENO)
-    {
-        if (dup2(cmd->fd_in, STDIN_FILENO) == -1)
-            error("dup2", "stdin", strerror(errno));
-        close(cmd->fd_in);
-    }
-    else if (input_fd != -1 && input_fd != STDIN_FILENO)
-    {
-        if (dup2(input_fd, STDIN_FILENO) == -1)
-            error("dup2", "stdin", strerror(errno));
-        close(input_fd);
-    }
+	if (cmd->fd_in != -1 && cmd->fd_in != STDIN_FILENO)
+	{
+		if (dup2(cmd->fd_in, STDIN_FILENO) == -1)
+			error("dup2", "stdin", strerror(errno));
+		close(cmd->fd_in);
+	}
+	else if (input_fd != -1 && input_fd != STDIN_FILENO)
+	{
+		if (dup2(input_fd, STDIN_FILENO) == -1)
+			error("dup2", "stdin", strerror(errno));
+		close(input_fd);
+	}
 }
 
 /**
@@ -56,21 +56,21 @@ void	setup_command_input(t_command *cmd, int input_fd)
  */
 void	setup_command_output(t_command *cmd, int pipe_fds[2])
 {
-    if (cmd->fd_out != -1 && cmd->fd_out != STDOUT_FILENO)
-    {
-        if (dup2(cmd->fd_out, STDOUT_FILENO) == -1)
-            error("dup2", "stdout", strerror(errno));
-        close(cmd->fd_out);
-    }
-    else if (cmd->next && pipe_fds[1] != -1)
-    {
-        if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
-            error("dup2", "stdout", strerror(errno));
-    }
-    if (pipe_fds[0] != -1)
-        close(pipe_fds[0]);
-    if (pipe_fds[1] != -1 && pipe_fds[1] != STDOUT_FILENO)
-        close(pipe_fds[1]);
+	if (cmd->fd_out != -1 && cmd->fd_out != STDOUT_FILENO)
+	{
+		if (dup2(cmd->fd_out, STDOUT_FILENO) == -1)
+			error("dup2", "stdout", strerror(errno));
+		close(cmd->fd_out);
+	}
+	else if (cmd->next && pipe_fds[1] != -1)
+	{
+		if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
+			error("dup2", "stdout", strerror(errno));
+	}
+	if (pipe_fds[0] != -1)
+		close(pipe_fds[0]);
+	if (pipe_fds[1] != -1 && pipe_fds[1] != STDOUT_FILENO)
+		close(pipe_fds[1]);
 }
 
 /**
@@ -84,15 +84,16 @@ void	setup_command_output(t_command *cmd, int pipe_fds[2])
  * 2. Setting up output redirection
  * 3. Closing all other file descriptors to prevent leaks
  */
-void setup_command_io(t_command *cmd, int input_fd, int pipe_fds[2])
+void	setup_command_io(t_command *cmd, int input_fd, int pipe_fds[2])
 {
-    setup_command_input(cmd, input_fd);
-    setup_command_output(cmd, pipe_fds);
-    close_all_non_standard_fds();
+	setup_command_input(cmd, input_fd);
+	setup_command_output(cmd, pipe_fds);
+	close_all_non_standard_fds();
 }
 
 /**
- * update_command_redirections - Updates command with new redirection file descriptors
+ * update_command_redirections - 
+ * Updates command with new redirection file descriptors
  * @cmd: Command structure to update
  * @type: Redirection type (REDIR_IN, REDIR_OUT, APPEND)
  * @fd: New file descriptor to set
@@ -106,18 +107,18 @@ void setup_command_io(t_command *cmd, int input_fd, int pipe_fds[2])
  */
 void	update_command_redirections(t_command *cmd, int type, int fd)
 {
-    if (type == REDIR_IN)
-    {
-        if (cmd->fd_in != STDIN_FILENO && cmd->fd_in != -1)
-            close(cmd->fd_in);
-        cmd->fd_in = fd;
-    }
-    else if (type == REDIR_OUT || type == APPEND)
-    {
-        if (cmd->fd_out != STDOUT_FILENO && cmd->fd_out != -1)
-            close(cmd->fd_out);
-        cmd->fd_out = fd;
-    }
+	if (type == REDIR_IN)
+	{
+		if (cmd->fd_in != STDIN_FILENO && cmd->fd_in != -1)
+			close(cmd->fd_in);
+		cmd->fd_in = fd;
+	}
+	else if (type == REDIR_OUT || type == APPEND)
+	{
+		if (cmd->fd_out != STDOUT_FILENO && cmd->fd_out != -1)
+			close(cmd->fd_out);
+		cmd->fd_out = fd;
+	}
 }
 
 /**
@@ -133,18 +134,18 @@ void	update_command_redirections(t_command *cmd, int type, int fd)
  */
 void	apply_command_redirections(t_command *cmd)
 {
-    if (cmd->fd_in != STDIN_FILENO && cmd->fd_in != -1)
-    {
-        if (dup2(cmd->fd_in, STDIN_FILENO) == -1)
-            error("dup2", "stdin", strerror(errno));
-        close(cmd->fd_in);
-        cmd->fd_in = STDIN_FILENO;
-    }
-    if (cmd->fd_out != STDOUT_FILENO && cmd->fd_out != -1)
-    {
-        if (dup2(cmd->fd_out, STDOUT_FILENO) == -1)
-            error("dup2", "stdout", strerror(errno));
-        close(cmd->fd_out);
-        cmd->fd_out = STDOUT_FILENO;
-    }
+	if (cmd->fd_in != STDIN_FILENO && cmd->fd_in != -1)
+	{
+		if (dup2(cmd->fd_in, STDIN_FILENO) == -1)
+			error("dup2", "stdin", strerror(errno));
+		close(cmd->fd_in);
+		cmd->fd_in = STDIN_FILENO;
+	}
+	if (cmd->fd_out != STDOUT_FILENO && cmd->fd_out != -1)
+	{
+		if (dup2(cmd->fd_out, STDOUT_FILENO) == -1)
+			error("dup2", "stdout", strerror(errno));
+		close(cmd->fd_out);
+		cmd->fd_out = STDOUT_FILENO;
+	}
 }

@@ -28,6 +28,7 @@ int	fill_words(t_token *tokens, char **args)
 		return (1);
 	return (0);
 }
+
 int	is_operator(char *str, int i)
 {
 	if (str[i] == '<' && str[i + 1] && str[i + 1] == '<')

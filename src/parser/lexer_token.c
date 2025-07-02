@@ -130,4 +130,3 @@ int	prepare_token_str(t_shell *data)
 		return (1);
 	return (0);
 }
-

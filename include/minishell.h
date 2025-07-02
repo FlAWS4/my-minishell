@@ -77,11 +77,11 @@ extern int	g_exit_status;
 
 typedef struct s_memory_node
 {
-    void                *ptr;
-    int                 cleanup_mode;
-    void                (*free_func)(void *);
-    struct s_memory_node *next;
-}   t_memory_node;
+	void					*ptr;
+	int						cleanup_mode;
+	void					(*free_func)(void *);
+	struct s_memory_node	*next;
+}	t_memory_node;
 
 typedef enum e_token_type
 {
@@ -166,11 +166,11 @@ int		safely_execute_command(t_shell *shell);
 void	disable_control_char_echo(void);
 void	enable_control_char_echo(void);
 void	handle_heredoc_interrupt(int sig);
-void	setup_heredoc_signal_handlers(struct sigaction *old_int,\
+void	setup_heredoc_signal_handlers(struct sigaction *old_int, \
 	struct sigaction *old_quit);
-void	restore_signal_handlers(struct sigaction *old_int,\
+void	restore_signal_handlers(struct sigaction *old_int, \
 	struct sigaction *old_quit);
-void	restore_signals_clear_buffer(struct sigaction *old_int,\
+void	restore_signals_clear_buffer(struct sigaction *old_int, \
 	struct sigaction *old_quit);
 void	display_heredoc_eof_warning(char *delim);
 void	restore_standard_fds(t_shell *shell);
@@ -183,7 +183,7 @@ int		builtin_exit(t_shell *shell, t_command *cmd);
 int		builtin_export(t_shell *shell, t_command *cmd);
 int		builtin_pwd(t_shell *shell);
 int		builtin_unset(t_shell *shell, t_command *cmd);
-int		builtin_help(t_shell *shell);//Add help command
+int		builtin_help(t_shell *shell);
 int		is_builtin(t_command *cmd);
 int		run_builtin(t_shell *shell, t_command *cmd);
 void	run_builtin_command(t_shell *shell, t_command *cmd);
@@ -195,7 +195,7 @@ void	ignore_sigint_and_wait(pid_t child_pid);
 void	setup_and_execute_child_process(t_shell *shell, t_command *cmd);
 void	execute_pipe(t_shell *shell, t_command *cmd, pid_t *pids);
 int		create_pipe_if_needed(t_command *cmd, int pipe_fds[2]);
-int		fork_pipe_child(t_shell *shell, t_command *cmd,\
+int		fork_pipe_child(t_shell *shell, t_command *cmd, \
 	int input_fd, int pipe_fds[2]);
 
 // ENV
@@ -263,15 +263,17 @@ void	close_all_non_standard_fds(void);
 void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd);
 
 // GARBAGE COLLECTOR / ERROR HANDLING
-char	*create_managed_string_copy(t_memory_node **memory_manager, const char *s1);
-char	*join_managed_strings(t_memory_node **memory_manager, const char *s1,
-		 const char *s2);
+char	*create_managed_string_copy(t_memory_node \
+	**memory_manager, const char *s1);
+char	*join_managed_strings(t_memory_node **memory_manager, const char *s1, \
+	const char *s2);
 char	*gc_itoa(t_memory_node **memory_manager, int n);
-int		track_memory_allocation(t_memory_node **memory_manager, void *ptr, int cleanup_mode,
-          void (*free_func)(void *));
+int		track_memory_allocation(t_memory_node **memory_manager, \
+	void *ptr, int cleanup_mode, \
+	void (*free_func)(void *));
 void	release_all_memory(t_memory_node **memory_manager);
-void	*allocate_managed_memory(t_memory_node **memory_manager, size_t size, int cleanup_mode,
-          void (*free_func)(void *));
+void	*allocate_managed_memory(t_memory_node **memory_manager, \
+	size_t size, int cleanup_mode, void (*free_func)(void *));
 void	free_array(void *ptr);
 void	free_redirs(t_redir **redirs);
 void	free_command(t_command **cmd);
