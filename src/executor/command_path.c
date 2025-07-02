@@ -26,10 +26,10 @@
 void	validate_command_exists(t_shell *shell, t_command *cmd)
 {
 	if (!cmd)
-		handle_cmd_error(shell, NULL, "internal error (null command)",
+		display_error_and_exit(shell, NULL, "internal error (null command)",
 			EXIT_FAILURE);
 	if (!cmd->args || !cmd->args[0] || cmd->args[0][0] == '\0')
-		handle_cmd_error(shell, "", "command not found", 127);
+		display_error_and_exit(shell, "", "command not found", 127);
 }
 
 /**
@@ -47,9 +47,9 @@ void	validate_command_exists(t_shell *shell, t_command *cmd)
 static char	*validate_executable_path(t_shell *shell, char *cmd_path)
 {
 	if (access(cmd_path, F_OK) != 0)
-		handle_cmd_error(shell, cmd_path, "No such file or directory\n", 127);
+		display_error_and_exit(shell, cmd_path, "No such file or directory\n", 127);
 	if (access(cmd_path, X_OK) != 0)
-		handle_cmd_error(shell, cmd_path, "Permission denied", 126);
+		display_error_and_exit(shell, cmd_path, "Permission denied", 126);
 	return (cmd_path);
 }
 /**
@@ -109,7 +109,7 @@ static char	*resolve_command_path(t_shell *shell, char *cmd_name)
 
 	executable_path = search_path_for_exec(cmd_name, shell);
 	if (!executable_path)
-		handle_cmd_error(shell, cmd_name, "command not found", 127);
+		display_error_and_exit(shell, cmd_name, "command not found", 127);
 	return (executable_path);
 }
 
@@ -132,7 +132,7 @@ char	*get_command_path(t_shell *shell, t_command *cmd)
 
 	validate_command_exists(shell, cmd);
 	apply_command_redirections(cmd);
-	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+	if (!cmd->args || !cmd->args[0] || !is_fd_writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (ft_strchr(cmd->args[0], '/'))
 		executable_path = validate_executable_path(shell, cmd->args[0]);

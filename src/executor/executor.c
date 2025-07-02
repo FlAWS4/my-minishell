@@ -114,7 +114,7 @@ void	run_builtin_command(t_shell *shell, t_command *cmd)
 	if (process_command_redirections(cmd, shell) == -1)
 		return ;
 	apply_command_redirections(cmd);
-	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+	if (!cmd->args || !cmd->args[0] || !is_fd_writable(STDOUT_FILENO, cmd->args[0]))
 		return (restore_standard_fds(shell), g_exit_status = 1, (void)0);
 	if (!ft_strcmp(cmd->args[0], "exit"))
 		return (builtin_exit(shell, cmd), restore_standard_fds(shell), (void)0);
@@ -139,7 +139,7 @@ void	setup_and_execute_child_process(t_shell *shell, t_command *cmd)
 	if (process_command_redirections(cmd, shell) == -1)
 		clean_and_exit_shell(shell, 1);
 	apply_command_redirections(cmd);
-	if (!cmd->args || !cmd->args[0] || !writable(STDOUT_FILENO, cmd->args[0]))
+	if (!cmd->args || !cmd->args[0] || !is_fd_writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (cmd->args && is_shell_command(cmd->args[0]))
 		update_shell_lvl(shell);

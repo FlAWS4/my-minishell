@@ -46,6 +46,11 @@ void	clean_and_exit_shell(t_shell *shell, int exit_code)
 	rl_clear_history();
 	if (!shell)
 		exit(exit_code);
+	if (shell->default_path)
+	{
+		free(shell->default_path);
+		shell->default_path = NULL;
+	}
 	if (shell->memory_manager)
 		release_all_memory(&shell->memory_manager);
 	if (shell->commands)

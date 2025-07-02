@@ -253,13 +253,13 @@ void	apply_command_redirections(t_command *cmd);
 // SHELL MANAGEMENT AND UTILS
 void	init_shell_fds(t_shell *shell);
 int		is_shell_command(char *cmd);
-int		writable(int fd, const char *cmd_name);
+int		is_fd_writable(int fd, const char *cmd_name);
 void	clean_and_exit_shell(t_shell *shell, int exit_code);
 void	update_shell_lvl(t_shell *shell);
 void	cleanup_shell_file_descriptors(t_shell *shell);
 void	error(const char *cmd, const char *error_item, const char *msg);
 void	error_quoted(const char *cmd, const char *error_item, const char *msg);
-void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
+void	display_error_and_exit(t_shell *shell, const char *cmd, const char *msg,
 			int exit_code);
 void	close_all_non_standard_fds(void);
 void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd);
@@ -366,7 +366,6 @@ int		count_words_split(const char *s, char c);
 char	*ft_strstr(const char *big, const char *little);
 void	ft_display_welcome(void);
 void	*ft_memset(void *s, int c, size_t n);
-void	display_error(int error_type, char *command, char *message);
 char	*ft_substr(char const *s, unsigned int start, size_t len);
 char	*ft_strjoin(const char *s1, const char *s2);
 char	*ft_strdup(const char *s);

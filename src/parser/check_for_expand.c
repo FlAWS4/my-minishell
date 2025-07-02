@@ -51,6 +51,7 @@ int	add_variable(char **result, char *value, int start, int end)
 	free(var);
 	return (i);
 }
+
 int check_variable(t_shell *data, char **result, char *value, int *i)
 {
     char    *var;

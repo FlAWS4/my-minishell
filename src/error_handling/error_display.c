@@ -119,20 +119,39 @@ void	warning(const char *cmd, const char *warning_item, const char *msg)
 	}
 	ft_putchar_fd('\n', STDERR_FILENO);
 }
-
-void	handle_cmd_error(t_shell *shell, const char *cmd, const char *msg,
-	int exit_code)
+/**
+ * display_error_and_exit - Display error message and exit the shell
+ * @shell: Shell context containing resources to clean up
+ * @cmd: Command that caused the error
+ * @msg: Error message to display
+ * @exit_code: Exit status code to return
+ *
+ * Displays an error message and then terminates the shell with the specified
+ * exit code after cleaning up resources.
+ */
+void    display_error_and_exit(t_shell *shell, const char *cmd, const char *msg,
+    int exit_code)
 {
-	error(NULL, cmd, msg);
-	clean_and_exit_shell(shell, exit_code);
+    error(NULL, cmd, msg);
+    clean_and_exit_shell(shell, exit_code);
 }
 
-int	writable(int fd, const char *cmd_name)
+/**
+ * is_fd_is_fd_writable - Check if a file descriptor is is_fd_writable
+ * @fd: File descriptor to check
+ * @cmd_name: Command name to include in error message if fd is not is_fd_writable
+ *
+ * Attempts to write an empty string to the file descriptor to verify
+ * it's is_fd_writable. Displays an error using the system error message if not.
+ *
+ * Return: 1 if is_fd_writable, 0 otherwise
+ */
+int    is_fd_writable(int fd, const char *cmd_name)
 {
-	if (write(fd, "", 0) == -1)
-	{
-		error(cmd_name, NULL, strerror(errno));
-		return (0);
-	}
-	return (1);
+    if (write(fd, "", 0) == -1)
+    {
+        error(cmd_name, NULL, strerror(errno));
+        return (0);
+    }
+    return (1);
 }

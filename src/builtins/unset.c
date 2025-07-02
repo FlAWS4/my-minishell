@@ -46,6 +46,7 @@ static char	**duplicate_env_without_pos(t_shell *shell, int skip_pos)
 	new_env[j] = NULL;
 	return (new_env);
 }
+
 static void remove_env_var(t_shell *shell, char *var_name)
 {
     int pos;
