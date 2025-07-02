@@ -46,17 +46,22 @@ static char	**duplicate_env_without_pos(t_shell *shell, int skip_pos)
 	new_env[j] = NULL;
 	return (new_env);
 }
-
-static void	remove_env_var(t_shell *shell, char *var_name)
+static void remove_env_var(t_shell *shell, char *var_name)
 {
-	int	pos;
+    int pos;
 
-	if (!shell || !shell->env || !var_name || !*var_name)
-		return ;
-	pos = find_var_pos(var_name, shell);
-	if (pos == -1)
-		return ;
-	shell->env = duplicate_env_without_pos(shell, pos);
+    if (!shell || !shell->env || !var_name || !*var_name)
+        return;
+    
+    // Set flag regardless of whether PATH exists
+    if (ft_strcmp(var_name, "PATH") == 0)
+        shell->path_was_unset = 1;
+    
+    pos = find_var_pos(var_name, shell);
+    if (pos == -1)
+        return;
+    
+    shell->env = duplicate_env_without_pos(shell, pos);
 }
 
 int	builtin_unset(t_shell *shell, t_command *cmd)

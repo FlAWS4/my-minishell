@@ -148,6 +148,8 @@ typedef struct s_shell
 	int					saved_stdout;
 	int					heredoc_interupt;
 	int					pipe_interupt;
+	int					path_was_unset;
+	int					pipe_count;
 	char				*default_path;
 }	t_shell;
 
@@ -389,7 +391,5 @@ int		ft_safe_size_add(size_t a, size_t b, size_t *result);
 void	*ft_calloc(size_t nmemb, size_t size);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
-char	*ft_strrchr(const char *s, int c);
-char	*ft_strtok(char *str, const char *delim);
 
 #endif

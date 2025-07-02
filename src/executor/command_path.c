@@ -74,7 +74,7 @@ char	*search_path_for_exec(char *cmd, t_shell *shell)
 
 	i = 0;
 	path_env = get_env_value(shell, "PATH");
-	if (!path_env && shell->default_path)
+	if (!path_env && shell->default_path && !shell->path_was_unset)
 		path_env = shell->default_path;
 	if (!path_env)
 		return (NULL);
