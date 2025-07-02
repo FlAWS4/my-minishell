@@ -55,24 +55,35 @@ char	*format_shell_prompt(t_shell *shell)
     char	*home_dir;
     char	*dir_display;
 
-	user = get_env_value(shell, "USER");
-	if (!user)
-		user = "user";
-	cwd = getcwd(NULL, 0);
-	if (!cwd)
-		cwd = ft_strdup("unknown");
-	home_dir = get_env_value(shell, "HOME");
-	if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
-	{
-		dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
-		free(cwd);
-	}
-	else
-	dir_display = cwd;
-	prompt = build_prompt_segment(user, dir_display);
-	free(dir_display);
-	return (prompt);
+    user = get_env_value(shell, "USER");
+    if (!user)
+        user = "user";
+    
+    // Use PWD environment variable first for consistent display with symlinks
+    cwd = get_env_value(shell, "PWD");
+    if (!cwd)
+    {
+        // Fall back to getcwd() only if PWD isn't set
+        cwd = getcwd(NULL, 0);
+        if (!cwd)
+            cwd = ft_strdup("unknown");
+    }
+    else
+        cwd = ft_strdup(cwd); // Make a copy since we'll free it later
+        
+    home_dir = get_env_value(shell, "HOME");
+    if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
+    {
+        dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
+        free(cwd);
+    }
+    else
+        dir_display = cwd;
+    prompt = build_prompt_segment(user, dir_display);
+    free(dir_display);
+    return (prompt);
 }
+
 /**
  * Display commands usage with nice formatting
  */

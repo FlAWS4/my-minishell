@@ -1,0 +1,159 @@
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:readline
+   ...
+}
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:xmalloc
+   fun:add_history
+   ...
+}
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:xmalloc
+   ...
+   fun:add_history
+   ...
+}
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:readline
+   ...
+}
+{
+  <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   ...
+   fun:readline
+   ...
+}
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:readline_internal_teardown
+   fun:readline
+   fun:main
+}
+{
+   <history>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:xmalloc
+   fun:add_history
+   fun:main
+}
+{
+   <ls>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:/usr/bin/ls
+   ...
+   fun:(below main)
+}
+{
+   <cat>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:/usr/bin/cat
+   ...
+   fun:(below main)
+}
+{
+   <printf_not_init>
+   Memcheck:Cond
+   fun:ft_eval_print
+   fun:ft_eval_format
+   fun:ft_printf
+   ...
+   fun:main
+}
+{
+   <printf_not_init2>
+   Memcheck:Cond
+   fun:ft_eval_print
+   fun:ft_eval_format
+   fun:ft_printf
+   ...
+   fun:ft_loop_prompt
+}
+{
+   <printf_not_init_fork_built_in>
+   Memcheck:Cond
+   fun:ft_eval_print
+   fun:ft_eval_format
+   fun:ft_printf
+   ...
+   fun:do_fork
+   ...
+   fun:ft_exec
+}
+{
+   <readline_leak_wtf>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:rl_add_undo
+   ...
+   fun:readline
+   fun:ft_read_prompt
+   fun:main
+}
+{
+   <ft_printf error>
+   Memcheck:Cond
+   fun:ft_eval_print
+   fun:ft_eval_format
+   fun:ft_printf
+   ...
+   fun:ft_exec_end_or_pipe
+   fun:ft_exec
+}
+{
+   <readline leaks>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:readline_internal_teardown
+   fun:readline
+   fun:ft_read_prompt
+   fun:main
+}
+{
+   <readline heredoc>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:readline_internal_teardown
+   fun:readline
+   fun:ft_do_heredoc
+   fun:ft_heredoc
+   fun:ft_check_pars
+   fun:ft_read_prompt
+   fun:main
+}
