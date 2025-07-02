@@ -157,7 +157,7 @@ char	*join_managed_strings(t_memory_node **memory_manager,
 	return (result);
 }
 
-char	*create_managed_string_copy(t_memory_node **memory_manager,
+char	*managed_string_copy(t_memory_node **memory_manager,
 	const char *s1)
 {
 	char	*dest;

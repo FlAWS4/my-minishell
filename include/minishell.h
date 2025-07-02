@@ -265,7 +265,7 @@ void	close_all_non_standard_fds(void);
 void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd);
 
 // GARBAGE COLLECTOR / ERROR HANDLING
-char	*create_managed_string_copy(t_memory_node \
+char	*managed_string_copy(t_memory_node \
 	**memory_manager, const char *s1);
 char	*join_managed_strings(t_memory_node **memory_manager, const char *s1, \
 	const char *s2);

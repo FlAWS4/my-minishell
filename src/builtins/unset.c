@@ -39,7 +39,7 @@ static char	**duplicate_env_without_pos(t_shell *shell, int skip_pos)
 	while (i < size)
 	{
 		if (i != skip_pos)
-			new_env[j++] = create_managed_string_copy \
+			new_env[j++] = managed_string_copy \
 			(&shell->memory_manager, shell->env[i]);
 		i++;
 	}

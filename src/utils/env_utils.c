@@ -19,7 +19,7 @@ int	duplicate_existing_vars(t_shell *shell, char **new_env, int size)
 	i = 0;
 	while (i < size)
 	{
-		new_env[i] = create_managed_string_copy \
+		new_env[i] = managed_string_copy \
 		(&shell->memory_manager, shell->env[i]);
 		if (!new_env[i])
 		{
@@ -47,7 +47,7 @@ static int	duplicate_env_vars(char **envp, t_shell *shell)
 	i = 0;
 	while (envp[i])
 	{
-		shell->env[i] = create_managed_string_copy \
+		shell->env[i] = managed_string_copy \
 		(&shell->memory_manager, envp[i]);
 		if (!shell->env[i])
 			return (env_error("failed to init environment\n", \

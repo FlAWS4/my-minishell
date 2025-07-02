@@ -32,8 +32,8 @@ char	*combine_command_arguments(t_shell *shell, char **args)
 
 	i = 0;
 	if (!args || !args[0])
-		return (create_managed_string_copy(&shell->memory_manager, ""));
-	result = create_managed_string_copy(&shell->memory_manager, args[i]);
+		return (managed_string_copy(&shell->memory_manager, ""));
+	result = managed_string_copy(&shell->memory_manager, args[i]);
 	i++;
 	while (args[i])
 	{
@@ -87,10 +87,8 @@ int	open_redirection_target(t_redir *redir, t_command *cmd)
 		return (0);
 	}
 	if (!redir->file_or_del || !*redir->file_or_del)
-	{
-		error(NULL, "", "No such file or directory\n");
-		return (-1);
-	}
+		return(error(NULL, "", "No such file or directory\n"), -1);
+
 	if (redir->type == REDIR_IN)
 		return (open_file_for_input(redir->file_or_del));
 	else if (redir->type == REDIR_OUT)

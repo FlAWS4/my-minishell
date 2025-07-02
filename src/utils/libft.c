@@ -85,27 +85,27 @@ void	ft_display_welcome(void)
 
 int	ft_atoi(const char *nptr)
 {
-	int		i;
-	int		sign;
-	long	result;
+	int	nb;
+	int	i;
+	int	signe;
 
+	nb = 0;
 	i = 0;
-	sign = 1;
-	result = 0;
-	while (is_whitespace(nptr[i]))
+	signe = 1;
+	if (!nptr)
+		return (0);
+	while ((nptr[i] >= 9 && nptr[i] <= 13) || nptr[i] == ' ')
 		i++;
-	if (nptr[i] == '-' || nptr[i] == '+')
+	if (nptr[i] == '+' || nptr[i] == '-')
 	{
 		if (nptr[i] == '-')
-			sign = -1;
+			signe = -signe;
 		i++;
 	}
 	while (nptr[i] >= '0' && nptr[i] <= '9')
 	{
-		if (result > (INT_MAX - (nptr[i] - '0')) / 10)
-			return (sign == 1 ? INT_MAX : INT_MIN);
-		result = (result * 10) + (nptr[i] - '0');
+		nb = nb * 10 + (nptr[i] - '0');
 		i++;
 	}
-	return ((int)(result * sign));
+	return (nb * signe);
 }

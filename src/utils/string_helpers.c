@@ -81,14 +81,12 @@ char	*ft_strjoin(const char *s1, const char *s2)
 	char	*result;
 	size_t	i;
 	size_t	j;
-	size_t	total_size;
 
 	if (!s1 || !s2)
 		return (NULL);
-	if (!ft_safe_size_add(ft_strlen(s1), \
-	ft_strlen(s2), &total_size))
+	if (!ft_safe_size_add(ft_strlen(s1), ft_strlen(s2), &j))
 		return (NULL);
-	result = (char *)malloc(total_size);
+	result = (char *)malloc(j);
 	if (!result)
 		return (NULL);
 	i = 0;

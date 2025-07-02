@@ -53,7 +53,7 @@ int	add_to_env(t_shell *shell, char *new_var)
 		sizeof(char *) * (size + 2), MEM_ERROR_RECOVERABLE, NULL);
 	if (!new_env || !duplicate_existing_vars(shell, new_env, size))
 		return (1);
-	new_env[size] = create_managed_string_copy(&shell->memory_manager, new_var);
+	new_env[size] = managed_string_copy(&shell->memory_manager, new_var);
 	if (!new_env[size])
 		return (env_error("minishell: failed to duplicate new variable\n",
 				&shell->memory_manager));
@@ -74,7 +74,7 @@ static char	**duplicate_env(t_shell *shell, int new_size)
 		return (NULL);
 	while (shell->env[i] && i < new_size - 1)
 	{
-		new_env[i] = create_managed_string_copy(&shell->memory_manager, \
+		new_env[i] = managed_string_copy(&shell->memory_manager, \
 			shell->env[i]);
 		if (!new_env[i])
 			return (NULL);
@@ -85,7 +85,7 @@ static char	**duplicate_env(t_shell *shell, int new_size)
 
 static int	add_new_var(t_shell *shell, char **new_env, char *new_var, int pos)
 {
-	new_env[pos] = create_managed_string_copy(&shell->memory_manager, new_var);
+	new_env[pos] = managed_string_copy(&shell->memory_manager, new_var);
 	if (!new_env[pos])
 	{
 		env_error("minishell: failed to duplicate new variable\n",
