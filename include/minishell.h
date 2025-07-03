@@ -161,7 +161,6 @@ typedef struct s_pipe_data
 	int		*input_fd;
 }	t_pipe_data;
 
-
 		/*SIGNAL HANDLING FUNCTIONS*/
 void	setup_signals(void);
 void	handle_interrupt(int sig);
@@ -204,7 +203,6 @@ int input_fd, int pipe_fds[2]);
 char	*search_path_for_exec(char *cmd, t_shell *shell);
 char	*get_command_path(t_shell *shell, t_command *cmd);
 
-
 		/* ENVIRONMENT FUNCTIONS */
 char	**get_env(char **envp, t_shell *shell);
 char	*get_env_value(t_shell *shell, const char *var_name);
@@ -220,15 +218,14 @@ int		env_has_path(char **envp);
 void	sort_env_for_export(char **env_copy);
 void	update_env(t_shell *shell, char *var, char *new_value);
 
-           /*HEREDOC REDIRECT FUNCTIONS*/
+/*HEREDOC REDIRECT FUNCTIONS*/
 char	*capture_heredoc(t_redir *redirs, t_shell *data);
 int		setup_heredoc_pipe(t_command *cmd, t_redir *redir);
 char	*get_next_line(int fd, int clear);
 char	*read_and_store(char *buffer, int fd);
 char	*update_buffer(char *buffer);
 char	*extract_line(char *buffer);
-
-          /* PIPE EXECUTION FUNCTIONS */
+/* PIPE EXECUTION FUNCTIONS */
 void	setup_pipeline_execution(t_shell *shell, t_command *cmd);
 char	*combine_command_arguments(t_shell *shell, char **args);
 int		process_single_piped_command(t_shell *shell, t_command *cmd,
@@ -237,7 +234,7 @@ void	collect_pipeline_exit_status(pid_t *pids, int count, pid_t last_pid);
 void	cleanup_finished_processes(pid_t *pids, int count);
 void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
 			int pipe_fds[2]);
-            /* REDIRECTION FUNCTIONS */
+/* REDIRECTION FUNCTIONS */
 int		process_command_redirections(t_command *cmd, t_shell *shell);
 void	update_command_redirections(t_command *cmd, int type, int fd);
 int		report_file_error(const char *filename);
@@ -250,7 +247,7 @@ void	setup_command_output(t_command *cmd, int pipe_fds[2]);
 void	setup_command_input(t_command *cmd, int input_fd);
 void	apply_command_redirections(t_command *cmd);
 
-   /* SHELL INITIALIZATION AND MANAGEMENT */
+/* SHELL INITIALIZATION AND MANAGEMENT */
 void	init_shell_fds(t_shell *shell);
 int		is_shell_command(char *cmd);
 int		is_fd_writable(int fd, const char *cmd_name);
@@ -264,7 +261,7 @@ void	display_error_and_exit(t_shell *shell, const char *cmd, const char *msg,
 void	close_all_non_standard_fds(void);
 void	close_unused_command_fds(t_command *all_cmds, t_command *current_cmd);
 
-	/* MEMORY MANAGEMENT FUNCTIONS */
+/* MEMORY MANAGEMENT FUNCTIONS */
 char	*managed_string_copy(t_memory_node \
 	**memory_manager, const char *s1);
 char	*join_managed_strings(t_memory_node **memory_manager, const char *s1, \
@@ -385,5 +382,10 @@ int		ft_safe_size_add(size_t a, size_t b, size_t *result);
 void	*ft_calloc(size_t nmemb, size_t size);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 size_t	ft_strlcat(char *dst, const char *src, size_t size);
+char	*get_current_directory(t_shell *shell);
+char	*build_prompt_segment(char *user, char *dir_display);
+void	display_commands(void);
+void	display_env_commands(void);
+void	display_operators(void);
 
 #endif

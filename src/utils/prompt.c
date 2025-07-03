@@ -24,7 +24,7 @@
  *
  * Return: Allocated string with formatted prompt (must be freed by caller)
  */
-static char	*build_prompt_segment(char *user, char *dir_display)
+char	*build_prompt_segment(char *user, char *dir_display)
 {
 	char	*prompt;
 	char	*temp;
@@ -47,59 +47,11 @@ static char	*build_prompt_segment(char *user, char *dir_display)
 	free(temp);
 	return (prompt);
 }
-/**
- * format_shell_prompt - 
- * Generate a formatted shell prompt with user and current directory
- * @shell: Shell structure containing environment variables
- *
- * Constructs a prompt string that includes:
- * - Username from environment variable USER
- * - Current working directory (PWD), shortened with ~ for home directory
- * 
- * Returns: Allocated string with formatted prompt (must be freed by caller)
- */
-static char *get_current_directory(t_shell *shell)
-{
-    char *cwd;
-
-    cwd = get_env_value(shell, "PWD");
-    if (cwd)
-        return (ft_strdup(cwd));
-    cwd = getcwd(NULL, 0);
-    if (!cwd)
-        return (ft_strdup("unknown"));
-    return (cwd);
-}
-
-char	*format_shell_prompt(t_shell *shell)
-{
-    char	*cwd;
-    char	*user;
-    char	*prompt;
-    char	*home_dir;
-    char	*dir_display;
-
-    user = get_env_value(shell, "USER");
-    if (!user)
-        user = "user";
-    cwd = get_current_directory(shell);
-    home_dir = get_env_value(shell, "HOME");
-    if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
-    {
-        dir_display = ft_strjoin("~", cwd + ft_strlen(home_dir));
-        free(cwd);
-    }
-    else
-        dir_display = cwd;
-    prompt = build_prompt_segment(user, dir_display);
-    free(dir_display);
-    return (prompt);
-}
 
 /**
  * Display commands usage with nice formatting
  */
-static	void	display_commands(void)
+void	display_commands(void)
 {
 	printf("%s┌─ %sBuilt-in Commands%s ─────────────────────┐%s\n", \
 		BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
@@ -118,7 +70,7 @@ static	void	display_commands(void)
 /**
  * Display environment commands with fancy formatting
  */
-static void	display_env_commands(void)
+void	display_env_commands(void)
 {
 	printf("%s┌─ %sEnvironment Commands%s ──────────────────┐%s\n", \
 		BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
@@ -135,7 +87,7 @@ static void	display_env_commands(void)
 /**
  * Display redirection and pipe usage with beautiful formatting
  */
-static void	display_operators(void)
+void	display_operators(void)
 {
 	printf("%s┌─ %sOperators%s ────────────────────────────┐%s\n", \
 		BOLD_WHITE, BOLD_YELLOW, BOLD_WHITE, RESET);
