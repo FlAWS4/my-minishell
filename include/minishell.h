@@ -301,7 +301,7 @@ int		check_unsupported_character(t_token **tokens);
 int		check_token_error(t_token **tokens);
 int		check_unsupported_character(t_token **tokens);
 
-	/* COMMAND AND ARGUMENT HANDLING FUNCTIONS */
+/* COMMAND AND ARGUMENT HANDLING FUNCTIONS */
 t_redir	*init_redir(t_shell *data);
 int		split_cmd_with_pipe(t_shell *data);
 int		count_pipe(t_shell *data);
@@ -347,6 +347,13 @@ int		find_equal(char *str);
 void	init_for_norm(int *i, int *start);
 int		split_tokens(t_token *current, char *str);
 int		expand_token(t_shell *data);
+
+/* Utills CD FUNCTIONS */
+void	print_cd_error(char *target);
+char	*get_home_or_oldpwd(t_shell *shell, int is_oldpwd);
+char	*get_cd_destination(t_shell *shell, char *arg);
+char	*create_full_path(char *oldpwd, char *target);
+int		check_symlink(char *path, char *oldpwd, char *target);
 
 /* UTILITY FUNCTIONS */
 char	*format_shell_prompt(t_shell *shell);

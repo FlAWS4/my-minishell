@@ -50,7 +50,7 @@ SRC_FILES	=	main.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
 				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
 				error_handling/error_display.c error_handling/error_free.c \
-				error_handling/gerbage_collector.c\
+				error_handling/gerbage_collector.c utils/cd_helpers.c\
 				utils/expander_utils.c utils/libft.c utils/init_env.c \
 				utils/env_utils.c utils/string_utils.c utils/shell_lifecycle.c \
 				utils/string_helpers.c utils/string_tools.c utils/string_extras.c\
