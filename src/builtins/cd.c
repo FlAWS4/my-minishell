@@ -80,24 +80,29 @@ static char	*create_full_path(char *oldpwd, char *target)
 /**
  * Checks if a path is a symlink
  */
-static int	check_symlink(char *path, char *oldpwd, char *target)
+static int check_symlink(char *path, char *oldpwd, char *target)
 {
-    struct stat	path_stat;
-    char		*full_path;
-    int			is_symlink;
+    struct stat path_stat;
+    char *full_path;
+    int is_symlink = 0;
 
-    (void)path; // Unused parameter
-    is_symlink = 0;
+    (void)path;
     if (target[0] != '/' && oldpwd)
     {
         full_path = create_full_path(oldpwd, target);
-        if (full_path && lstat(full_path, &path_stat) == 0)
-            is_symlink = S_ISLNK(path_stat.st_mode);
-        free(full_path);
+        if (full_path)
+        {
+            // Use lstat to check if the path is a symlink
+            if (lstat(full_path, &path_stat) == 0)
+                is_symlink = S_ISLNK(path_stat.st_mode);
+            free(full_path);
+        }
     }
+    // Absolute path - check directly
     else if (lstat(target, &path_stat) == 0)
         is_symlink = S_ISLNK(path_stat.st_mode);
-    return (is_symlink);
+
+    return is_symlink;
 }
 
 /**
@@ -129,30 +134,31 @@ static char	*create_symlink_path(char *oldpwd, char *target)
 /**
  * Updates PWD variables after changing directory
  */
-static int	update_pwd_vars_with_logical_path(t_shell *shell, char *target)
+static int update_pwd_vars_with_logical_path(t_shell *shell, char *target)
 {
-    char	*oldpwd;
-    char	*logical_path;
-    int		is_symlink;
+    char *oldpwd;
+    char *logical_path;
+    int is_symlink;
+    int pwd_was_set;
 
+    pwd_was_set = (get_env_value(shell, "PWD") != NULL);
     oldpwd = get_env_value(shell, "PWD");
     is_symlink = check_symlink(target, oldpwd, target);
-    
     if (is_symlink)
         logical_path = create_symlink_path(oldpwd, target);
     else
         logical_path = getcwd(NULL, 0);
-    
     if (!logical_path)
     {
         error("getcwd", NULL, strerror(errno));
         g_exit_status = 1;
         return (1);
     }
-    
     if (oldpwd)
         update_env(shell, "OLDPWD", oldpwd);
-    update_env(shell, "PWD", logical_path);
+    if (pwd_was_set)
+        update_env(shell, "PWD", logical_path);
+        
     free(logical_path);
     return (0);
 }

@@ -47,31 +47,42 @@ static char	*build_prompt_segment(char *user, char *dir_display)
 	free(temp);
 	return (prompt);
 }
+/**
+ * format_shell_prompt - 
+ * Generate a formatted shell prompt with user and current directory
+ * @shell: Shell structure containing environment variables
+ *
+ * Constructs a prompt string that includes:
+ * - Username from environment variable USER
+ * - Current working directory (PWD), shortened with ~ for home directory
+ * 
+ * Returns: Allocated string with formatted prompt (must be freed by caller)
+ */
+static char *get_current_directory(t_shell *shell)
+{
+    char *cwd;
+
+    cwd = get_env_value(shell, "PWD");
+    if (cwd)
+        return (ft_strdup(cwd));
+    cwd = getcwd(NULL, 0);
+    if (!cwd)
+        return (ft_strdup("unknown"));
+    return (cwd);
+}
 
 char	*format_shell_prompt(t_shell *shell)
 {
-	char	*cwd;
-	char	*user;
-	char	*prompt;
-	char	*home_dir;
-	char	*dir_display;
+    char	*cwd;
+    char	*user;
+    char	*prompt;
+    char	*home_dir;
+    char	*dir_display;
 
     user = get_env_value(shell, "USER");
     if (!user)
         user = "user";
-    
-    // Use PWD environment variable first for consistent display with symlinks
-    cwd = get_env_value(shell, "PWD");
-    if (!cwd)
-    {
-        // Fall back to getcwd() only if PWD isn't set
-        cwd = getcwd(NULL, 0);
-        if (!cwd)
-            cwd = ft_strdup("unknown");
-    }
-    else
-        cwd = ft_strdup(cwd); // Make a copy since we'll free it later
-        
+    cwd = get_current_directory(shell);
     home_dir = get_env_value(shell, "HOME");
     if (home_dir && ft_strncmp(cwd, home_dir, ft_strlen(home_dir)) == 0)
     {
