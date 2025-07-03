@@ -48,7 +48,7 @@ SRC_FILES	=	main.c \
 				executor/redir_fds.c executor/redir_close.c \
 				executor/commands.c executor/ambiguous_redirection.c \
 				builtins/cd.c builtins/echo.c builtins/env.c builtins/exit.c \
-				builtins/export.c builtins/pwd.c builtins/unset.c builtins/history.c \
+				builtins/export.c builtins/pwd.c builtins/unset.c \
 				error_handling/error_display.c error_handling/error_free.c \
 				error_handling/gerbage_collector.c utils/cd_helpers.c\
 				utils/expander_utils.c utils/libft.c utils/init_env.c \
