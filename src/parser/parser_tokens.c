@@ -12,6 +12,17 @@
 
 #include "minishell.h"
 
+/**
+ * check_unsupported_character - Checks for unsupported characters in tokens
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function iterates through the tokens and checks 
+ * for unsupported characters.
+ * If an unsupported character is found,
+ *  it adds a syntax error to the token list.
+ * Returns 0 if no errors are found, 1 if an error is added.
+ */
+
 static int	check_inside_pipe(t_token **tokens)
 {
 	t_token	*token;
@@ -39,6 +50,15 @@ static int	check_inside_pipe(t_token **tokens)
 	}
 	return (check_token_error(tokens));
 }
+
+/**
+ * check_operator - Checks for syntax errors related to operators
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function checks if operators are followed by valid tokens.
+ * If an operator is followed by an invalid token or if there are
+ * consecutive operators, it adds a syntax error to the token list.
+ */
 
 static void	check_operator(t_token **tokens)
 {
@@ -68,6 +88,16 @@ static void	check_operator(t_token **tokens)
 		token = token->next;
 	}
 }
+
+/**
+ * syntax_check - Performs syntax checks on the command structure
+ * @cmd: Pointer to the shell command structure
+ *
+ * This function checks for various syntax errors in the command tokens.
+ * It checks for token errors, operator errors, unsupported characters,
+ * and splits commands with pipes.
+ * Returns 0 if no errors are found, 1 if an error is detected.
+ */
 
 int	syntax_check(t_shell *cmd)
 {

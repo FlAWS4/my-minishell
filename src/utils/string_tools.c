@@ -12,10 +12,6 @@
 
 #include "minishell.h"
 
-/**
- * Allocate and zero-initialize memory
- * Checks for overflow before allocation
- */
 void	*ft_calloc(size_t nmemb, size_t size)
 {
 	void	*mem;
@@ -29,10 +25,6 @@ void	*ft_calloc(size_t nmemb, size_t size)
 	return (mem);
 }
 
-/**
- * Count words in a string
- * Words are defined as sequences of characters separated by delimiter c
- */
 int	count_words_split(const char *s, char c)
 {
 	int	count;
@@ -75,10 +67,6 @@ static char	*get_next_word(const char *s, char c, int *i)
 	return (word);
 }
 
-/**
- * Clean up split result on error
- * Frees all allocated memory
- */
 static void	free_split(char **result, int count)
 {
 	int	i;
@@ -92,10 +80,6 @@ static void	free_split(char **result, int count)
 	free(result);
 }
 
-/**
- * Split a string by delimiter
- * Returns array of strings, last element is NULL
- */
 char	**ft_split(const char *s, char c)
 {
 	int		i;

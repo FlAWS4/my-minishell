@@ -12,6 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * Checks if the variable is an environment variable
+ * @data: Pointer to the shell data structure
+ * @var: The variable to check
+ *
+ * This function checks if the variable starts with '$' and is a valid
+ * environment variable. It returns 1 if it exists, 0 if it does not,
+ * and -1 on error (e.g., memory allocation failure).
+ */
+
 int	is_env_variable(t_shell *data, char *var)
 {
 	char	**env_copy;
@@ -35,6 +45,16 @@ int	is_env_variable(t_shell *data, char *var)
 	return (0);
 }
 
+/**
+ * Expands the value of the environment variable and joins it with the args
+ * @data: Pointer to the shell data structure
+ * @args: The original arguments string
+ * @dollar: The variable to expand (e.g., "$VAR")
+ *
+ * This function expands the value of the environment variable and replaces
+ * it in the args string. It returns the new string or NULL on error.
+ */
+
 char	*expand_and_join(t_shell *data, char *args, char *dollar)
 {
 	char	*expanded;
@@ -50,6 +70,15 @@ char	*expand_and_join(t_shell *data, char *args, char *dollar)
 	return (result);
 }
 
+/**
+ * Removes the dollar sign from the beginning of the args string
+ * @args: The original arguments string
+ *
+ * This function finds the first occurrence of a dollar sign in the args string,
+ * removes it, and returns the substring before the dollar sign. If there is no
+ * dollar sign at the beginning, it returns NULL.
+ */
+
 char	*remove_dollar(char *args)
 {
 	char	*result;
@@ -63,6 +92,16 @@ char	*remove_dollar(char *args)
 	result = ft_substr(args, 0, i);
 	return (result);
 }
+
+/**
+ * Checks if the variable exists in the environment and expands it if necessary
+ * @data: Pointer to the shell data structure
+ * @args: The original arguments string
+ *
+ * This function checks if the variable (e.g., "$VAR") exists in the environment.
+ * If it does, it expands it and returns the new string. If it does not exist,
+ * it removes the dollar sign and returns the modified string.
+ */
 
 char	*is_exist(t_shell *data, char *args)
 {
@@ -86,6 +125,16 @@ char	*is_exist(t_shell *data, char *args)
 		return (NULL);
 	return (str);
 }
+
+/**
+ * Adds the variable to the result string
+ * @result: Pointer to the result string
+ * @var: The variable to add
+ *
+ * This function appends the variable to the result string. If the result string
+ * is NULL, it duplicates the variable. If it is not NULL, it joins the variable
+ * with the existing result string. Returns 0 on success, -1 on error.
+ */
 
 int	add_text(char **result, char *var)
 {

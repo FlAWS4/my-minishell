@@ -65,6 +65,17 @@ static char	*get_line(t_shell *data)
 	return (str);
 }
 
+/**
+ * read_and_store_heredoc - Reads lines from standard input until a delimiter
+ * is found, storing them in a dynamically allocated string.
+ * @redir: The redirection structure containing the delimiter.
+ * @data: The shell data structure.
+ * @strings: A structure to hold the current line and accumulated string.
+ *
+ * Returns a dynamically allocated string containing all lines read,
+ * or NULL if an error occurs or if the heredoc is interrupted.
+ */
+
 static char	*read_and_store_heredoc(t_redir *redir, \
 	t_shell *data, t_char *strings)
 {
@@ -90,6 +101,17 @@ static char	*read_and_store_heredoc(t_redir *redir, \
 	}
 	return (free(strings->line), strings->str);
 }
+
+/**
+ * capture_heredoc - Captures input for a heredoc redirection.
+ * Sets up signal handlers to handle interruptions and disables echo
+ * for control characters during input.
+ * @redir: The redirection structure containing the delimiter.
+ * @data: The shell data structure.
+ *
+ * Returns a dynamically allocated string containing the heredoc content,
+ * or NULL if an error occurs or if the heredoc is interrupted.
+ */
 
 char	*capture_heredoc(t_redir *redir, t_shell *data)
 {

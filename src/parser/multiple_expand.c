@@ -12,13 +12,24 @@
 
 #include "minishell.h"
 
-int	multiple_expand_bis(t_shell *data, char *input, char **str)
+/**
+ * expand_single_variable - Expands a single variable in the input string
+ * @data: The shell data structure containing environment variables
+ * @input: The input string potentially containing variables to expand
+ * @str: Pointer to the string where the result will be stored
+ *
+ * This function iterates through the input string, looking for dollar signs
+ * indicating variables. It expands these variables and constructs a new string.
+ * Returns 0 on success, -1 on failure.
+ */
+
+int	expand_single_variable(t_shell *data, char *input, char **str)
 {
 	char	*result;
 	int		i;
 	int		start;
 
-	init_for_norm(&i, &start);
+	init_parsing_indices(&i, &start);
 	result = ft_strdup("");
 	if (!result)
 		return (-1);
@@ -41,23 +52,18 @@ int	multiple_expand_bis(t_shell *data, char *input, char **str)
 	return (0);
 }
 
-int	expand_arguments_bis(t_shell *data, char *input, char **str)
-{
-	char	*tmp;
-
-	tmp = NULL;
-	tmp = is_exist(data, input);
-	if (!tmp)
-	{
-		*str = ft_strdup("\n");
-		if (!*str)
-			return (free(tmp), -1);
-	}
-	*str = ft_strdup(tmp);
-	if (!*str)
-		return (free(tmp), -1);
-	return (free(tmp), 0);
-}
+/**
+ * multiple_expand - Expands multiple variables in a token's value
+ * @data: The shell data structure containing environment variables
+ * @tokens: The token containing the value to expand
+ * @args: Pointer to the string where the result will be stored
+ *
+ * This function iterates through the token's value, looking for dollar signs
+ * indicating variables. It expands these variables and constructs a new string.
+ * Returns 0 on success, -1 on failure.
+ * This function is designed to handle cases where multiple variables
+ * may be present in the token's value, allowing for complex expansions.
+ */
 
 int	multiple_expand(t_shell *data, t_token *tokens, char **args)
 {

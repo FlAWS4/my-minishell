@@ -12,9 +12,6 @@
 
 #include "minishell.h"
 
-/**
- * Write string to file descriptor
- */
 void	ft_putstr_fd(const char *s, int fd)
 {
 	size_t	len;
@@ -67,9 +64,6 @@ char	*ft_strchr(const char *s, int c)
 	return (NULL);
 }
 
-/**
- * Extract substring from string
- */
 char	*ft_substr(char const *s, unsigned int start, size_t len)
 {
 	unsigned int	i;

@@ -12,6 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * return_token_type - Returns the string representation of a token type
+ * @t_type: Pointer to the token whose type is to be returned
+ *
+ * This function checks the type of the token and returns a string
+ * representation of it. If the token is an operator, it returns
+ * the corresponding operator string.
+ * Returns NULL if the token type does not match any known operator.
+ */
+
 static char	*return_token_type(t_token *t_type)
 {
 	if (t_type->next && is_token_operator(t_type->type)
@@ -30,6 +40,18 @@ static char	*return_token_type(t_token *t_type)
 		return (" '>'\n");
 	return (NULL);
 }
+
+/**
+ * add_token_error - Adds a syntax error token to the list of tokens
+ * @tokens: Pointer to the list of tokens
+ * @error: The token that caused the error
+ * @str: The error message string
+ * This function creates a new token of type
+ *  ERROR with the provided error message.
+ * It appends the token type to the error 
+ * message if it is not a newline syntax error.
+ * Returns 0 on success, -1 on failure (memory allocation error).
+ */
 
 int	add_token_error(t_token **tokens, t_token *error, char *str)
 {
@@ -55,6 +77,14 @@ int	add_token_error(t_token **tokens, t_token *error, char *str)
 	return (0);
 }
 
+/**
+ * is_token_operator - Checks if the token type is an operator
+ * @token_type: The type of the token to check
+ *
+ * This function checks if the given token type is one of the operator types.
+ * Returns 1 if it is an operator, 0 otherwise.
+ */
+
 int	is_token_operator(t_token_type token_type)
 {
 	if (token_type == REDIR_IN
@@ -63,6 +93,16 @@ int	is_token_operator(t_token_type token_type)
 		return (1);
 	return (0);
 }
+
+/**
+ * is_operator_follow - Checks if the current token is followed by an operator
+ * @tokens: Pointer to the list of tokens
+ * @current_token: The current token to check
+ *
+ * This function checks if the current token is an operator and if it is followed
+ * by another operator. If so, it adds a syntax error to the token list.
+ * Returns 1 if an error is added, 0 otherwise.
+ */
 
 int	is_operator_follow(t_token **tokens, t_token *current_token)
 {
@@ -90,6 +130,16 @@ int	is_operator_follow(t_token **tokens, t_token *current_token)
 	}
 	return (0);
 }
+
+/**
+ * check_token_error - Checks for syntax errors in the token list
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function iterates through the tokens and checks for syntax errors.
+ * If a PIPE token is found at the beginning or if an ERROR token is found,
+ * it prints the corresponding error message and sets the global exit status.
+ * Returns 1 if an error is found, 0 otherwise.
+ */
 
 int	check_token_error(t_token **tokens)
 {

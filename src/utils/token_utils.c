@@ -12,6 +12,12 @@
 
 #include "minishell.h"
 
+/**
+ * remove_useless_token - Removes a token from the linked list
+ * @head: Pointer to the head of the token list
+ * @token: The token to remove
+ */
+
 void	remove_useless_dollars(t_token **head)
 {
 	t_token	*token;
@@ -30,6 +36,12 @@ void	remove_useless_dollars(t_token **head)
 		token = next;
 	}
 }
+
+/**
+ * remove_useless_token - Removes a token from the linked list
+ * @head: Pointer to the head of the token list
+ * @token: The token to remove
+ */
 
 void	clean_empty_tokens(t_token **head)
 {
@@ -62,6 +74,18 @@ int	is_heredoc(t_redir *redir, t_shell *data)
 	}
 	return (0);
 }
+
+/**
+ * get_redir_file - Concatenates the file name from tokens for redirection
+ * @tokens: The linked list of tokens
+ * @redir: The redirection structure to fill
+ *
+ * This function traverses the linked list of tokens and concatenates the
+ * values of WORD tokens until it encounters a token that is not a WORD.
+ * It also checks if the token is quoted outside.
+ *
+ * Returns the concatenated string or NULL on error.
+ */
 
 char	*get_redir_file(t_token *tokens, t_redir *redir)
 {

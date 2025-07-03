@@ -28,6 +28,20 @@ int	is_quote(char c)
 	return (0);
 }
 
+/**
+ * handle_in_quote - Handles the case when a quote is found in the input
+ * @start_quote: The index where the quote started
+ * @input: The input string being parsed
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens being created
+ *
+ * This function creates a new token for the quoted word 
+ * and adds it to the tokens list.
+ * It also handles whether the quote is single or double 
+ * and sets appropriate flags.
+ * Returns the updated index after processing the quote.
+ */
+
 int	handle_in_quote(int start_quote, char *input, int *i, t_token **tokens)
 {
 	t_token	*token;
@@ -52,6 +66,17 @@ int	handle_in_quote(int start_quote, char *input, int *i, t_token **tokens)
 	return (*i);
 }
 
+/**
+ * handle_in_word - Handles the case when a word is found in the input
+ * @start: The index where the word started
+ * @input: The input string being parsed
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens being created
+ * This function creates a new token for the word and adds it to the tokens list.
+ * It also sets appropriate flags for spaces before and after the word.
+ * Returns the updated index after processing the word.
+ */
+
 int	handle_double_operator(int *i, t_token **tokens,
 	t_token_type operator)
 {
@@ -68,6 +93,16 @@ int	handle_double_operator(int *i, t_token **tokens,
 	(*i) += 2;
 	return (*i);
 }
+
+/**
+ * handle_single_operator - Handles the case when a single operator is found
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens being created
+ * @operator: The type of operator found (PIPE, REDIR_IN, REDIR_OUT)
+ * This function creates a new token for the 
+ * operator and adds it to the tokens list.
+ * Returns the updated index after processing the operator.
+ */
 
 int	handle_single_operator(int *i, t_token **tokens,
 	t_token_type operator)

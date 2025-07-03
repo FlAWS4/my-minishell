@@ -12,6 +12,13 @@
 
 #include "minishell.h"
 
+/**
+ * is_token_operator - Checks if the token type is an operator
+ * @type: The type of the token to check
+ *
+ * Returns 1 if the token type is an operator, 0 otherwise.
+ */
+
 int	is_cmd(t_token *tokens)
 {
 	if (!tokens->previous)
@@ -21,6 +28,15 @@ int	is_cmd(t_token *tokens)
 	return (0);
 }
 
+/**
+ * fill_words - Fills the args array with the token value
+ * @tokens: The token to fill
+ * @args: Pointer to the args array to fill
+ *
+ * Allocates memory for the args array and copies the token value into it.
+ * Returns 0 on success, 1 on failure.
+ */
+
 int	fill_words(t_token *tokens, char **args)
 {
 	*args = ft_strdup(tokens->value);
@@ -28,6 +44,14 @@ int	fill_words(t_token *tokens, char **args)
 		return (1);
 	return (0);
 }
+
+/**
+ * is_operator - Checks if the character at index i is an operator
+ * @str: The string to check
+ * @i: The index to check
+ *
+ * Returns the token type if it is an operator, -1 otherwise.
+ */
 
 int	is_operator(char *str, int i)
 {
@@ -43,6 +67,15 @@ int	is_operator(char *str, int i)
 		return (REDIR_IN);
 	return (-1);
 }
+
+/**
+ * add_token - Adds a new token to the end of the linked list of tokens
+ * @head: Pointer to the head of the token list
+ * @new_token: The new token to add
+ *
+ * If the list is empty, sets the head to the new token.
+ * Otherwise, traverses to the end of the list and adds the new token.
+ */
 
 void	add_token(t_token **head, t_token *new_token)
 {
@@ -60,6 +93,15 @@ void	add_token(t_token **head, t_token *new_token)
 	new_token->previous = current;
 	new_token->next = NULL;
 }
+
+/**
+ * create_token - Creates a new token with the specified type and value
+ * @type: The type of the token to create
+ * @value: The value of the token to create
+ *
+ * Allocates memory for a new token, initializes its fields, and returns it.
+ * Returns NULL if memory allocation fails.
+ */
 
 t_token	*create_token(t_token_type type, char *value)
 {

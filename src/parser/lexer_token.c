@@ -12,6 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * remove_useless_token - Removes a token from the linked list of tokens
+ * @tokens: Pointer to the head of the linked list of tokens
+ * @token: The token to be removed
+ *
+ * Adjusts the pointers of the previous and next tokens to remove the specified
+ * token from the linked list. Frees the memory allocated for the token's value
+ * and the token itself.
+ */
+
 void	remove_useless_token(t_token **tokens, t_token *token)
 {
 	t_token	*previous;
@@ -57,7 +67,16 @@ static int	join_token(t_token **tokens)
 	return (0);
 }
 
-static int	join_token_bis(t_token **tokens)
+/**
+ * join_raw_words - Joins adjacent unquoted words into a single token
+ * @tokens: Pointer to the head of the linked list of tokens
+ *
+ * Iterates through the tokens and joins adjacent WORD tokens that are not
+ * separated by spaces or quotes into a single WORD token.
+ * Returns 0 on success, 1 if memory allocation fails.
+ */
+
+static int	join_raw_words(t_token **tokens)
 {
 	t_token	*token;
 	char	*str;
@@ -82,6 +101,15 @@ static int	join_token_bis(t_token **tokens)
 	}
 	return (0);
 }
+
+/**
+ * join_empty_token - Joins empty tokens with adjacent WORD tokens
+ * @tokens: Pointer to the head of the linked list of tokens
+ *
+ * Iterates through the tokens and joins empty WORD tokens (those with an empty
+ * value) with adjacent WORD tokens that are not separated by spaces or quotes.
+ * Returns 0 on success, 1 if memory allocation fails.
+ */
 
 static int	join_empty_token(t_token **tokens)
 {
@@ -109,7 +137,20 @@ static int	join_empty_token(t_token **tokens)
 	return (0);
 }
 
-int	prepare_token_str(t_shell *data)
+/**
+ *process_and_join_tokens - Processes and joins tokens in the shell data
+ * @data: Pointer to the shell data structure containing tokens
+ * * This function performs various operations on the tokens, including
+ * expanding them, removing unnecessary dollar signs,
+ * cleaning empty tokens,
+ * joining adjacent tokens,
+ * joining raw words,
+ * joining empty tokens,
+ * joining quoted strings, and joining tokens without spaces.
+ * * Returns 0 on success, or 1 if any operation fails.
+ */
+
+int	process_and_join_tokens(t_shell *data)
 {
 	t_token	**token;
 
@@ -120,7 +161,7 @@ int	prepare_token_str(t_shell *data)
 	clean_empty_tokens(token);
 	if (join_token(token))
 		return (1);
-	if (join_token_bis(token))
+	if (join_raw_words(token))
 		return (1);
 	if (join_empty_token(token))
 		return (1);

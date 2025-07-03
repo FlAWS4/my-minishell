@@ -12,6 +12,12 @@
 
 #include "minishell.h"
 
+/**
+ * update_shell_lvl - Updates the SHLVL environment variable
+ * Increments the shell level, resets to 1 if it exceeds 999,
+ * and prints a warning message if it does.
+ */
+
 void	update_shell_lvl(t_shell *shell)
 {
 	char	*current_shlvl;
@@ -59,10 +65,6 @@ void	clean_and_exit_shell(t_shell *shell, int exit_code)
 	exit(exit_code);
 }
 
-/**
- * Check if string is composed of digits only
- * Returns 1 if true, 0 if false
- */
 int	ft_str_is_numeric(const char *str)
 {
 	int	i;

@@ -12,6 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * duplicate_existing_vars - Duplicates existing environment variables
+ * @shell: Pointer to the shell context containing the environment
+ * @new_env: Array to store the duplicated environment variables
+ * @size: Number of variables to duplicate
+ *
+ * This function duplicates the existing environment variables into a new array.
+ * Returns 1 on success, 0 on failure.
+ */
+
 int	duplicate_existing_vars(t_shell *shell, char **new_env, int size)
 {
 	int	i;
@@ -31,6 +41,17 @@ int	duplicate_existing_vars(t_shell *shell, char **new_env, int size)
 	return (1);
 }
 
+/**
+ * env_error - Handles environment-related errors
+ * @msg: Error message to display
+ * @gc: Pointer to the memory manager for cleanup
+ *
+ * This function displays an error message related to the environment and
+ * releases all allocated memory if necessary.
+ *
+ * Returns: 1 to indicate an error occurred
+ */
+
 int	env_error(const char *msg, t_memory_node **gc)
 {
 	if (msg)
@@ -39,6 +60,18 @@ int	env_error(const char *msg, t_memory_node **gc)
 		release_all_memory(gc);
 	return (1);
 }
+
+/**
+ * duplicate_env_vars - Duplicates environment variables from envp to shell
+ * @envp: Array of environment variables to duplicate
+ * @shell: Pointer to the shell context containing the environment
+ *
+ * This function duplicates the environment variables from the provided envp
+ * array into the shell's environment. It handles memory management and error
+ * reporting.
+ *
+ * Returns: 1 on success, 0 on failure
+ */
 
 static int	duplicate_env_vars(char **envp, t_shell *shell)
 {
@@ -58,6 +91,18 @@ static int	duplicate_env_vars(char **envp, t_shell *shell)
 	return (1);
 }
 
+/**
+ * is_valid_identifier - Checks if a string is a valid environment variable name
+ * @str: The string to check
+ *
+ * This function checks if the provided string is a valid identifier for an
+ * environment variable. 
+ * It must start with an alphabetic character or underscore,
+ * and can only contain alphanumeric characters and underscores.
+ *
+ * Returns: 1 if valid, 0 otherwise
+ */
+
 int	is_valid_identifier(const char *str)
 {
 	int	i;
@@ -75,6 +120,17 @@ int	is_valid_identifier(const char *str)
 	}
 	return (1);
 }
+
+/**
+ * get_env - Initializes the shell's environment from envp
+ * @envp: Array of environment variables to initialize from
+ * @shell: Pointer to the shell context containing the environment
+ *
+ * This function checks if the provided envp is valid, allocates memory for the
+ * shell's environment, and duplicates the environment variables into it.
+ *
+ * Returns: Pointer to the initialized environment array, or NULL on failure
+ */
 
 char	**get_env(char **envp, t_shell *shell)
 {

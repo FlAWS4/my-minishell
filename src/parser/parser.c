@@ -12,6 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * add_command - Adds a command to the linked list of commands
+ * @cmds: Pointer to the head of the linked list of commands
+ * @cmd: The command to be added
+ *
+ * If the list is empty, it initializes the head with the new command.
+ * Otherwise, it traverses to the end of the list and adds the new command.
+ * Sets default file descriptors for input and output.
+ */
+
 static void	add_command(t_command **cmds, t_command *cmd)
 {
 	t_command	*current;
@@ -32,6 +42,15 @@ static void	add_command(t_command **cmds, t_command *cmd)
 	cmd->fd_out = STDOUT_FILENO;
 	cmd->next = NULL;
 }
+
+/**
+ * count_words - Counts the number of WORD tokens in the token list
+ * @data: Pointer to the shell data structure
+ *
+ * This function iterates through the tokens and counts how many WORD tokens
+ * are present, excluding operators and special tokens.
+ * Returns the count of WORD tokens.
+ */
 
 static int	handle_args(t_token *tokens, char **args)
 {
@@ -100,7 +119,7 @@ int	split_cmd_with_pipe(t_shell *data)
 	t_token		*token;
 	t_token		*head;
 
-	if (prepare_token_str(data))
+	if (process_and_join_tokens(data))
 		return (1);
 	head = data->tokens;
 	token = data->tokens;

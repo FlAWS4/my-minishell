@@ -12,6 +12,12 @@
 
 #include "minishell.h"
 
+/** * count_dollars - Counts the number of dollar signs in a string
+ * @args: The string to search for dollar signs
+ *
+ * Returns the count of dollar signs in the string.
+ */
+
 int	find_equal(char *str)
 {
 	int	i;
@@ -27,6 +33,12 @@ int	find_equal(char *str)
 	}
 	return (-1);
 }
+
+/** count_dollars - Counts the number of dollar signs in a string
+ * @args: The string to search for dollar signs
+ *
+ * Returns the count of dollar signs in the string.
+ */
 
 char	*expand_value(char **env, char *dollar)
 {
@@ -55,6 +67,12 @@ char	*expand_value(char **env, char *dollar)
 	return (free_array(copy_env), free_array(copy_value), NULL);
 }
 
+/** is_whitespace - Checks if a character is a whitespace character
+ * @c: The character to check
+ *
+ * Returns 1 if the character is a whitespace character, 0 otherwise.
+ */
+
 static char	*remove_useless_space(char *str)
 {
 	char	*new_line;
@@ -81,6 +99,17 @@ static char	*remove_useless_space(char *str)
 	free(str);
 	return (new_line);
 }
+
+/** expantion - Expands the dollar signs in a token's value
+ * @data: The shell data structure containing environment variables
+ * @tokens: The token to expand
+ *
+ * If the token is not quoted and contains dollar signs, it expands the
+ * dollar signs by replacing them with their corresponding 
+ * environment variable values.
+ * Returns 1 if expansion was successful, 0 if no dollar signs were found,
+ * or -1 if an error occurred.
+ */
 
 int	expantion(t_shell *data, t_token *tokens)
 {

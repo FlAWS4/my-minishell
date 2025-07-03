@@ -12,6 +12,20 @@
 
 #include "minishell.h"
 
+/**
+ * update_env - Updates an existing environment variable 
+ * or adds it if it doesn't exist
+ * @shell: Pointer to the shell context containing the environment
+ * @var: Name of the variable to update
+ * @new_value: New value to set for the variable
+ *
+ * This function searches for an existing environment 
+ * variable by name and updates
+ * its value. If the variable does not exist, it adds a new variable 
+ * with the given name
+ * and value.
+ */
+
 void	update_env(t_shell *shell, char *var, char *new_value)
 {
 	int		i;
@@ -39,6 +53,17 @@ void	update_env(t_shell *shell, char *var, char *new_value)
 	shell->env = add_env_var(shell, new_var);
 }
 
+/**
+ * add_to_env - Adds a new variable to the shell's environment
+ * @shell: Pointer to the shell context containing the environment
+ * @new_var: New variable to add in the format "VAR=VALUE"
+ *
+ * This function allocates memory for a new environment variable and adds it to
+ * the shell's environment. It handles memory management and error reporting.
+ *
+ * Returns: 0 on success, 1 on failure
+ */
+
 int	add_to_env(t_shell *shell, char *new_var)
 {
 	char	**new_env;
@@ -61,6 +86,16 @@ int	add_to_env(t_shell *shell, char *new_var)
 	shell->env = new_env;
 	return (0);
 }
+/**
+ * duplicate_env - Duplicates the current environment variables into a new array
+ * @shell: Pointer to the shell context containing the environment
+ * @new_size: Size of the new environment array to allocate
+ *
+ * This function allocates memory for a new environment array and copies
+ * existing environment variables into it, up to the specified size.
+ *
+ * Returns: Pointer to the new environment array, or NULL on failure
+ */
 
 static char	**duplicate_env(t_shell *shell, int new_size)
 {
@@ -83,6 +118,21 @@ static char	**duplicate_env(t_shell *shell, int new_size)
 	return (new_env);
 }
 
+/**
+ * add_new_var - Adds a new variable to the new environment array
+ * @shell: Pointer to the shell context containing the environment
+ * @new_env: New environment array to which the variable will be added
+ * @new_var: New variable to add in the format "VAR=VALUE"
+ * @pos: Position in the new environment array where the variable will be added
+ *
+ * This function duplicates the new variable and
+ *  adds it to the specified position
+ * in the new environment array. It handles memory
+ * management and error reporting.
+ *
+ * Returns: 1 on success, 0 on failure
+ */
+
 static int	add_new_var(t_shell *shell, char **new_env, char *new_var, int pos)
 {
 	new_env[pos] = managed_string_copy(&shell->memory_manager, new_var);
@@ -95,6 +145,20 @@ static int	add_new_var(t_shell *shell, char **new_env, char *new_var, int pos)
 	new_env[pos + 1] = NULL;
 	return (1);
 }
+
+/**
+ * add_env_var - Adds a new environment variable to the shell's environment
+ * @shell: Pointer to the shell context containing the environment
+ * @new_var: New variable to add in the format "VAR=VALUE"
+ *
+ * This function allocates memory for a new 
+ * environment array, duplicates existing
+ * variables, and adds the new variable to the end of the array. 
+ * It handles memory
+ * management and error reporting.
+ *
+ * Returns: Pointer to the new environment array, or NULL on failure
+ */
 
 char	**add_env_var(t_shell *shell, char *new_var)
 {

@@ -12,6 +12,17 @@
 
 #include "minishell.h"
 
+/**
+ * init_env - Initializes the shell environment
+ * @envp: The environment variables passed to the shell
+ * @shell: Pointer to the shell context
+ *
+ * This function checks if the environment has a PATH variable.
+ * If it does, it initializes the shell's environment with the provided envp.
+ * If not, it sets a default PATH and creates a minimal environment.
+ * Returns the initialized environment or NULL on failure.
+ */
+
 char	**init_env(char **envp, t_shell *shell)
 {
 	char	**mini_env;
@@ -36,6 +47,16 @@ char	**init_env(char **envp, t_shell *shell)
 	return (shell->env);
 }
 
+/**
+ * free_tmp_env_vars - Frees temporary environment variables
+ * @tmp: Array of temporary environment variables
+ * @count: Number of variables to free
+ *
+ * This function iterates through the temporary environment variables
+ * and frees each one. It is used to 
+ * clean up after creating a minimal environment.
+ */
+
 static void	free_tmp_env_vars(char **tmp, int count)
 {
 	int	i;
@@ -47,6 +68,16 @@ static void	free_tmp_env_vars(char **tmp, int count)
 		i++;
 	}
 }
+
+/**
+ * copy_tmp_to_env - Copies temporary environment variables to the destination
+ * @dest: Destination array for the environment variables
+ * @src: Source array of temporary environment variables
+ * @count: Number of variables to copy
+ *
+ * This function copies the temporary environment variables from src to dest.
+ * It ensures that the destination array is properly terminated with NULL.
+ */
 
 static void	copy_tmp_to_env(char **dest, char **src, int count)
 {
@@ -60,6 +91,15 @@ static void	copy_tmp_to_env(char **dest, char **src, int count)
 	}
 	dest[i] = NULL;
 }
+
+/**
+ * init_minimal_env - Initializes a minimal environment with PWD, SHLVL, and _
+ * Returns a pointer to the minimal environment array or NULL on failure.
+ * This function creates a 
+ * minimal environment with the current working directory,
+ * sets the shell level to 1, and includes the path to the env command.
+ * It allocates memory for the environment variables and returns them.
+ */
 
 char	**init_minimal_env(void)
 {

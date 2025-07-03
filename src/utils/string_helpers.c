@@ -73,9 +73,6 @@ int	ft_safe_size_add(size_t a, size_t b, size_t *result)
 	return (1);
 }
 
-/**
- * Join two strings
- */
 char	*ft_strjoin(const char *s1, const char *s2)
 {
 	char	*result;

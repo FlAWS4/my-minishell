@@ -12,6 +12,14 @@
 
 #include "minishell.h"
 
+/**
+ * copy_var_value - Creates a copy of the values of environment variables
+ * @tab: Array of environment variable strings
+ *
+ * Allocates memory for a new array and copies the values of each variable
+ * from the input array. Returns NULL if allocation fails or if input is empty.
+ */
+
 char	**copy_var_value(char **tab)
 {
 	char	**copy;
@@ -39,6 +47,14 @@ char	**copy_var_value(char **tab)
 	copy[i] = NULL;
 	return (copy);
 }
+
+/**
+ * copy_var_name - Creates a copy of the names of environment variables
+ * @tab: Array of environment variable strings
+ *
+ * Allocates memory for a new array and copies the names of each variable
+ * from the input array. Returns NULL if allocation fails or if input is empty.
+ */
 
 char	**copy_var_name(char **tab)
 {
@@ -68,6 +84,14 @@ char	**copy_var_name(char **tab)
 	return (copy);
 }
 
+/**
+ * copy_name - Extracts the name of an environment variable from a string
+ * @str: The string containing the environment variable
+ *
+ * Allocates memory for the name and copies it from the input string.
+ * Returns NULL if allocation fails or if input is NULL.
+ */
+
 char	*copy_name(char *str)
 {
 	int		i;
@@ -88,6 +112,14 @@ char	*copy_name(char *str)
 		return (NULL);
 	return (env_name);
 }
+
+/**
+ * copy_value - Extracts the value of an environment variable from a string
+ * @str: The string containing the environment variable
+ *
+ * Allocates memory for the value and copies it from the input string.
+ * Returns NULL if allocation fails or if input is NULL.
+ */
 
 char	*copy_value(char *str)
 {
@@ -115,6 +147,17 @@ char	*copy_value(char *str)
 		return (NULL);
 	return (env_value);
 }
+
+/**
+ * remove_and_replace - Removes the dollar sign 
+ * and replaces it with expanded value
+ * @str: The original string containing the dollar sign
+ * @expanded: The expanded value to replace the dollar sign with
+ *
+ * Finds the first occurrence of a dollar sign in the string, removes it,
+ * and replaces it with the expanded value. 
+ * Returns a new string or NULL on failure.
+ */
 
 char	*remove_and_replace(char *str, char *expanded)
 {

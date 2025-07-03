@@ -12,9 +12,6 @@
 
 #include "minishell.h"
 
-/**
- * Duplicate a string
- */
 char	*ft_strdup(const char *s)
 {
 	char	*dest;
@@ -37,9 +34,6 @@ char	*ft_strdup(const char *s)
 	return (dest);
 }
 
-/**
- * Get string length
- */
 size_t	ft_strlen(const char *s)
 {
 	size_t	i;
@@ -51,9 +45,6 @@ size_t	ft_strlen(const char *s)
 		i++;
 	return (i);
 }
-/**
- * Copy string with size limit
- */
 
 size_t	ft_strlcpy(char *dst, const char *src, size_t size)
 {

@@ -12,27 +12,16 @@
 
 #include "minishell.h"
 
-/**
- * Check if character is alphabetic
- */
 int	ft_isalpha(int c)
 {
 	return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
 }
 
-/**
- * Check if character is a digit (0-9)
- * Returns 1 if true, 0 if false
- */
 int	ft_isdigit(int c)
 {
 	return (c >= '0' && c <= '9');
 }
 
-/**
- * Output integer to file descriptor
- * Handles negative numbers correctly
- */
 void	ft_putnbr_fd(int n, int fd)
 {
 	unsigned int	nb;

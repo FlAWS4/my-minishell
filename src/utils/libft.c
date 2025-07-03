@@ -12,10 +12,6 @@
 
 #include "minishell.h"
 
-/**
- * Output string followed by newline to file descriptor
- * Safely handles NULL strings
- */
 void	ft_putendl_fd(char *s, int fd)
 {
 	if (fd < 0)
@@ -25,10 +21,6 @@ void	ft_putendl_fd(char *s, int fd)
 	ft_putchar_fd('\n', fd);
 }
 
-/**
- * Concatenate strings with size limit
- * Returns total length of string it tried to create
- */
 size_t	ft_strlcat(char *dst, const char *src, size_t size)
 {
 	size_t	i;
@@ -53,10 +45,6 @@ size_t	ft_strlcat(char *dst, const char *src, size_t size)
 	return (d + s);
 }
 
-/**
- * Output character to file descriptor
- * Safely handles invalid file descriptors
- */
 int	ft_putchar_fd(char c, int fd)
 {
 	if (write(fd, &c, 1) == -1)
@@ -64,10 +52,6 @@ int	ft_putchar_fd(char c, int fd)
 	return (0);
 }
 
-/**
- * Display welcome banner for minishell
- * Uses ANSI color codes for better visual appearance
- */
 void	ft_display_welcome(void)
 {
 	printf("%s", BOLD_CYAN);

@@ -12,6 +12,19 @@
 
 #include "minishell.h"
 
+/** * handle_operator - Handles the operator token in the input string
+ * @input: The input string to tokenize
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function checks if the character at index i is an operator.
+ * If it is a double operator (HEREDOC or APPEND),
+ *  it calls handle_double_operator.
+ * If it is a single operator (PIPE, REDIR_OUT, or REDIR_IN),
+ *  it calls handle_single_operator.
+ * Returns the updated index after processing the operator.
+ */
+
 static int	handle_operator(char *input, int *i, t_token **tokens)
 {
 	t_token_type	operator;
@@ -24,6 +37,18 @@ static int	handle_operator(char *input, int *i, t_token **tokens)
 		return (handle_single_operator(i, tokens, operator));
 	return (*i);
 }
+
+/** * handle_in_quote - Handles the content inside quotes
+ * @start_quote: The starting index of the quote in the input string
+ * @input: The input string to tokenize
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function creates a token 
+ * for the content inside quotes and adds it to the token list.
+ * It also handles any errors related to quotes.
+ * Returns the updated index after processing the quoted content.
+ */
 
 static int	handle_quote(char *input, int *i, t_token **tokens)
 {
@@ -45,6 +70,16 @@ static int	handle_quote(char *input, int *i, t_token **tokens)
 	}
 	return (handle_in_quote(start_quote, input, i, tokens));
 }
+
+/** * handle_word - Handles a word token in the input string
+ * @input: The input string to tokenize
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function creates a token for a word and adds it to the token list.
+ * It also checks for whitespace before and after the word.
+ * Returns the updated index after processing the word.
+ */
 
 static int	handle_word(char *input, int *i, t_token **tokens)
 {
@@ -72,6 +107,18 @@ static int	handle_word(char *input, int *i, t_token **tokens)
 	return (add_token(tokens, token), *i);
 }
 
+/** * handle_string - Handles a string in the input
+ * @input: The input string to tokenize
+ * @i: Pointer to the current index in the input string
+ * @tokens: Pointer to the list of tokens
+ *
+ * This function checks if the current character is a quote or an operator.
+ * If it is a quote, it calls handle_quote. 
+ * If it is an operator, it calls handle_operator.
+ * Otherwise, it calls handle_word to create a word token.
+ * Returns the updated index after processing the string.
+ */
+
 static int	handle_string(char *input, int *i, t_token **tokens)
 {
 	if (is_quote(input[*i]))
@@ -94,6 +141,15 @@ static int	handle_string(char *input, int *i, t_token **tokens)
 	}
 	return (*i);
 }
+
+/** * tokenize_input - Tokenizes the input string into a linked list of tokens
+ * @input: The input string to tokenize
+ *
+ * This function iterates through the input string, skipping whitespace,
+ * and creates tokens for words, operators, and quotes.
+ * It returns a linked list of tokens, ending with an EOF token.
+ * Returns NULL if memory allocation fails or if the input is NULL.
+ */
 
 t_token	*tokenize_input(char *input)
 {
