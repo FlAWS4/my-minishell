@@ -86,7 +86,8 @@ void	handle_pipe_child(t_shell *shell, t_command *cmd, int input_fd,
 	if (process_command_redirections(cmd, shell) == -1)
 		clean_and_exit_shell(shell, EXIT_FAILURE);
 	apply_command_redirections(cmd);
-	if (!cmd->args || !cmd->args[0] || !is_fd_writable(STDOUT_FILENO, cmd->args[0]))
+	if (!cmd->args || !cmd->args[0] || \
+		!is_fd_writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (is_builtin(cmd))
 	{

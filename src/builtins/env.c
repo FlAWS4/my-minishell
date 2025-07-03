@@ -74,7 +74,7 @@ void	sort_env_for_export(char **env_copy)
 
 	i = 0;
 	if (!env_copy || !env_copy[0] || !env_copy[1])
-        return;
+		return ;
 	while (env_copy[i + 1])
 	{
 		j = 0;

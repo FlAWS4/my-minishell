@@ -52,33 +52,33 @@ int	add_variable(char **result, char *value, int start, int end)
 	return (i);
 }
 
-int check_variable(t_shell *data, char **result, char *value, int *i)
+int	check_variable(t_shell *data, char **result, char *value, int *i)
 {
-    char    *var;
-    char    *expanded;
-    int     res;
+	char	*var;
+	char	*expanded;
+	int		res;
 
-    var = extract_variable(value, i);
-    if (!var)
-        return (-1);
-    if (var[1] == '\0')
-        res = add_text(result, "$");
-    else if (var[1] && (var[1] == '?' || ft_isdigit(var[1])))
-        res = expand_exit_status(result, var);
-    else if (is_env_variable(data, var))
-    {
-        expanded = expand_value(data->env, var);
-        if (!expanded)
-            return (free(var), -1);
-        res = add_text(result, expanded);
-        free(expanded);
-    }
-    else if (ft_strcmp(var + 1, "PATH") == 0 && data->default_path 
-		&& !data->path_was_unset)
-        	res = add_text(result, data->default_path);
-    else
-        res = 0;
-    return (free(var), res);
+	var = extract_variable(value, i);
+	if (!var)
+		return (-1);
+	if (var[1] == '\0')
+		res = add_text(result, "$");
+	else if (var[1] && (var[1] == '?' || ft_isdigit(var[1])))
+		res = expand_exit_status(result, var);
+	else if (is_env_variable(data, var))
+	{
+		expanded = expand_value(data->env, var);
+		if (!expanded)
+			return (free(var), -1);
+		res = add_text(result, expanded);
+		free(expanded);
+	}
+	else if (ft_strcmp(var + 1, "PATH") == 0 && \
+	data->default_path && !data->path_was_unset)
+		res = add_text(result, data->default_path);
+	else
+		res = 0;
+	return (free(var), res);
 }
 
 static int	is_valid_string(char *str, int len)

@@ -47,7 +47,8 @@ void	validate_command_exists(t_shell *shell, t_command *cmd)
 static char	*validate_executable_path(t_shell *shell, char *cmd_path)
 {
 	if (access(cmd_path, F_OK) != 0)
-		display_error_and_exit(shell, cmd_path, "No such file or directory\n", 127);
+		display_error_and_exit(shell, cmd_path, \
+			"No such file or directory\n", 127);
 	if (access(cmd_path, X_OK) != 0)
 		display_error_and_exit(shell, cmd_path, "Permission denied", 126);
 	return (cmd_path);
@@ -132,7 +133,8 @@ char	*get_command_path(t_shell *shell, t_command *cmd)
 
 	validate_command_exists(shell, cmd);
 	apply_command_redirections(cmd);
-	if (!cmd->args || !cmd->args[0] || !is_fd_writable(STDOUT_FILENO, cmd->args[0]))
+	if (!cmd->args || !cmd->args[0] || \
+		!is_fd_writable(STDOUT_FILENO, cmd->args[0]))
 		clean_and_exit_shell(shell, 1);
 	if (ft_strchr(cmd->args[0], '/'))
 		executable_path = validate_executable_path(shell, cmd->args[0]);

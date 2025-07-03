@@ -18,26 +18,25 @@
  */
 int	builtin_pwd(t_shell *shell)
 {
-    char	*cwd;
-    char	*env_pwd;
+	char	*cwd;
+	char	*env_pwd;
 
-    env_pwd = get_env_value(shell, "PWD");
-    if (env_pwd)
-    {
-        ft_putendl_fd(env_pwd, STDOUT_FILENO);
-        g_exit_status = 0;
-        return (0);
-    }
-
-    cwd = getcwd(NULL, 0);
-    if (!cwd)
-    {
-        error("pwd", NULL, strerror(errno));
-        g_exit_status = 1;
-        return (1);
-    }
-    ft_putendl_fd(cwd, STDOUT_FILENO);
-    free(cwd);
-    g_exit_status = 0;
-    return (0);
+	env_pwd = get_env_value(shell, "PWD");
+	if (env_pwd)
+	{
+		ft_putendl_fd(env_pwd, STDOUT_FILENO);
+		g_exit_status = 0;
+		return (0);
+	}
+	cwd = getcwd(NULL, 0);
+	if (!cwd)
+	{
+		error("pwd", NULL, strerror(errno));
+		g_exit_status = 1;
+		return (1);
+	}
+	ft_putendl_fd(cwd, STDOUT_FILENO);
+	free(cwd);
+	g_exit_status = 0;
+	return (0);
 }

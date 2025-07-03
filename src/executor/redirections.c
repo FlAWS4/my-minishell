@@ -87,8 +87,7 @@ int	open_redirection_target(t_redir *redir, t_command *cmd)
 		return (0);
 	}
 	if (!redir->file_or_del || !*redir->file_or_del)
-		return(error(NULL, "", "No such file or directory\n"), -1);
-
+		return (error(NULL, "", "No such file or directory\n"), -1);
 	if (redir->type == REDIR_IN)
 		return (open_file_for_input(redir->file_or_del));
 	else if (redir->type == REDIR_OUT)
