@@ -13,6 +13,18 @@
 #include "minishell.h"
 
 /**
+ * print_shlvl_warning - Prints warning when shell level is too high
+ * @shlvl: The current shell level value
+ */
+static void	print_shlvl_warning(int shlvl)
+{
+	ft_putstr_fd(BOLD_YELLOW "minishell: warning: shell level (", \
+		STDERR_FILENO);
+	ft_putnbr_fd(shlvl, STDERR_FILENO);
+	ft_putstr_fd(") too high, resetting to 1\n" RESET, STDERR_FILENO);
+}
+
+/**
  * update_shell_lvl - Updates the SHLVL environment variable
  * Increments the shell level, resets to 1 if it exceeds 999,
  * and prints a warning message if it does.
@@ -36,9 +48,7 @@ void	update_shell_lvl(t_shell *shell)
 	}
 	if (shlvl > 999)
 	{
-		ft_putstr_fd("minishell: warning: shell level (", STDERR_FILENO);
-		ft_putnbr_fd(shlvl, STDERR_FILENO);
-		ft_putstr_fd(") too high, resetting to 1\n", STDERR_FILENO);
+		print_shlvl_warning(shlvl);
 		shlvl = 1;
 	}
 	new_shlvl = gc_itoa(&shell->memory_manager, shlvl);
@@ -63,22 +73,6 @@ void	clean_and_exit_shell(t_shell *shell, int exit_code)
 		free_command(&shell->commands);
 	cleanup_shell_file_descriptors(shell);
 	exit(exit_code);
-}
-
-int	ft_str_is_numeric(const char *str)
-{
-	int	i;
-
-	if (!str || !*str)
-		return (0);
-	i = 0;
-	while (str[i])
-	{
-		if (!ft_isdigit(str[i]))
-			return (0);
-		i++;
-	}
-	return (1);
 }
 
 int	ft_strncmp(const char *s1, const char *s2, size_t n)

@@ -56,19 +56,19 @@
 # define BOLD_MAGENTA "\033[1;35m"
 # define RESET "\033[0m"
 
-# define ERROR_MALLOC    "minishell: error: memory allocation failed\n"
-# define ERROR_ARGS      "minishell: error: no arguments allowed\n"
-# define ERROR_QUOTES    "minishell: syntax error: unclosed quote\n"
-# define ERROR_ENV_INIT  "minishell: error: failed to initialize environment\n"
-# define ERROR_TOKENIZE  "minishell: error: failed to create token list\n"
-# define ERROR_SYNTAX    "minishell: syntax error near unexpected token"
-# define ERROR_SYNTAX_NL "minishell: syntax error near \
-unexpected token 'newline'\n"
+# define ERROR_MALLOC "minishell: error: memory allocation failed\n"
+# define ERROR_ARGS "minishell: error: no arguments allowed\n"
+# define ERROR_QUOTES "minishell: syntax error: unclosed quote\n"
+# define ERROR_ENV_INIT "minishell: error: failed to initialize environment\n"
+# define ERROR_TOKENIZE "minishell: error: failed to create token list\n"
+# define ERROR_SYNTAX "minishell: syntax error near unexpected token"
+# define ERROR_SYNTAX_NL "minishell: syntax error near unexpected token \
+'newline'\n"
 # define ERROR_SYNTAX_PIPE "minishell: syntax error near unexpected token '|'"
-# define ERROR_HEREDOC_EOF "minishell: warning: here-document delimited by \
-end-of-file (wanted `"
+# define ERROR_HEREDOC_EOF "minishell: warning: here-document delimited \
+by end-of-file (wanted `"
 # define ERROR_UNSUPPORTED "minishell: error: unsupported character\n"
-# define ERROR_IDENTIFIER  "minishell: error: not a valid identifier\n"
+# define ERROR_IDENTIFIER "minishell: error: not a valid identifier\n"
 # define MEM_ERROR_FATAL 1
 # define MEM_ERROR_RECOVERABLE 0
 # define BUFFER_SIZE 5

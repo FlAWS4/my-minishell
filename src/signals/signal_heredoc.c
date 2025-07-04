@@ -81,7 +81,10 @@ void	display_heredoc_eof_warning(char *delim)
 {
 	if (!delim)
 		return ;
-	ft_putstr_fd(ERROR_HEREDOC_EOF, 2);
-	ft_putstr_fd(delim, 2);
-	ft_putstr_fd("')\n", 2);
+	ft_putstr_fd(BOLD_YELLOW, STDERR_FILENO);
+	ft_putstr_fd(ERROR_HEREDOC_EOF, STDERR_FILENO);
+	ft_putstr_fd(delim, STDERR_FILENO);
+	ft_putstr_fd("')", STDERR_FILENO);
+	ft_putstr_fd(RESET, STDERR_FILENO);
+	ft_putchar_fd('\n', STDERR_FILENO);
 }

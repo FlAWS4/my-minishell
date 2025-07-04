@@ -22,34 +22,21 @@ void	ft_putstr_fd(const char *s, int fd)
 	write(fd, s, len);
 }
 
-/**
- * Find the first occurrence of the substring needle in the string haystack
- * Return a pointer to the beginning of the located substring,
- * or NULL if the substring is not found
- */
-char	*ft_strstr(const char *haystack, const char *needle)
+int	ft_str_is_numeric(const char *str)
 {
-	size_t	i;
-	size_t	j;
+	int	i;
 
-	if (!*needle)
-		return ((char *)haystack);
+	if (!str || !*str)
+		return (0);
 	i = 0;
-	while (haystack[i])
+	while (str[i])
 	{
-		j = 0;
-		while (haystack[i + j] && needle[j] && haystack[i + j] == needle[j])
-			j++;
-		if (!needle[j])
-			return ((char *)&haystack[i]);
+		if (!ft_isdigit(str[i]))
+			return (0);
 		i++;
 	}
-	return (NULL);
+	return (1);
 }
-/**
- * Find the first occurrence of character c in the string s
- * Return a pointer to the located character, or NULL if not found
- */
 
 char	*ft_strchr(const char *s, int c)
 {

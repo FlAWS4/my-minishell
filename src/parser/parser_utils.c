@@ -148,14 +148,19 @@ int	check_token_error(t_token **tokens)
 	token = *tokens;
 	if (token->type == PIPE)
 	{
-		ft_putstr_fd(ERROR_SYNTAX_PIPE, 2);
+		ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+		ft_putstr_fd(ERROR_SYNTAX_PIPE, STDERR_FILENO);
+		ft_putstr_fd(RESET, STDERR_FILENO);
+		ft_putchar_fd('\n', STDERR_FILENO);
 		return (1);
 	}
 	while (token)
 	{
 		if (token->type == ERROR)
 		{
-			ft_putstr_fd(token->value, 2);
+			ft_putstr_fd(BOLD_RED, STDERR_FILENO);
+			ft_putstr_fd(token->value, STDERR_FILENO);
+			ft_putstr_fd(RESET, STDERR_FILENO);
 			g_exit_status = 2;
 			return (1);
 		}
