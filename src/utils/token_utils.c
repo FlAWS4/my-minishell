@@ -118,7 +118,24 @@ char	*get_redir_file(t_token *tokens, t_redir *redir)
 
 int	is_shell_command(char *cmd)
 {
+	char	*basename;
+	int		i;
+
 	if (!cmd)
 		return (0);
-	return (!ft_strcmp(cmd, "./minishell"));
+	basename = cmd;
+	i = 0;
+	while (cmd[i])
+	{
+		if (cmd[i] == '/')
+			basename = cmd + i + 1;
+		i++;
+	}
+	return (!ft_strcmp(basename, "minishell") || \
+		!ft_strcmp(basename, "bash") || \
+		!ft_strcmp(basename, "sh") || \
+		!ft_strcmp(basename, "zsh") || \
+		!ft_strcmp(basename, "csh") || \
+		!ft_strcmp(basename, "tcsh") || \
+		!ft_strcmp(basename, "fish"));
 }

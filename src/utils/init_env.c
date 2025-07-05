@@ -31,6 +31,8 @@ char	**init_env(char **envp, t_shell *shell)
 	{
 		shell->default_path = NULL;
 		shell->env = get_env(envp, shell);
+		if (shell->env)
+			update_shell_lvl(shell);
 		return (shell->env);
 	}
 	shell->default_path = ft_strdup("/usr/local/bin:/usr/bin:/bin");
@@ -44,6 +46,7 @@ char	**init_env(char **envp, t_shell *shell)
 	free_array(mini_env);
 	if (!shell->env)
 		return (NULL);
+	update_shell_lvl(shell);
 	return (shell->env);
 }
 
@@ -103,7 +106,7 @@ static void	copy_tmp_to_env(char **dest, char **src, int count)
 
 char	**init_minimal_env(void)
 {
-	char	*tmp[3];
+	char	*tmp[2];
 	char	*cwd;
 	char	**mini_env;
 
@@ -111,14 +114,13 @@ char	**init_minimal_env(void)
 	if (!cwd)
 		return (NULL);
 	tmp[0] = ft_strjoin("PWD=", cwd);
-	tmp[1] = ft_strdup("SHLVL=1");
-	tmp[2] = ft_strdup("_=/usr/bin/env");
+	tmp[1] = ft_strdup("_=/usr/bin/env");
 	free(cwd);
-	if (!tmp[0] || !tmp[1] || !tmp[2])
-		return (free_tmp_env_vars(tmp, 3), NULL);
-	mini_env = malloc(4 * sizeof(char *));
+	if (!tmp[0] || !tmp[1])
+		return (free_tmp_env_vars(tmp, 2), NULL);
+	mini_env = malloc(3 * sizeof(char *));
 	if (!mini_env)
-		return (free_tmp_env_vars(tmp, 3), NULL);
-	copy_tmp_to_env(mini_env, tmp, 3);
+		return (free_tmp_env_vars(tmp, 2), NULL);
+	copy_tmp_to_env(mini_env, tmp, 2);
 	return (mini_env);
 }

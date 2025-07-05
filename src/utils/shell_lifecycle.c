@@ -37,15 +37,15 @@ void	update_shell_lvl(t_shell *shell)
 	char	*new_shlvl;
 
 	current_shlvl = get_env_value(shell, "SHLVL");
-	shlvl = 1;
 	if (current_shlvl)
 	{
 		shlvl = ft_atoi(current_shlvl);
 		if (shlvl < 0)
 			shlvl = 0;
-		else
-			shlvl++;
+		shlvl++;
 	}
+	else
+		shlvl = 1;
 	if (shlvl > 999)
 	{
 		print_shlvl_warning(shlvl);

@@ -74,6 +74,8 @@ static void	print_single_export_line(const char *var)
 {
 	const char	*equal_sign = ft_strchr(var, '=');
 
+	if (var[0] == '_' && (var[1] == '=' || var[1] == '\0'))
+		return ;
 	ft_putstr_fd("export ", STDOUT_FILENO);
 	if (equal_sign && *(equal_sign + 1) != '\0')
 	{

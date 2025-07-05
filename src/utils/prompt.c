@@ -30,20 +30,23 @@ char	*build_prompt_segment(char *user, char *dir_display)
 	char	*temp;
 
 	if (g_exit_status == 0)
-		prompt = ft_strjoin(BOLD_GREEN "[", user);
+		prompt = ft_strjoin("\001" BOLD_GREEN "\002[", user);
 	else
-		prompt = ft_strjoin(BOLD_RED "[", user);
+		prompt = ft_strjoin("\001" BOLD_RED "\002[", user);
 	temp = prompt;
 	prompt = ft_strjoin(prompt, "@minishell ");
 	free(temp);
 	temp = prompt;
-	prompt = ft_strjoin(prompt, BOLD_BLUE);
+	prompt = ft_strjoin(prompt, "\001" BOLD_BLUE "\002");
 	free(temp);
 	temp = prompt;
 	prompt = ft_strjoin(prompt, dir_display);
 	free(temp);
 	temp = prompt;
-	prompt = ft_strjoin(prompt, RESET BOLD_GREEN "] $ " RESET);
+	prompt = ft_strjoin(prompt, "\001" RESET BOLD_GREEN "\002] $ \001" RESET);
+	free(temp);
+	temp = prompt;
+	prompt = ft_strjoin(prompt, "\002");
 	free(temp);
 	return (prompt);
 }
